@@ -1,7 +1,7 @@
 const admin = require("firebase-admin");
 const db = require("../config/db");
 
-// Inicializar Firebase Admin (solo una vez)
+// Inicializar Firebase Admin (una vez)
 if (!admin.apps.length) {
   const serviceAccount = require("/etc/secrets/firebase-service-account.json");
   admin.initializeApp({
@@ -9,6 +9,7 @@ if (!admin.apps.length) {
   });
 }
 
+// Middleware de autenticación
 const authMiddleware = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
@@ -19,29 +20,29 @@ const authMiddleware = async (req, res, next) => {
   const token = authHeader.split(" ")[1];
 
   try {
-    // Verifica token Firebase
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    const firebaseUid = decodedToken.uid;
+    // 1. Verifica el token de Firebase
+    const decoded = await admin.auth().verifyIdToken(token);
+    const firebaseUid = decoded.uid;
 
-    // Busca el id interno y estado en tu base
+    // 2. Busca al usuario en la base de datos interna
     const sqlUser = "SELECT id, estado FROM users WHERE uid = ? LIMIT 1";
     db.query(sqlUser, [firebaseUid], (err, userResults) => {
       if (err) return res.status(500).json({ error: "Error al verificar usuario" });
-      if (userResults.length === 0) return res.status(403).json({ error: "Usuario no registrado" });
+      if (userResults.length === 0) return res.status(403).json({ error: "Usuario no registrado en DB" });
 
       const { id, estado } = userResults[0];
 
-      // Busca el rol
+      // 3. Obtiene el rol del usuario
       const sqlRol = "SELECT nombre_rol AS rol FROM roles WHERE user_id = ? LIMIT 1";
       db.query(sqlRol, [id], (err2, rolResults) => {
-        if (err2) return res.status(500).json({ error: "Error al verificar rol" });
+        if (err2) return res.status(500).json({ error: "Error al obtener rol" });
         if (rolResults.length === 0) return res.status(403).json({ error: "Rol no asignado" });
 
-        // Guarda el usuario autenticado en req.user
         req.user = {
           id,
-          rol: rolResults[0].rol,
           estado,
+          rol: rolResults[0].rol,
+          uid: firebaseUid
         };
 
         console.log("🛡️ Usuario autenticado:", req.user);
@@ -49,15 +50,15 @@ const authMiddleware = async (req, res, next) => {
       });
     });
   } catch (error) {
-    console.error("❌ Token inválido o expirado:", error);
+    console.error("❌ Token inválido o expirado:", error.message);
     return res.status(403).json({ error: "Token inválido o expirado" });
   }
 };
 
-const roleMiddleware = (allowedRoles) => {
+const roleMiddleware = (rolesPermitidos) => {
   return (req, res, next) => {
-    const userRole = req.user?.rol;
-    if (!userRole || !allowedRoles.includes(userRole)) {
+    const rolUsuario = req.user?.rol;
+    if (!rolUsuario || !rolesPermitidos.includes(rolUsuario)) {
       return res.status(403).json({ error: "No tienes permisos suficientes" });
     }
     next();

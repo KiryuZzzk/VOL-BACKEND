@@ -129,45 +129,28 @@ exports.registerUser = (req, res) => {
 
 
 // Validar usuario con token Firebase y UID, devolver info interna
-exports.validarUsuario = async (req, res) => {
-  const token = req.headers.authorization?.split("Bearer ")[1];
-  const firebaseUid = req.headers["x-firebase-uid"];
 
-  if (!token || !firebaseUid) {
-    return res.status(400).json({ error: "Faltan headers: token o UID" });
-  }
+exports.validarUsuario = (req, res) => {
+  const { id, estado, rol } = req.user;
 
-  try {
-    // Verifica el token de Firebase
-    const decoded = await admin.auth().verifyIdToken(token);
-    if (decoded.uid !== firebaseUid) {
-      return res.status(401).json({ error: "UID no coincide con token" });
+  const sql = `
+    SELECT u.id, u.nombre, u.apellido_pat, u.apellido_mat, r.nombre_rol AS rol, u.estado
+    FROM users u
+    JOIN roles r ON r.user_id = u.id
+    WHERE u.id = ?
+    LIMIT 1
+  `;
+
+  db.query(sql, [id], (err, results) => {
+    if (err) {
+      console.error("❌ Error en BD:", err.message);
+      return res.status(500).json({ error: "Error al obtener datos del usuario" });
     }
 
-    // Busca al usuario en la base interna
-    const sql = `
-      SELECT u.id, u.nombre, u.apellido_pat, u.apellido_mat, r.nombre_rol AS rol, u.estado
-      FROM users u
-      JOIN roles r ON r.user_id = u.id
-      WHERE u.uid = ?
-      LIMIT 1
-    `;
+    if (results.length === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
 
-    db.query(sql, [firebaseUid], (err, results) => {
-      if (err) {
-        console.error("❌ Error en BD:", err.message);
-        return res.status(500).json({ error: "Error en base de datos" });
-      }
-
-      if (results.length === 0) {
-        return res.status(404).json({ error: "Usuario no encontrado en base interna" });
-      }
-
-      res.json(results[0]);
-    });
-
-  } catch (err) {
-    console.error("❌ Error verificando token:", err.message);
-    return res.status(401).json({ error: "Token inválido o expirado" });
-  }
+    res.json(results[0]);
+  });
 };
