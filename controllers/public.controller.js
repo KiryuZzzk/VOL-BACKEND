@@ -1,5 +1,7 @@
+const admin = require("firebase-admin");
 const db = require("../config/db");
 
+// Registro de usuario (ya lo tenías)
 exports.registerUser = (req, res) => {
   const {
     uid,
@@ -123,4 +125,49 @@ exports.registerUser = (req, res) => {
       });
     });
   });
+};
+
+
+// Validar usuario con token Firebase y UID, devolver info interna
+exports.validarUsuario = async (req, res) => {
+  const token = req.headers.authorization?.split("Bearer ")[1];
+  const firebaseUid = req.headers["x-firebase-uid"];
+
+  if (!token || !firebaseUid) {
+    return res.status(400).json({ error: "Faltan headers: token o UID" });
+  }
+
+  try {
+    // Verifica el token de Firebase
+    const decoded = await admin.auth().verifyIdToken(token);
+    if (decoded.uid !== firebaseUid) {
+      return res.status(401).json({ error: "UID no coincide con token" });
+    }
+
+    // Busca al usuario en la base interna
+    const sql = `
+      SELECT u.id, u.nombre, u.apellido_pat, u.apellido_mat, r.nombre_rol AS rol, u.estado
+      FROM users u
+      JOIN roles r ON r.user_id = u.id
+      WHERE u.uid = ?
+      LIMIT 1
+    `;
+
+    db.query(sql, [firebaseUid], (err, results) => {
+      if (err) {
+        console.error("❌ Error en BD:", err.message);
+        return res.status(500).json({ error: "Error en base de datos" });
+      }
+
+      if (results.length === 0) {
+        return res.status(404).json({ error: "Usuario no encontrado en base interna" });
+      }
+
+      res.json(results[0]);
+    });
+
+  } catch (err) {
+    console.error("❌ Error verificando token:", err.message);
+    return res.status(401).json({ error: "Token inválido o expirado" });
+  }
 };
