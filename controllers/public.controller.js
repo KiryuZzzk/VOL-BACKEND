@@ -98,10 +98,10 @@ exports.registerUser = (req, res) => {
   ];
 
   db.query(sqlInsertUser, paramsUser, (err, results) => {
-    if (err) {
-      console.error("❌ Error en registro:", err.message);
-      return res.status(500).json({ error: "Error al registrar usuario" });
-    }
+if (err) {
+  console.error("❌ Error en registro:", err);
+  return res.status(500).json({ error: err.message || "Error al registrar usuario" });
+}
 
     // El stored procedure devuelve en results[0][0] el id y matricula
     const newUserId = results[0][0]?.id;
