@@ -3,47 +3,50 @@ const db = require("../config/db");
 
 // Registro de usuario (ya lo tenías)
 exports.registerUser = (req, res) => {
+  const data = req.body;
+
+  // Extraer campos desde camelCase
   const {
     uid,
     correo,
     nombre,
-    apellido_pat,
-    apellido_mat,
-    fecha_nacimiento,
+    apellidoPat,
+    apellidoMat,
+    fechaNacimiento,
     curp,
     sexo,
-    estado_civil,
+    estadoCivil,
     telefono,
     celular,
-    emergencia_nombre,
-    emergencia_relacion,
-    emergencia_telefono,
-    emergencia_celular,
-    grado_estudios,
-    especifica_estudios,
+    emergenciaNombre,
+    emergenciaRelacion,
+    emergenciaTelefono,
+    emergenciaCelular,
+    gradoEstudios,
+    especificaEstudios,
     ocupacion,
     empresa,
     idiomas,
-    porcentaje_idioma,
+    porcentajeIdioma,
     licencias,
-    tipo_licencia,
+    tipoLicencia,
     pasaporte,
-    otro_documento,
-    tipo_sangre,
+    otroDocumento,
+    tipoSangre,
     rh,
     enfermedades,
     alergias,
     medicamentos,
     ejercicio,
-    como_se_entero,
-    motivo_interes,
-    voluntariado_previo,
-    razon_proyecto,
+    comoSeEntero,
+    motivoInteres,
+    voluntariadoPrevio,
+    razonProyecto,
     estado,
     colonia,
-    codigo_postal,
+    cp, // Código postal
     coordinacion
-  } = req.body;
+  } = data;
 
   if (!uid || !correo || !curp) {
     return res.status(400).json({ error: "Faltan campos obligatorios (uid, correo, curp)" });
@@ -59,57 +62,55 @@ exports.registerUser = (req, res) => {
     uid,
     correo,
     nombre || null,
-    apellido_pat || null,
-    apellido_mat || null,
-    fecha_nacimiento || null,
+    apellidoPat || null,
+    apellidoMat || null,
+    fechaNacimiento || null,
     curp,
     sexo || null,
-    estado_civil || null,
+    estadoCivil || null,
     telefono || null,
     celular || null,
-    emergencia_nombre || null,
-    emergencia_relacion || null,
-    emergencia_telefono || null,
-    emergencia_celular || null,
-    grado_estudios || null,
-    especifica_estudios || null,
+    emergenciaNombre || null,
+    emergenciaRelacion || null,
+    emergenciaTelefono || null,
+    emergenciaCelular || null,
+    gradoEstudios || null,
+    especificaEstudios || null,
     ocupacion || null,
     empresa || null,
     idiomas || null,
-    porcentaje_idioma || null,
+    porcentajeIdioma || null,
     licencias || null,
-    tipo_licencia || null,
+    tipoLicencia || null,
     pasaporte || null,
-    otro_documento || null,
-    tipo_sangre || null,
+    otroDocumento || null,
+    tipoSangre || null,
     rh || null,
     enfermedades || null,
     alergias || null,
     medicamentos || null,
     ejercicio || null,
-    como_se_entero || null,
-    motivo_interes || null,
-    voluntariado_previo || null,
-    razon_proyecto || null,
+    comoSeEntero || null,
+    motivoInteres || null,
+    voluntariadoPrevio || null,
+    razonProyecto || null,
     estado || null,
     colonia || null,
-    codigo_postal || null,
+    cp || null,
     coordinacion || null
   ];
 
   db.query(sqlInsertUser, paramsUser, (err, results) => {
-if (err) {
-  console.error("❌ Error en registro:", err);
-  return res.status(500).json({ error: err.message || "Error al registrar usuario" });
-}
+    if (err) {
+      console.error("❌ Error en registro:", err);
+      return res.status(500).json({ error: err.message || "Error al registrar usuario" });
+    }
 
-    // El stored procedure devuelve en results[0][0] el id y matricula
     const newUserId = results[0][0]?.id;
     if (!newUserId) {
       return res.status(500).json({ error: "No se pudo obtener el ID del nuevo usuario" });
     }
 
-    // Ahora llamamos al procedimiento para insertar el rol por defecto
     const sqlInsertRole = `CALL insertar_rol_por_defecto(?)`;
 
     db.query(sqlInsertRole, [newUserId], (err2) => {
@@ -118,7 +119,6 @@ if (err) {
         return res.status(500).json({ error: "Usuario creado pero fallo al asignar rol" });
       }
 
-      // Todo salió bien
       res.status(201).json({
         message: "Usuario registrado correctamente con rol aspirante",
         usuario: results[0][0]
