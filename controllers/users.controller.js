@@ -1,4 +1,5 @@
-const db = require("../config/db");
+const getDB = require("../config/db");
+const db = getDB(); // ← ahora pides la conexión activa
 
 // Obtener todos los usuarios (solo admin/moderador)
 // Moderador solo ve usuarios de su estado, admin ve todo

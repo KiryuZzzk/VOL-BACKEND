@@ -1,5 +1,6 @@
 const admin = require("firebase-admin");
-const db = require("../config/db");
+const getDB = require("../config/db");
+const db = getDB(); // ← ahora pides la conexión activa
 
 // Registro de usuario (ya lo tenías)
 exports.registerUser = (req, res) => {

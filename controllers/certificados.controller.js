@@ -1,4 +1,5 @@
-const db = require("../config/db");
+const getDB = require("../config/db");
+const db = getDB(); // ← ahora pides la conexión activa
 const { v4: uuidv4 } = require("uuid");
 
 // 🔥 Obtener todos los certificados (admin: todos, moderador: solo de su estado)
