@@ -48,7 +48,6 @@ const db = mysql.createConnection({
   // keepAlive ayuda a mantener la conexión viva
   // pero mysql2 no tiene opción directa para keepAlive, así que manejamos reconexión abajo
 });
-});
 
 db.connect((err) => {
   if (err) {
