@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 5000;
 const corsOptions = {
   origin: [
     "http://localhost:3000", // 👩‍💻 Localhost para desarrollo
-    "https://tudominio.com"  // 🌐 Tu dominio de producción (ajústalo cuando lo tengas)
+    "https://soyvoluntario.cruzrojamexicana.org.mx"  // 🌐 Tu dominio de producción (ajústalo cuando lo tengas)
   ],
   methods: "GET,POST,PUT,DELETE,OPTIONS",
   allowedHeaders: [
