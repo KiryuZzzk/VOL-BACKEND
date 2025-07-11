@@ -42,6 +42,12 @@ const db = mysql.createConnection({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: process.env.DB_PORT,
+    // Opciones para evitar que la conexión muera
+  connectTimeout: 10000,          // 10 segundos timeout
+  multipleStatements: true,       // por si usas varios statements
+  // keepAlive ayuda a mantener la conexión viva
+  // pero mysql2 no tiene opción directa para keepAlive, así que manejamos reconexión abajo
+});
 });
 
 db.connect((err) => {
