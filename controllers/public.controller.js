@@ -132,7 +132,7 @@ exports.registerUser = (req, res) => {
 
 exports.validarUsuario = (req, res) => {
   const { id, estado, rol } = req.user;
-
+console.log("📩 req.user en validarUsuario:", req.user);
   const sql = `
     SELECT u.id, u.nombre, u.apellido_pat, u.apellido_mat, r.nombre_rol AS rol, u.estado
     FROM users u
