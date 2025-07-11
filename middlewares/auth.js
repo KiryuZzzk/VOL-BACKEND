@@ -1,5 +1,6 @@
 const admin = require("firebase-admin");
-const db = require("../config/db");
+const getDB = require("../config/db");
+const db = getDB(); // ← ahora pides la conexión activa
 
 // Inicializar Firebase Admin (una vez)
 if (!admin.apps.length) {
