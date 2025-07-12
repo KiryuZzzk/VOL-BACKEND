@@ -1,39 +1,40 @@
 require("dotenv").config();
 const mysql = require("mysql2");
 
-// 🌀 Pool de conexiones
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT || 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+let db;
 
-// 🧠 Log de estado del pool
-pool.getConnection((err, connection) => {
-  if (err) {
-    switch (err.code) {
-      case "PROTOCOL_CONNECTION_LOST":
-        console.error("🔌 Conexión con la base de datos fue cerrada.");
-        break;
-      case "ER_CON_COUNT_ERROR":
-        console.error("⚠️ Demasiadas conexiones a la base de datos.");
-        break;
-      case "ECONNREFUSED":
-        console.error("⛔ Conexión a la base de datos rechazada.");
-        break;
-      default:
-        console.error("❌ Error desconocido en conexión DB:", err.message);
+function handleDisconnect() {
+  db = mysql.createConnection({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
+  });
+
+  db.connect((err) => {
+    if (err) {
+      console.error("❌ Error al conectar a MySQL:", err.message);
+      setTimeout(handleDisconnect, 2000);
+    } else {
+      console.log("✅ Conectado a MySQL");
     }
-  } else {
-    console.log("✅ Conexión a MySQL pool establecida.");
-    if (connection) connection.release();
-  }
-});
+  });
 
-// 🧪 Exportar el pool como promesa
-module.exports = pool.promise();
+  db.on("error", (err) => {
+    console.error("⚠️ Error en conexión MySQL:", err.code || err.message);
+    if (err.code === "PROTOCOL_CONNECTION_LOST" || err.code === "ECONNRESET") {
+      console.log("🔁 Reconectando...");
+      handleDisconnect();
+    } else {
+      throw err;
+    }
+  });
+}
+
+handleDisconnect();
+
+// 👇 ¡Este es el truco! Exportar la función que retorna db.
+module.exports = function getDB() {
+  return db;
+};
