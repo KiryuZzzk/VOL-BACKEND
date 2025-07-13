@@ -1,5 +1,4 @@
-const getDB = require("../config/db");
-const db = getDB(); // ← ahora pides la conexión activa
+const db = require("../config/db");
 
 // Obtener todas las disponibilidades (admin: todas, moderador: solo su estado)
 exports.getAll = (req, res) => {
