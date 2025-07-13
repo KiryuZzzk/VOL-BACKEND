@@ -22,7 +22,7 @@ const authMiddleware = async (req, res, next) => {
   const token = authHeader.split(" ")[1];
 
   try {
-    // ✅ Verifica el token con Firebase
+    // Verifica el token con Firebase
     const decoded = await admin.auth().verifyIdToken(token);
     console.log("✅ Token verificado con Firebase:", {
       uid: decoded.uid,
@@ -32,7 +32,7 @@ const authMiddleware = async (req, res, next) => {
 
     const uid = decoded.uid;
 
-    // 🔎 Consulta si el UID está en la BD
+    // Consulta si el UID está en la BD
     const [userResults] = await db.query(
       "SELECT id, estado FROM users WHERE uid = ? LIMIT 1",
       [uid]
@@ -46,7 +46,7 @@ const authMiddleware = async (req, res, next) => {
     const { id, estado } = userResults[0];
     console.log("📇 Usuario encontrado en BD:", { id, estado });
 
-    // 🔎 Consulta el rol
+    // Consulta el rol
     const [rolResults] = await db.query(
       "SELECT nombre_rol AS rol FROM roles WHERE user_id = ? LIMIT 1",
       [id]
@@ -59,7 +59,7 @@ const authMiddleware = async (req, res, next) => {
 
     const rol = rolResults[0].rol;
 
-    // ✅ Todo correcto, se añade info al request
+    // Todo correcto, se añade info al request
     req.user = {
       id,
       estado,

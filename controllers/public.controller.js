@@ -1,6 +1,6 @@
 // controllers/public.controller.js
 const admin = require("firebase-admin");
-const db = require("../config/db");
+const db = require("../config/db"); // pool directo, no getDB()
 
 exports.registerUser = async (req, res) => {
   const data = req.body;
