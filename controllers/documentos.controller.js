@@ -1,107 +1,72 @@
 const db = require("../config/db");
+const admin = require("firebase-admin");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
-exports.guardarDocumentos = async (req, res) => {
-  const { uid } = req.user; // viene del token autenticado
-  const {
-    curp_url,
-    acta_nacimiento_url,
-    ine_url,
-    cv_url,
-    nss_url,
-    constancia_url,
-    foto_url,
-    certificado_medico_url,
-    sobre_mi,
-  } = req.body;
+// Verifica el token Firebase
+const verificarToken = async (req) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    throw new Error("No autorizado: token no proporcionado.");
+  }
 
-  if (!uid) return res.status(400).json({ error: "UID faltante" });
+  const token = authHeader.split(" ")[1];
+  const decodedToken = await admin.auth().verifyIdToken(token);
+  return decodedToken.uid;
+};
 
+// Subida de archivo a carpeta local o bucket (modificable)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadPath = "uploads/documentos";
+    fs.mkdirSync(uploadPath, { recursive: true });
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${file.originalname}`;
+    cb(null, uniqueName);
+  },
+});
+const upload = multer({ storage });
+
+// Controlador para subir documento
+const subirDocumento = async (req, res) => {
   try {
-    const [existe] = await db.query(
-      "SELECT id FROM documentos_usuario WHERE user_id = ?",
-      [uid]
-    );
+    const uid = await verificarToken(req);
+    const { nombre, descripcion, tipo, categoria, fecha } = req.body;
+    const archivo = req.file;
 
-    if (existe.length > 0) {
-      // Actualiza documento existente
-      await db.query(
-        `UPDATE documentos_usuario SET
-          curp_url = ?, acta_nacimiento_url = ?, ine_url = ?, cv_url = ?,
-          nss_url = ?, constancia_url = ?, foto_url = ?, certificado_medico_url = ?,
-          sobre_mi = ?, ultima_actualizacion = CURRENT_TIMESTAMP
-         WHERE user_id = ?`,
-        [
-          curp_url, acta_nacimiento_url, ine_url, cv_url,
-          nss_url, constancia_url, foto_url, certificado_medico_url,
-          sobre_mi, uid
-        ]
-      );
-    } else {
-      // Inserta nuevo registro
-      await db.query(
-        `INSERT INTO documentos_usuario (
-          id, user_id,
-          curp_url, acta_nacimiento_url, ine_url, cv_url,
-          nss_url, constancia_url, foto_url, certificado_medico_url, sobre_mi
-        ) VALUES (
-          UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-        )`,
-        [
-          uid,
-          curp_url, acta_nacimiento_url, ine_url, cv_url,
-          nss_url, constancia_url, foto_url, certificado_medico_url, sobre_mi
-        ]
-      );
+    if (!archivo) {
+      return res.status(400).json({ error: "Archivo no recibido" });
     }
 
-    res.status(200).json({ message: "Documentos guardados correctamente" });
+    // Guarda info en la DB
+    const [resultado] = await db.query(
+      `INSERT INTO documentos (uid, nombre, descripcion, tipo, categoria, fecha, nombre_archivo, ruta_archivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        uid,
+        nombre,
+        descripcion,
+        tipo,
+        categoria,
+        fecha,
+        archivo.originalname,
+        archivo.path,
+      ]
+    );
+
+    res.status(201).json({
+      mensaje: "Documento guardado correctamente",
+      documentoId: resultado.insertId,
+    });
   } catch (error) {
-    console.error("❌ Error al guardar documentos:", error);
-    res.status(500).json({ error: "Error al guardar documentos" });
+    console.error("❌ Error en subirDocumento:", error.message);
+    res.status(401).json({ error: error.message });
   }
 };
 
-exports.obtenerDocumentosPorUserId = async (req, res) => {
-  const { userId } = req.params;
-  const { rol, estado, uid } = req.user; // datos del token
-
-  try {
-    // Aspirante solo accede a sus propios documentos
-    if (rol === "aspirante" && userId !== uid) {
-      return res.status(403).json({ error: "No tienes permiso para ver estos documentos" });
-    }
-
-    // Moderador solo puede ver usuarios de su estado
-    if (rol === "moderador") {
-      const [userEstadoResult] = await db.query(
-        "SELECT estado FROM users WHERE uid = ? LIMIT 1",
-        [userId]
-      );
-
-      if (userEstadoResult.length === 0) {
-        return res.status(404).json({ error: "Usuario no encontrado" });
-      }
-
-      const userEstado = userEstadoResult[0].estado;
-      if (userEstado !== estado) {
-        return res.status(403).json({ error: "No tienes permiso para ver documentos fuera de tu estado" });
-      }
-    }
-
-    // Admin puede ver todo
-
-    const [resultado] = await db.query(
-      "SELECT * FROM documentos_usuario WHERE user_id = ? LIMIT 1",
-      [userId]
-    );
-
-    if (resultado.length === 0) {
-      return res.status(404).json({ error: "No se encontraron documentos para este usuario" });
-    }
-
-    res.json(resultado[0]);
-  } catch (error) {
-    console.error("❌ Error al obtener documentos:", error);
-    res.status(500).json({ error: "Error al obtener documentos del usuario" });
-  }
+module.exports = {
+  upload,
+  subirDocumento,
 };
