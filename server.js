@@ -47,7 +47,7 @@ app.use("/users", usersRoutes);
 app.use("/certificados", certificadosRoutes);
 app.use("/disponibilidad", disponibilidadRoutes);
 app.use("/public", publicRoutes);
-app.use("/api/documentos", documentosRoutes);
+app.use("/documentos", documentosRoutes);
 
 // Ruta raíz
 app.get("/", (req, res) => {
