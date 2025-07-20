@@ -1,8 +1,5 @@
 const db = require("../config/db");
 const admin = require("firebase-admin");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
 
 // Verifica el token Firebase
 const verificarToken = async (req) => {
@@ -16,48 +13,25 @@ const verificarToken = async (req) => {
   return decodedToken.uid;
 };
 
-// Subida de archivo a carpeta local o bucket (modificable)
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = "uploads/documentos";
-    fs.mkdirSync(uploadPath, { recursive: true });
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${file.originalname}`;
-    cb(null, uniqueName);
-  },
-});
-const upload = multer({ storage });
-
-// Controlador para subir documento
+// Controlador para guardar la URL del documento y sus metadatos
 const subirDocumento = async (req, res) => {
   try {
     const uid = await verificarToken(req);
-    const { nombre, descripcion, tipo, categoria, fecha } = req.body;
-    const archivo = req.file;
+    const { nombre, descripcion, tipo, categoria, fecha, url } = req.body;
 
-    if (!archivo) {
-      return res.status(400).json({ error: "Archivo no recibido" });
+    if (!url || !nombre || !tipo) {
+      return res.status(400).json({ error: "Faltan campos obligatorios (url, nombre, tipo)." });
     }
 
-    // Guarda info en la DB
     const [resultado] = await db.query(
-      `INSERT INTO documentos (uid, nombre, descripcion, tipo, categoria, fecha, nombre_archivo, ruta_archivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        uid,
-        nombre,
-        descripcion,
-        tipo,
-        categoria,
-        fecha,
-        archivo.originalname,
-        archivo.path,
-      ]
+      `INSERT INTO documentos (
+        uid, nombre, descripcion, tipo, categoria, fecha, url
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [uid, nombre, descripcion, tipo, categoria, fecha, url]
     );
 
     res.status(201).json({
-      mensaje: "Documento guardado correctamente",
+      mensaje: "Documento registrado correctamente",
       documentoId: resultado.insertId,
     });
   } catch (error) {
@@ -67,6 +41,5 @@ const subirDocumento = async (req, res) => {
 };
 
 module.exports = {
-  upload,
   subirDocumento,
 };
