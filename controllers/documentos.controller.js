@@ -13,33 +13,62 @@ const verificarToken = async (req) => {
   return decodedToken.uid;
 };
 
-// Controlador para guardar la URL del documento y sus metadatos
-const subirDocumento = async (req, res) => {
+const tiposDocumentos = [
+  "curp",
+  "acta_nacimiento",
+  "ine",
+  "cv",
+  "nss",
+  "constancia",
+  "foto",
+  "certificado_medico"
+];
+
+// Nuevo controlador que guarda múltiples documentos
+const guardarDocumentos = async (req, res) => {
   try {
     const uid = await verificarToken(req);
-    const { nombre, descripcion, tipo, categoria, fecha, url } = req.body;
+    const { sobre_mi, ...rest } = req.body;
 
-    if (!url || !nombre || !tipo) {
-      return res.status(400).json({ error: "Faltan campos obligatorios (url, nombre, tipo)." });
+    const documentosAGuardar = tiposDocumentos
+      .filter((key) => rest[`${key}_url`])
+      .map((key) => ({
+        uid,
+        nombre: key.toUpperCase(),
+        descripcion: sobre_mi || null,
+        tipo: "documento", // puedes ajustar si quieres pdf, imagen, etc.
+        categoria: "personal", // también puedes hacerlo dinámico si gustas
+        fecha: new Date(), // o puedes tomarla del frontend
+        url: rest[`${key}_url`]
+      }));
+
+    if (documentosAGuardar.length === 0) {
+      return res.status(400).json({ error: "No se enviaron documentos válidos." });
     }
 
-    const [resultado] = await db.query(
-      `INSERT INTO documentos (
-        uid, nombre, descripcion, tipo, categoria, fecha, url
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [uid, nombre, descripcion, tipo, categoria, fecha, url]
+    const valores = documentosAGuardar.map((doc) => [
+      doc.uid,
+      doc.nombre,
+      doc.descripcion,
+      doc.tipo,
+      doc.categoria,
+      doc.fecha,
+      doc.url
+    ]);
+
+    await db.query(
+      `INSERT INTO documentos (uid, nombre, descripcion, tipo, categoria, fecha, url) VALUES ?`,
+      [valores]
     );
 
-    res.status(201).json({
-      mensaje: "Documento registrado correctamente",
-      documentoId: resultado.insertId,
-    });
+    res.status(201).json({ mensaje: "Documentos guardados exitosamente." });
+
   } catch (error) {
-    console.error("❌ Error en subirDocumento:", error.message);
-    res.status(401).json({ error: error.message });
+    console.error("❌ Error al guardar documentos:", error.message);
+    res.status(500).json({ error: "Error interno al guardar documentos." });
   }
 };
 
 module.exports = {
-  subirDocumento,
+  guardarDocumentos
 };
