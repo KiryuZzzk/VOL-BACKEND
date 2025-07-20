@@ -24,21 +24,29 @@ const tiposDocumentos = [
   "certificado_medico"
 ];
 
-// Nuevo controlador que guarda múltiples documentos
+// Obtener id interno de usuario desde uid Firebase
+const getUserIdInterno = async (uid) => {
+  const [results] = await db.query("SELECT id FROM users WHERE uid = ?", [uid]);
+  if (results.length === 0) throw new Error("Usuario no encontrado en DB");
+  return results[0].id; // id interno (numérico o UUID)
+};
+
 const guardarDocumentos = async (req, res) => {
   try {
-    const uid = await verificarToken(req);
+    const uidFirebase = await verificarToken(req);
+    const userIdInterno = await getUserIdInterno(uidFirebase);
+
     const { sobre_mi, ...rest } = req.body;
 
     const documentosAGuardar = tiposDocumentos
       .filter((key) => rest[`${key}_url`])
       .map((key) => ({
-        uid,
+        uid: userIdInterno,  // aquí pones el id interno, no el uid firebase
         nombre: key.toUpperCase(),
         descripcion: sobre_mi || null,
-        tipo: "documento", // puedes ajustar si quieres pdf, imagen, etc.
-        categoria: "personal", // también puedes hacerlo dinámico si gustas
-        fecha: new Date(), // o puedes tomarla del frontend
+        tipo: "documento",
+        categoria: "personal",
+        fecha: new Date(),
         url: rest[`${key}_url`]
       }));
 
