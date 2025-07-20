@@ -1,7 +1,7 @@
 const db = require("../config/db");
 
 exports.guardarDocumentos = async (req, res) => {
-  const { uid } = req.user; // viene del token
+  const { uid } = req.user; // viene del token autenticado
   const {
     curp_url,
     acta_nacimiento_url,
@@ -23,7 +23,7 @@ exports.guardarDocumentos = async (req, res) => {
     );
 
     if (existe.length > 0) {
-      // Update
+      // Actualiza documento existente
       await db.query(
         `UPDATE documentos_usuario SET
           curp_url = ?, acta_nacimiento_url = ?, ine_url = ?, cv_url = ?,
@@ -37,7 +37,7 @@ exports.guardarDocumentos = async (req, res) => {
         ]
       );
     } else {
-      // Insert
+      // Inserta nuevo registro
       await db.query(
         `INSERT INTO documentos_usuario (
           id, user_id,
@@ -63,8 +63,33 @@ exports.guardarDocumentos = async (req, res) => {
 
 exports.obtenerDocumentosPorUserId = async (req, res) => {
   const { userId } = req.params;
+  const { rol, estado, uid } = req.user; // datos del token
 
   try {
+    // Aspirante solo accede a sus propios documentos
+    if (rol === "aspirante" && userId !== uid) {
+      return res.status(403).json({ error: "No tienes permiso para ver estos documentos" });
+    }
+
+    // Moderador solo puede ver usuarios de su estado
+    if (rol === "moderador") {
+      const [userEstadoResult] = await db.query(
+        "SELECT estado FROM users WHERE uid = ? LIMIT 1",
+        [userId]
+      );
+
+      if (userEstadoResult.length === 0) {
+        return res.status(404).json({ error: "Usuario no encontrado" });
+      }
+
+      const userEstado = userEstadoResult[0].estado;
+      if (userEstado !== estado) {
+        return res.status(403).json({ error: "No tienes permiso para ver documentos fuera de tu estado" });
+      }
+    }
+
+    // Admin puede ver todo
+
     const [resultado] = await db.query(
       "SELECT * FROM documentos_usuario WHERE user_id = ? LIMIT 1",
       [userId]
