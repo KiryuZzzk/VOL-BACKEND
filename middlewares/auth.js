@@ -12,7 +12,8 @@ if (!admin.apps.length) {
 
 // Middleware de autenticación
 const authMiddleware = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
+const authHeader = req.headers.authorization || req.headers.Authorization;
+
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     console.warn("⛔ No se encontró el token Bearer en la cabecera");
