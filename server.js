@@ -41,7 +41,7 @@ const usersRoutes = require("./routes/users.routes");
 const certificadosRoutes = require("./routes/certificados.routes");
 const disponibilidadRoutes = require("./routes/disponibilidad.routes");
 const publicRoutes = require("./routes/public.routes");
-const documentosRoutes = require("./routes/documentos.route");
+const documentosRoutes = require("./routes/documentos.routes");
 
 app.use("/users", usersRoutes);
 app.use("/certificados", certificadosRoutes);
