@@ -36,60 +36,121 @@ const getUserIdInterno = async (uid) => {
 };
 
 const guardarDocumentos = async (req, res) => {
-  console.log("📥 Entrando a guardarDocumentos"); // 👈 LOG 5
-
   try {
     const uidFirebase = await verificarToken(req);
     const userIdInterno = await getUserIdInterno(uidFirebase);
 
-    console.log("📦 Body recibido:", req.body); // 👈 LOG 6
+    const {
+      sobre_mi,
+      curp_url,
+      acta_nacimiento_url,
+      ine_url,
+      cv_url,
+      nss_url,
+      constancia_url,
+      foto_url,
+      certificado_medico_url,
+    } = req.body;
 
-    const { sobre_mi, ...rest } = req.body;
-
-    const documentosAGuardar = tiposDocumentos
-      .filter((key) => rest[`${key}_url`])
-      .map((key) => ({
-        uid: userIdInterno,
-        nombre: key.toUpperCase(),
-        descripcion: sobre_mi || null,
-        tipo: "documento",
-        categoria: "personal",
-        fecha: new Date(),
-        url: rest[`${key}_url`]
-      }));
-
-    console.log("🧾 Documentos que se van a guardar:", documentosAGuardar); // 👈 LOG 7
-
-    if (documentosAGuardar.length === 0) {
-      console.warn("⚠️ No se enviaron documentos válidos.");
-      return res.status(400).json({ error: "No se enviaron documentos válidos." });
+    // Validar que al menos venga un documento
+    if (
+      !curp_url &&
+      !acta_nacimiento_url &&
+      !ine_url &&
+      !cv_url &&
+      !nss_url &&
+      !constancia_url &&
+      !foto_url &&
+      !certificado_medico_url &&
+      !sobre_mi
+    ) {
+      return res.status(400).json({ error: "No se enviaron documentos o datos." });
     }
 
-    const valores = documentosAGuardar.map((doc) => [
-      doc.uid,
-      doc.nombre,
-      doc.descripcion,
-      doc.tipo,
-      doc.categoria,
-      doc.fecha,
-      doc.url
-    ]);
+    // Campos para INSERT
+    const insertCampos = [
+      "user_id",
+      "curp_url",
+      "acta_nacimiento_url",
+      "ine_url",
+      "cv_url",
+      "nss_url",
+      "constancia_url",
+      "foto_url",
+      "certificado_medico_url",
+      "sobre_mi",
+    ];
 
-    console.log("📤 Insertando en DB:", valores); // 👈 LOG 8
+    const insertValores = [
+      userIdInterno,
+      curp_url || null,
+      acta_nacimiento_url || null,
+      ine_url || null,
+      cv_url || null,
+      nss_url || null,
+      constancia_url || null,
+      foto_url || null,
+      certificado_medico_url || null,
+      sobre_mi || null,
+    ];
 
-    await db.query(
-      `INSERT INTO documentos (uid, nombre, descripcion, tipo, categoria, fecha, url) VALUES ?`,
-      [valores]
-    );
+    // Para UPDATE solo actualizamos los campos que sí vienen
+    const updateCampos = [];
+    const updateValores = [];
+
+    if (curp_url) {
+      updateCampos.push("curp_url = ?");
+      updateValores.push(curp_url);
+    }
+    if (acta_nacimiento_url) {
+      updateCampos.push("acta_nacimiento_url = ?");
+      updateValores.push(acta_nacimiento_url);
+    }
+    if (ine_url) {
+      updateCampos.push("ine_url = ?");
+      updateValores.push(ine_url);
+    }
+    if (cv_url) {
+      updateCampos.push("cv_url = ?");
+      updateValores.push(cv_url);
+    }
+    if (nss_url) {
+      updateCampos.push("nss_url = ?");
+      updateValores.push(nss_url);
+    }
+    if (constancia_url) {
+      updateCampos.push("constancia_url = ?");
+      updateValores.push(constancia_url);
+    }
+    if (foto_url) {
+      updateCampos.push("foto_url = ?");
+      updateValores.push(foto_url);
+    }
+    if (certificado_medico_url) {
+      updateCampos.push("certificado_medico_url = ?");
+      updateValores.push(certificado_medico_url);
+    }
+    if (typeof sobre_mi === "string") {
+      updateCampos.push("sobre_mi = ?");
+      updateValores.push(sobre_mi);
+    }
+
+    updateCampos.push("ultima_actualizacion = CURRENT_TIMESTAMP");
+
+    // Query completa
+    const sql = `
+      INSERT INTO documentos (${insertCampos.join(", ")})
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+      ${updateCampos.join(", ")}
+    `;
+
+    await db.query(sql, [...insertValores, ...updateValores]);
 
     res.status(201).json({ mensaje: "Documentos guardados exitosamente." });
-
   } catch (error) {
-    console.error("❌ Error al guardar documentos:", error.message);
-    res.status(500).json({
-      error: "Error interno al guardar documentos.",
-      detalle: error.message
-    });
+    console.error("❌ Error al guardar documentos:", error);
+    res.status(500).json({ error: "Error interno al guardar documentos." });
   }
 };
 
