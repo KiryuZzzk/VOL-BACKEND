@@ -1,5 +1,6 @@
 const db = require("../config/db");
 const admin = require("firebase-admin");
+const { v4: uuidv4 } = require("uuid");
 
 // Verifica el token Firebase
 const verificarToken = async (req) => {
@@ -52,7 +53,7 @@ const guardarDocumentos = async (req, res) => {
       certificado_medico_url,
     } = req.body;
 
-    // Validar que al menos venga un documento
+    // Validar que al menos venga un documento o sobre_mi
     if (
       !curp_url &&
       !acta_nacimiento_url &&
@@ -67,8 +68,12 @@ const guardarDocumentos = async (req, res) => {
       return res.status(400).json({ error: "No se enviaron documentos o datos." });
     }
 
-    // Campos para INSERT
+    // Genera UUID para id
+    const idDocumento = uuidv4();
+
+    // Campos para INSERT incluyendo id
     const insertCampos = [
+      "id",
       "user_id",
       "curp_url",
       "acta_nacimiento_url",
@@ -82,6 +87,7 @@ const guardarDocumentos = async (req, res) => {
     ];
 
     const insertValores = [
+      idDocumento,
       userIdInterno,
       curp_url || null,
       acta_nacimiento_url || null,
@@ -137,13 +143,14 @@ const guardarDocumentos = async (req, res) => {
 
     updateCampos.push("ultima_actualizacion = CURRENT_TIMESTAMP");
 
-    // Query completa
     const sql = `
       INSERT INTO documentos (${insertCampos.join(", ")})
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
       ${updateCampos.join(", ")}
     `;
+
+    console.log("📤 Insertando en DB:", insertValores, updateValores);
 
     await db.query(sql, [...insertValores, ...updateValores]);
 
