@@ -8,7 +8,8 @@ const app = express();
 const corsOptions = {
   origin: [
     "http://localhost:3000",
-    "https://soyvoluntario.cruzrojamexicana.org.mx"
+    "https://soyvoluntario.cruzrojamexicana.org.mx",
+     "https://vol-frontend.onrender.com"
   ],
   methods: "GET,POST,PUT,DELETE,OPTIONS",
   allowedHeaders: [
@@ -21,6 +22,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // ⬅️ Importante
 app.use(express.json());
 
 // 🔐 API Key opcional (si deseas bloquear algunas rutas internas)
