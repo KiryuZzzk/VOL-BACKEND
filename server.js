@@ -8,8 +8,7 @@ const app = express();
 const corsOptions = {
   origin: [
     "http://localhost:3000",
-    "https://soyvoluntario.cruzrojamexicana.org.mx",
-     "https://vol-frontend.onrender.com"
+    "https://soyvoluntario.cruzrojamexicana.org.mx"
   ],
   methods: "GET,POST,PUT,DELETE,OPTIONS",
   allowedHeaders: [
@@ -22,7 +21,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // ⬅️ Importante
 app.use(express.json());
 
 // 🔐 API Key opcional (si deseas bloquear algunas rutas internas)
@@ -38,7 +36,18 @@ const authApiKey = (req, res, next) => {
 // 🧠 Base de datos (no necesitas conectarte manualmente con pool)
 const db = require("./config/db");
 
+// 📦 Rutas
+const usersRoutes = require("./routes/users.routes");
+const certificadosRoutes = require("./routes/certificados.routes");
+const disponibilidadRoutes = require("./routes/disponibilidad.routes");
+const publicRoutes = require("./routes/public.routes");
+const documentosRoutes = require("./routes/documentos.routes");
 
+app.use("/users", usersRoutes);
+app.use("/certificados", certificadosRoutes);
+app.use("/disponibilidad", disponibilidadRoutes);
+app.use("/public", publicRoutes);
+app.use("/documentos", documentosRoutes);
 
 // Ruta raíz
 app.get("/", (req, res) => {
