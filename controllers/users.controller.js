@@ -1,37 +1,41 @@
 const db = require("../config/db");
 
-// Obtener todos los usuarios (solo admin/moderador)
 exports.getAll = async (req, res) => {
   const { rol, estado } = req.user;
   const { searchField, search } = req.query;
+
+  console.log("🔍 Parámetros de búsqueda recibidos:", { rol, estado, searchField, search });
 
   const validFields = ["matricula", "correo", "curp"];
   let sql = "";
   let params = [];
 
-  // Construir query base con filtro por estado para moderador
-  if (rol === "moderador") {
-    sql = `SELECT id, nombre, apellido, matricula, correo, curp, estado FROM users WHERE estado = ?`;
-    params.push(estado);
-  } else if (rol === "admin") {
-    sql = `SELECT id, nombre, apellido, matricula, correo, curp, estado FROM users WHERE 1=1`;
-  } else {
-    return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
-  }
-
-  // Si existe búsqueda y campo válido, añadimos filtro
-  if (search && validFields.includes(searchField)) {
-    sql += ` AND ${searchField} LIKE ?`;
-    params.push(`%${search}%`);
-  }
-
   try {
+    if (rol === "moderador") {
+      sql = `SELECT id, nombre, apellido, matricula, correo, curp, estado FROM users WHERE estado = ?`;
+      params.push(estado);
+    } else if (rol === "admin") {
+      sql = `SELECT id, nombre, apellido, matricula, correo, curp, estado FROM users WHERE 1=1`;
+    } else {
+      return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
+    }
+
+    if (search && search.trim() !== "" && validFields.includes(searchField)) {
+      sql += ` AND ${searchField} LIKE ?`;
+      params.push(`%${search.trim()}%`);
+    }
+
+    console.log("🛠 Ejecutando SQL:", sql);
+    console.log("📦 Con parámetros:", params);
+
     const [results] = await db.query(sql, params);
     res.json(results);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("❌ Error en getAll:", err.message);
+    res.status(500).json({ error: "Error al obtener perfiles" });
   }
 };
+
 
 // Obtener usuario por ID (admin/mod/aspirante con restricciones)
 exports.getByUserId = async (req, res) => {
