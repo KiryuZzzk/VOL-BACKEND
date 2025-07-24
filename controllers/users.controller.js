@@ -12,10 +12,10 @@ exports.getAll = async (req, res) => {
 
   try {
     if (rol === "moderador") {
-      sql = `SELECT id, nombre, apellido, matricula, correo, curp, estado FROM users WHERE estado = ?`;
+      sql = `SELECT id, nombre, apellido_pat AS apellido_paterno, apellido_mat AS apellido_materno, matricula, correo, curp, estado FROM users WHERE estado = ?`;
       params.push(estado);
     } else if (rol === "admin") {
-      sql = `SELECT id, nombre, apellido, matricula, correo, curp, estado FROM users WHERE 1=1`;
+      sql = `SELECT id, nombre, apellido_pat AS apellido_paterno, apellido_mat AS apellido_materno, matricula, correo, curp, estado FROM users WHERE 1=1`;
     } else {
       return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
     }
@@ -29,11 +29,18 @@ exports.getAll = async (req, res) => {
     console.log("📦 Con parámetros:", params);
 
     const [results] = await db.query(sql, params);
+
+    // Asegurarte que results sea un arreglo y no undefined
+    if (!Array.isArray(results)) {
+      console.error("❌ Resultado inesperado de la consulta:", results);
+      return res.status(500).json({ error: "Error interno en la consulta" });
+    }
+
     res.json(results);
-  } catch (err) {
-    console.error("❌ Error en getAll:", err.message);
-    res.status(500).json({ error: "Error al obtener perfiles" });
-  }
+} catch (err) {
+  console.error("❌ Error en getAll:", err, err.stack);
+  res.status(500).json({ error: "Error al obtener perfiles" });
+}
 };
 
 
