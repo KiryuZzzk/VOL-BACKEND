@@ -59,8 +59,12 @@ exports.getAll = async (req, res) => {
     if (rol === "moderador") {
       sql = `SELECT ${campos} FROM users WHERE estado = ?`;
       params.push(estado);
+      console.log("🏃‍♂️ Ejecutando getAll...");
+console.log("Campos a seleccionar:", campos);
     } else if (rol === "admin") {
       sql = `SELECT ${campos} FROM users WHERE 1=1`;
+      console.log("🏃‍♂️ Ejecutando getAll...");
+console.log("Campos a seleccionar:", campos);
     } else {
       return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
     }
