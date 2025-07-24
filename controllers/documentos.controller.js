@@ -160,7 +160,88 @@ const guardarDocumentos = async (req, res) => {
     res.status(500).json({ error: "Error interno al guardar documentos." });
   }
 };
+getAll = async (req, res) => {
+  const { rol, estado } = req.user;
+  const { searchField, search } = req.query;
+
+  console.log("🔍 Parámetros de búsqueda recibidos:", { rol, estado, searchField, search });
+
+  const validFields = ["matricula", "correo", "curp"];
+  let sql = "";
+  let params = [];
+
+  try {
+    const camposUsuarios = [
+      "users.nombre",
+      "users.matricula",
+      "users.correo",
+      "users.curp"
+    ];
+
+    const camposDocumentos = [
+      "documentos.curp_url",
+      "documentos.curp_aprobado",
+      "documentos.acta_nacimiento_url",
+      "documentos.acta_nacimiento_aprobado",
+      "documentos.ine_url",
+      "documentos.ine_aprobado",
+      "documentos.cv_url",
+      "documentos.cv_aprobado",
+      "documentos.nss_url",
+      "documentos.nss_aprobado",
+      "documentos.constancia_url",
+      "documentos.constancia_aprobado",
+      "documentos.foto_url",
+      "documentos.foto_aprobado",
+      "documentos.certificado_medico_url",
+      "documentos.certificado_medico_aprobado",
+      "documentos.sobre_mi",
+      "documentos.fecha_creacion",
+      "documentos.ultima_actualizacion"
+    ];
+
+    const campos = [...camposUsuarios, ...camposDocumentos].join(", ");
+
+    sql = `
+      SELECT ${campos}
+      FROM users
+      JOIN documentos ON users.id = documentos.user_id
+    `;
+
+    // Filtro por estado si es moderador
+    if (rol === "moderador") {
+      sql += " WHERE users.estado = ?";
+      params.push(estado);
+    } else if (rol !== "admin") {
+      return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
+    }
+
+    // Filtro de búsqueda
+    if (search && search.trim() !== "" && validFields.includes(searchField)) {
+      sql += rol === "moderador" ? " AND" : " WHERE";
+      sql += ` users.${searchField} LIKE ?`;
+      params.push(`%${search.trim()}%`);
+    }
+
+    console.log("🛠 Ejecutando SQL:", sql);
+    console.log("📦 Con parámetros:", params);
+
+    const [results] = await db.query(sql, params);
+
+    if (!Array.isArray(results)) {
+      console.error("❌ Resultado inesperado de la consulta:", results);
+      return res.status(500).json({ error: "Error interno en la consulta" });
+    }
+
+    res.json(results);
+  } catch (err) {
+    console.error("❌ Error en getAll:", err, err.stack);
+    res.status(500).json({ error: "Error al obtener perfiles" });
+  }
+};
+
 
 module.exports = {
-  guardarDocumentos
+  guardarDocumentos,
+  getAll
 };

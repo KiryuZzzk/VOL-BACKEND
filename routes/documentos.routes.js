@@ -6,6 +6,10 @@ const { authMiddleware, roleMiddleware } = require("../middlewares/auth");
 // Solo aspirante puede subir sus documentos
 router.post("/", authMiddleware, roleMiddleware(["aspirante"]), docsCtrl.guardarDocumentos);
 
+
+// Obtener todos los usuarios (solo admin/mod)
+router.get("/", authMiddleware, roleMiddleware(["admin", "moderador"]), docsCtrl.getAll);
+
 // Cualquiera autenticado puede obtener documentos, con seguridad interna en el controller
 //router.get("/:userId", authMiddleware, docsCtrl.obtenerDocumentosPorUserId);
 
