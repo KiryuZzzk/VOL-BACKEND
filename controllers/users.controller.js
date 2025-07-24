@@ -11,11 +11,56 @@ exports.getAll = async (req, res) => {
   let params = [];
 
   try {
+    // Selección explícita de todos los campos menos id y uid
+    const campos = [
+      "matricula",
+      "correo",
+      "nombre",
+      "apellido_pat AS apellido_paterno",
+      "apellido_mat AS apellido_materno",
+      "fecha_nacimiento",
+      "curp",
+      "sexo",
+      "estado_civil",
+      "telefono",
+      "celular",
+      "emergencia_nombre",
+      "emergencia_relacion",
+      "emergencia_telefono",
+      "emergencia_celular",
+      "grado_estudios",
+      "especifica_estudios",
+      "ocupacion",
+      "empresa",
+      "idiomas",
+      "porcentaje_idioma",
+      "licencias",
+      "tipo_licencia",
+      "pasaporte",
+      "otro_documento",
+      "tipo_sangre",
+      "rh",
+      "enfermedades",
+      "alergias",
+      "medicamentos",
+      "ejercicio",
+      "como_se_entero",
+      "motivo_interes",
+      "voluntariado_previo",
+      "razon_proyecto",
+      "estado_validacion",
+      "fecha_registro",
+      "estado",
+      "colonia",
+      "codigo_postal",
+      "coordinacion",
+    ].join(", ");
+
     if (rol === "moderador") {
-      sql = `SELECT id, nombre, apellido_pat AS apellido_paterno, apellido_mat AS apellido_materno, matricula, correo, curp, estado FROM users WHERE estado = ?`;
+      sql = `SELECT ${campos} FROM users WHERE estado = ?`;
       params.push(estado);
     } else if (rol === "admin") {
-      sql = `SELECT id, nombre, apellido_pat AS apellido_paterno, apellido_mat AS apellido_materno, matricula, correo, curp, estado FROM users WHERE 1=1`;
+      sql = `SELECT ${campos} FROM users WHERE 1=1`;
     } else {
       return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
     }
@@ -30,18 +75,18 @@ exports.getAll = async (req, res) => {
 
     const [results] = await db.query(sql, params);
 
-    // Asegurarte que results sea un arreglo y no undefined
     if (!Array.isArray(results)) {
       console.error("❌ Resultado inesperado de la consulta:", results);
       return res.status(500).json({ error: "Error interno en la consulta" });
     }
 
     res.json(results);
-} catch (err) {
-  console.error("❌ Error en getAll:", err, err.stack);
-  res.status(500).json({ error: "Error al obtener perfiles" });
-}
+  } catch (err) {
+    console.error("❌ Error en getAll:", err, err.stack);
+    res.status(500).json({ error: "Error al obtener perfiles" });
+  }
 };
+
 
 
 // Obtener usuario por ID (admin/mod/aspirante con restricciones)
