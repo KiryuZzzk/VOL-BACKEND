@@ -58,11 +58,12 @@ exports.validarUsuario = async (req, res) => {
 
   try {
     const [results] = await db.query(
-      `SELECT u.id, u.nombre, u.apellido_pat, u.apellido_mat, r.nombre_rol AS rol, u.estado
+      `SELECT 
+         u.id, u.uid, u.nombre, u.apellido_pat, u.apellido_mat, u.estado, 
+         r.id AS rol_id, r.nombre_rol 
        FROM users u
        JOIN roles r ON r.user_id = u.id
-       WHERE u.id = ?
-       LIMIT 1`,
+       WHERE u.id = ?`,
       [id]
     );
 
@@ -70,7 +71,24 @@ exports.validarUsuario = async (req, res) => {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    res.json(results[0]);
+    // Solo hay una fila, así que se puede mapear directo
+    const row = results[0];
+
+    const user = {
+      id: row.id,
+      uid: row.uid,
+      nombre: row.nombre,
+      apellido_pat: row.apellido_pat,
+      apellido_mat: row.apellido_mat,
+      estado: row.estado,
+      rol: {
+        id: row.rol_id,
+        user_id: row.id,
+        nombre_rol: row.nombre_rol
+      }
+    };
+
+    res.json(user);
   } catch (err) {
     console.error("❌ Error en BD:", err.message);
     res.status(500).json({ error: "Error al obtener datos del usuario" });
