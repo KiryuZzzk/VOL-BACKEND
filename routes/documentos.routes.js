@@ -4,7 +4,7 @@ const docsCtrl = require("../controllers/documentos.controller");
 const { authMiddleware, roleMiddleware } = require("../middlewares/auth");
 
 // Solo aspirante puede subir sus documentos
-router.post("/", authMiddleware, roleMiddleware(["aspirante"]), docsCtrl.guardarDocumentos);
+router.post("/", authMiddleware, roleMiddleware(["aspirante","admin","moderador"]), docsCtrl.guardarDocumentos);
 
 
 // Obtener todos los usuarios (solo admin/mod)
