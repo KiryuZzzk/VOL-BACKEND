@@ -10,7 +10,7 @@ const corsOptions = {
     "http://localhost:3000",
     "https://soyvoluntario.cruzrojamexicana.org.mx"
   ],
-  methods: "GET,POST,PUT,DELETE,OPTIONS",
+  methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
   allowedHeaders: [
     "Content-Type",
     "Authorization",

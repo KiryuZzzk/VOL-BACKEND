@@ -240,8 +240,38 @@ getAll = async (req, res) => {
   }
 };
 
+// En controllers/documentos.controller.js
+const actualizarEstadoDocumento = async (req, res) => {
+  try {
+    const uidFirebase = await verificarToken(req);
+    const userIdInterno = await getUserIdInterno(uidFirebase);
+
+    const { user_matricula, documento, estado } = req.body;
+
+    if (!user_matricula || !documento || typeof estado !== "boolean") {
+      return res.status(400).json({ error: "Datos incompletos" });
+    }
+
+    const campoAprobado = `${documento}_aprobado`;
+    const [usuario] = await db.query("SELECT id FROM users WHERE matricula = ?", [user_matricula]);
+    if (!usuario.length) return res.status(404).json({ error: "Usuario no encontrado" });
+
+    const sql = `
+      UPDATE documentos
+      SET ${campoAprobado} = ?, ultima_actualizacion = CURRENT_TIMESTAMP
+      WHERE user_id = ?
+    `;
+
+    await db.query(sql, [estado, usuario[0].id]);
+    res.status(200).json({ mensaje: "Estado actualizado correctamente." });
+  } catch (e) {
+    console.error("❌ Error en actualizarEstadoDocumento:", e);
+    res.status(500).json({ error: "Error al actualizar estado del documento" });
+  }
+};
 
 module.exports = {
   guardarDocumentos,
-  getAll
+  getAll,
+  actualizarEstadoDocumento,
 };

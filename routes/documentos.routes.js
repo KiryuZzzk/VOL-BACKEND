@@ -10,6 +10,9 @@ router.post("/", authMiddleware, roleMiddleware(["aspirante","admin","moderador"
 // Obtener todos los usuarios (solo admin/mod)
 router.get("/", authMiddleware, roleMiddleware(["admin", "moderador"]), docsCtrl.getAll);
 
+// En routes/documentos.routes.js
+router.patch("/estado", authMiddleware, roleMiddleware(["admin", "moderador"]), docsCtrl.actualizarEstadoDocumento);
+
 // Cualquiera autenticado puede obtener documentos, con seguridad interna en el controller
 //router.get("/:userId", authMiddleware, docsCtrl.obtenerDocumentosPorUserId);
 
