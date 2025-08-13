@@ -45,6 +45,7 @@ const authFirebase = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────
 // 2) Adjunta datos desde BD (NO bloquea)
 //    -> si existe en BD: req.dbUser, req.dbRoles (array)
+//    -> COMPAT: también llena req.user para controladores legacy
 // ─────────────────────────────────────────────────────────────
 const attachUserFromDB = async (req, res, next) => {
   try {
@@ -74,6 +75,16 @@ const attachUserFromDB = async (req, res, next) => {
     req.dbRoles = roles.map(r => r.nombre_rol);
 
     console.log("📇 Usuario en BD:", { id: user.id, estado: user.estado, roles: req.dbRoles });
+
+    // 🔁 COMPAT LEGACY: popular req.user para controladores antiguos
+    req.user = {
+      id: user.id,
+      estado: user.estado,
+      rol: req.dbRoles[0] || null,                 // primer rol como antes
+      uid: req.firebaseUser?.uid || null,
+      email: req.firebaseUser?.email || null,
+    };
+    console.log("↩️ Compat: req.user lleno para controladores legacy:", req.user);
 
     return next();
   } catch (error) {
@@ -109,26 +120,49 @@ const requireRoles = (...rolesPermitidos) => (req, res, next) => {
   return next();
 };
 
+// (Opcional) 5) Dueño del recurso o rol permitido
+const requireSelfOrRoles = (...rolesPermitidos) => (req, res, next) => {
+  const pathId = Number(req.params.userId);
+  const dbUser = req.dbUser;
+  const roles = req.dbRoles || [];
+
+  console.log("👤 requireSelfOrRoles → pathId:", pathId, " dbUser:", dbUser?.id, " roles:", roles, " req:", rolesPermitidos);
+
+  if (!dbUser?.id) {
+    console.warn("🚫 requireSelfOrRoles: no hay dbUser en request");
+    return res.status(403).json({ error: "Usuario no registrado en BD" });
+  }
+
+  if (!Number.isNaN(pathId) && pathId === Number(dbUser.id)) {
+    console.log("✅ requireSelfOrRoles: acceso concedido por ser el dueño del recurso");
+    return next();
+  }
+
+  const ok = rolesPermitidos.some(r => roles.includes(r));
+  if (ok) {
+    console.log("✅ requireSelfOrRoles: acceso concedido por rol");
+    return next();
+  }
+
+  console.warn("🚫 requireSelfOrRoles: acceso denegado. Roles del usuario:", roles, "Requeridos:", rolesPermitidos);
+  return res.status(403).json({ error: "No tienes permisos suficientes" });
+};
+
 // ─────────────────────────────────────────────────────────────
 // ⚙️ COMPATIBILIDAD RETRO
 // authMiddleware = authFirebase + attachUserFromDB + requireRegistered
 // roleMiddleware([...roles]) = requireRoles(...roles)
-// Para no romper tus rutas existentes.
 // ─────────────────────────────────────────────────────────────
-const authMiddleware = async (req, res, next) => {
-  // Ejecutamos secuencialmente con logs
-  return authFirebase(req, res, async (err1) => {
-    if (err1) return; // respuesta ya enviada
-    return attachUserFromDB(req, res, async (err2) => {
-      if (err2) return;
+const authMiddleware = (req, res, next) => {
+  // Ejecutamos en cadena; cada middleware decide si responde o llama next()
+  return authFirebase(req, res, () => {
+    return attachUserFromDB(req, res, () => {
       return requireRegistered(req, res, next);
     });
   });
 };
 
-const roleMiddleware = (rolesPermitidos = []) => {
-  return requireRoles(...rolesPermitidos);
-};
+const roleMiddleware = (rolesPermitidos = []) => requireRoles(...rolesPermitidos);
 
 module.exports = {
   // Nuevos (recomendados para rutas nuevas):
@@ -136,8 +170,9 @@ module.exports = {
   attachUserFromDB,
   requireRegistered,
   requireRoles,
+  requireSelfOrRoles, // opcional si decides usarlo
 
-  // Compatibilidad con tus rutas actuales:
+  // Compatibilidad con rutas actuales:
   authMiddleware,
   roleMiddleware,
 };
