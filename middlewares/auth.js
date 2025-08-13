@@ -5,8 +5,7 @@ const db = require("../config/db");
 // Inicializa Admin una sola vez
 if (!admin.apps.length) {
   console.log("🔐 Inicializando Firebase Admin SDK...");
-  // const serviceAccount = require("/etc/secrets/firebase-service-account.json");
-  const serviceAccount = require("/config/firebase-service-account.json");
+const serviceAccount = require("/etc/secrets/firebase-service-account.json");
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
