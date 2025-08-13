@@ -2,6 +2,9 @@
 const admin = require("firebase-admin");
 const db = require("../config/db"); // pool directo, no getDB()
 
+// ─────────────────────────────────────────────────────────────
+// Registro normal (lo dejo igual que lo tenías)
+// ─────────────────────────────────────────────────────────────
 exports.registerUser = async (req, res) => {
   const data = req.body;
 
@@ -17,6 +20,7 @@ exports.registerUser = async (req, res) => {
   } = data;
 
   if (!uid || !correo || !curp) {
+    console.warn("⛔ registerUser: faltan campos obligatorios", { uid: !!uid, correo: !!correo, curp: !!curp });
     return res.status(400).json({ error: "Faltan campos obligatorios (uid, correo, curp)" });
   }
 
@@ -37,43 +41,58 @@ exports.registerUser = async (req, res) => {
 
     const newUserId = result[0][0]?.id;
     if (!newUserId) {
+      console.error("❌ registerUser: no se pudo obtener el ID del nuevo usuario");
       return res.status(500).json({ error: "No se pudo obtener el ID del nuevo usuario" });
     }
 
     await db.query(`CALL insertar_rol_por_defecto(?)`, [newUserId]);
 
-    res.status(201).json({
+    console.log("✅ registerUser: usuario creado con id:", newUserId);
+    return res.status(201).json({
       message: "Usuario registrado correctamente con rol aspirante",
       usuario: result[0][0]
     });
 
   } catch (err) {
     console.error("❌ Error en registro:", err);
-    res.status(500).json({ error: err.message || "Error al registrar usuario" });
+    return res.status(500).json({ error: err.message || "Error al registrar usuario" });
   }
 };
 
+// ─────────────────────────────────────────────────────────────
+// Validar usuario (AHORA por UID del token; middleware: authFirebase)
+// Devuelve:
+//  - 200 con user (rol puede ser null si aún no tiene)
+//  - 404 si UID no existe en BD
+//  - 401 si el token no trae UID (mal token)
+// ─────────────────────────────────────────────────────────────
 exports.validarUsuario = async (req, res) => {
-  const { id } = req.user;
-
   try {
+    const uid = req.firebaseUser?.uid; // <-- viene de authFirebase
+    if (!uid) {
+      console.warn("⛔ validarUsuario: token sin UID");
+      return res.status(401).json({ error: "Token sin UID" });
+    }
+
+    console.log("🔎 validarUsuario: consultando por UID:", uid);
+
     const [results] = await db.query(
       `SELECT 
          u.id, u.uid, u.nombre, u.apellido_pat, u.apellido_mat, u.estado, 
-         r.id AS rol_id, r.nombre_rol 
+         r.id AS rol_id, r.nombre_rol
        FROM users u
-       JOIN roles r ON r.user_id = u.id
-       WHERE u.id = ?`,
-      [id]
+       LEFT JOIN roles r ON r.user_id = u.id
+       WHERE u.uid = ?
+       LIMIT 1`,
+      [uid]
     );
 
-    if (results.length === 0) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
+    if (!results.length) {
+      console.warn("⚠️ validarUsuario: UID válido pero NO existe en BD:", uid);
+      return res.status(404).json({ error: "Usuario no registrado en BD" });
     }
 
-    // Solo hay una fila, así que se puede mapear directo
     const row = results[0];
-
     const user = {
       id: row.id,
       uid: row.uid,
@@ -81,16 +100,20 @@ exports.validarUsuario = async (req, res) => {
       apellido_pat: row.apellido_pat,
       apellido_mat: row.apellido_mat,
       estado: row.estado,
-      rol: {
-        id: row.rol_id,
-        user_id: row.id,
-        nombre_rol: row.nombre_rol
-      }
+      rol: row.rol_id
+        ? { id: row.rol_id, user_id: row.id, nombre_rol: row.nombre_rol }
+        : null, // toleramos usuario sin rol asignado
     };
 
-    res.json(user);
+    console.log("✅ validarUsuario: usuario encontrado:", {
+      id: user.id,
+      uid: user.uid,
+      rol: user.rol?.nombre_rol || null,
+    });
+
+    return res.json(user);
   } catch (err) {
-    console.error("❌ Error en BD:", err.message);
-    res.status(500).json({ error: "Error al obtener datos del usuario" });
+    console.error("❌ validarUsuario: error en BD:", err.message);
+    return res.status(500).json({ error: "Error al obtener datos del usuario" });
   }
 };
