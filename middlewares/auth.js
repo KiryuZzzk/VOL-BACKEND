@@ -1,100 +1,133 @@
+// middlewares/auth.js
 const admin = require("firebase-admin");
 const db = require("../config/db");
 
+// Inicializa Admin una sola vez
 if (!admin.apps.length) {
   console.log("🔐 Inicializando Firebase Admin SDK...");
-  const serviceAccount = require("/etc/secrets/firebase-service-account.json");
-
+  // const serviceAccount = require("/etc/secrets/firebase-service-account.json");
+  const serviceAccount = require("/config/firebase-service-account.json");
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
 }
 
-// Middleware de autenticación
-const authMiddleware = async (req, res, next) => {
-const authHeader = req.headers.authorization || req.headers.Authorization;
-
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    console.warn("⛔ No se encontró el token Bearer en la cabecera");
-    return res.status(401).json({ error: "Falta token de autorización" });
-  }
-
-  const token = authHeader.split(" ")[1];
-
+/**
+ * 1) AUTENTICACIÓN (solo Firebase):
+ *    - Verifica el ID token.
+ *    - NO consulta la BD.
+ *    - Cuelga req.firebaseUser = { uid, email }.
+ *    - 401 si no hay token o es inválido/expirado.
+ */
+const authFirebase = async (req, res, next) => {
   try {
-    // Verifica el token con Firebase
-    const decoded = await admin.auth().verifyIdToken(token);
+    const authHeader = req.headers.authorization || req.headers.Authorization || "";
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.warn("⛔ No se encontró el token Bearer en la cabecera");
+      return res.status(401).json({ error: "Falta token de autorización" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decoded = await admin.auth().verifyIdToken(token, true); // true => respeta tokens revocados
+
+    req.firebaseUser = {
+      uid: decoded.uid,
+      email: decoded.email || null,
+    };
+
     console.log("✅ Token verificado con Firebase:", {
       uid: decoded.uid,
       email: decoded.email,
       expira: new Date(decoded.exp * 1000).toISOString(),
     });
 
-    const uid = decoded.uid;
+    return next();
+  } catch (error) {
+    console.error("❌ Error en authFirebase (verificar token):", error.message);
+    return res.status(401).json({ error: "Token inválido o expirado" });
+  }
+};
 
-    // Consulta si el UID está en la BD
-    const [userResults] = await db.query(
+/**
+ * 2) Adjunta usuario/roles desde BD (NO bloquea):
+ *    - Si existe en BD, cuelga req.dbUser y req.dbRoles (array de strings).
+ *    - Si NO existe o hay error de BD, no bloquea; sigue el flujo.
+ *    - Útil para que el controlador decida devolver 200 o 404 (p. ej. validar-usuario).
+ */
+const attachUserFromDB = async (req, res, next) => {
+  try {
+    const uid = req.firebaseUser?.uid;
+    if (!uid) {
+      console.warn("⚠️ attachUserFromDB: no hay firebaseUser.uid en el request");
+      return next();
+    }
+
+    const [users] = await db.query(
       "SELECT id, estado FROM users WHERE uid = ? LIMIT 1",
       [uid]
     );
 
-    if (userResults.length === 0) {
-      console.warn("⚠️ UID válido pero no registrado en BD:", uid);
-      return res.status(403).json({ error: "Usuario no registrado en BD" });
+    if (!users.length) {
+      console.warn("ℹ️ UID válido pero no registrado en BD:", uid);
+      return next();
     }
 
-    const { id, estado } = userResults[0];
-    console.log("📇 Usuario encontrado en BD:", { id, estado });
-
-    // Consulta el rol
-    const [rolResults] = await db.query(
-      "SELECT nombre_rol AS rol FROM roles WHERE user_id = ? LIMIT 1",
-      [id]
+    const user = users[0];
+    const [roles] = await db.query(
+      "SELECT nombre_rol FROM roles WHERE user_id = ?",
+      [user.id]
     );
 
-    if (rolResults.length === 0) {
-      console.warn("⚠️ Usuario en BD pero sin rol asignado:", id);
-      return res.status(403).json({ error: "Rol no asignado" });
-    }
+    req.dbUser = user;
+    req.dbRoles = roles.map((r) => r.nombre_rol);
 
-    const rol = rolResults[0].rol;
+    console.log("📇 Usuario encontrado en BD:", {
+      id: user.id,
+      estado: user.estado,
+      roles: req.dbRoles,
+    });
 
-    // Todo correcto, se añade info al request
-    req.user = {
-      id,
-      estado,
-      rol,
-      uid,
-    };
-
-    console.log("🛡️ Usuario autenticado:", req.user);
-    next();
-
+    return next();
   } catch (error) {
-    console.error("❌ Error al verificar token:", error.message);
-    console.error("🔍 Detalles del error:", error);
-    return res.status(403).json({ error: "Token inválido o expirado" });
+    console.error("❌ Error en attachUserFromDB:", error.message);
+    // No bloqueamos; deja que el controlador/restricciones decidan.
+    return next();
   }
 };
 
-// Middleware de roles
-const roleMiddleware = (rolesPermitidos = []) => {
-  return (req, res, next) => {
-    const rolUsuario = req.user?.rol;
-    console.log("🔐 Verificando permisos para rol:", rolUsuario);
+/**
+ * 3) AUTORIZACIÓN: exige que esté registrado en BD
+ *    - 403 si no hay req.dbUser (no existe en BD).
+ */
+const requireRegistered = (req, res, next) => {
+  if (!req.dbUser) {
+    console.warn("🚫 Acceso denegado: usuario no registrado en BD");
+    return res.status(403).json({ error: "Usuario no registrado en BD" });
+  }
+  return next();
+};
 
-    if (!rolUsuario || !rolesPermitidos.includes(rolUsuario)) {
-      console.warn("🚫 Acceso denegado para el rol:", rolUsuario);
-      return res.status(403).json({ error: "No tienes permisos suficientes" });
-    }
+/**
+ * 4) AUTORIZACIÓN: exige tener al menos uno de los rolesPermitidos
+ *    - 403 si no hay rol o no coincide.
+ */
+const requireRoles = (...rolesPermitidos) => (req, res, next) => {
+  const roles = req.dbRoles || [];
+  console.log("🔐 Verificando permisos. Roles del usuario:", roles, "→ Requiere uno de:", rolesPermitidos);
 
-    console.log("✅ Permiso concedido para rol:", rolUsuario);
-    next();
-  };
+  const ok = rolesPermitidos.some((r) => roles.includes(r));
+  if (!ok) {
+    console.warn("🚫 Acceso denegado para roles:", roles, " Requeridos:", rolesPermitidos);
+    return res.status(403).json({ error: "No tienes permisos suficientes" });
+  }
+
+  console.log("✅ Permiso concedido. Roles del usuario:", roles);
+  return next();
 };
 
 module.exports = {
-  authMiddleware,
-  roleMiddleware,
+  authFirebase,       // verificación de identidad (Firebase)
+  attachUserFromDB,   // adjunta perfil/roles si existe (no bloquea)
+  requireRegistered,  // exige estar en BD
+  requireRoles,       // exige rol(es)
 };
