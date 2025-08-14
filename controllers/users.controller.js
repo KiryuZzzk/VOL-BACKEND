@@ -92,39 +92,88 @@ console.log("Campos a seleccionar:", campos);
 };
 
 
-
 // Obtener usuario por ID (admin/mod/aspirante con restricciones)
 exports.getByUserId = async (req, res) => {
-  const requestedUserId = req.params.userId;
-  const loggedUser = req.user;
+  const requestedUserId = String(req.params.userId || "").trim();
 
-  if (!requestedUserId || typeof requestedUserId !== "string") {
+  // Compat con tu middleware nuevo
+  const requester = req.dbUser || req.user || {};
+  const roles = req.dbRoles || (req.user ? [req.user.rol] : []);
+  const hasRole = (r) => roles.includes(r);
+
+  if (!requestedUserId || isNaN(Number(requestedUserId))) {
+    console.warn("⛔ userId inválido:", requestedUserId);
     return res.status(400).json({ error: "Parámetro userId inválido" });
   }
 
+  console.log("👀 getByUserId -> solicitando:", requestedUserId, "| requester:", {
+    id: requester.id,
+    estado: requester.estado,
+    roles,
+  });
+
+  // Reglas de autorización
+  // 1) Aspirante solo puede ver su propio perfil
+  if (hasRole("aspirante") && String(requestedUserId) !== String(requester.id)) {
+    console.warn("🚫 Aspirante intentando ver perfil ajeno");
+    return res.status(403).json({ error: "No tienes permiso para ver este perfil" });
+  }
+
+  // 2) Moderador solo puede ver usuarios de su mismo estado
+  // (para esto haremos el filtro por estado debajo)
+  const restrictByEstado = hasRole("moderador") && !hasRole("admin");
+
+  // Campos completos del expediente (coinciden con lo que insertas en registerUser)
+  const FULL_COLUMNS = `
+    u.id, u.uid, u.correo,
+    u.nombre, u.apellido_pat, u.apellido_mat, u.fecha_nacimiento,
+    u.curp, u.sexo, u.estado_civil, u.telefono, u.celular,
+    u.emergencia_nombre, u.emergencia_relacion, u.emergencia_telefono, u.emergencia_celular,
+    u.grado_estudios, u.especifica_estudios, u.ocupacion, u.empresa,
+    u.idiomas, u.porcentaje_idioma, u.licencias, u.tipo_licencia, u.pasaporte, u.otro_documento,
+    u.tipo_sangre, u.rh, u.enfermedades, u.alergias, u.medicamentos, u.ejercicio,
+    u.como_se_entero, u.motivo_interes, u.voluntariado_previo, u.razon_proyecto,
+    u.estado, u.colonia, u.cp, u.coordinacion,
+    u.matricula, u.estado_validacion, u.fecha_registro,
+    r.nombre_rol
+  `;
+
+  // Query base
+  let sql = `
+    SELECT ${FULL_COLUMNS}
+    FROM users u
+    LEFT JOIN roles r ON r.user_id = u.id
+    WHERE u.id = ?
+  `;
+  const params = [requestedUserId];
+
+  // Si es moderador (no admin), restringimos por su estado
+  if (restrictByEstado) {
+    sql += " AND u.estado = ? ";
+    params.push(requester.estado);
+  }
+
   try {
-    if (loggedUser.rol === "aspirante" && requestedUserId !== loggedUser.id) {
-      return res.status(403).json({ error: "No tienes permiso para ver este perfil" });
+    const [rows] = await db.query(sql, params);
+
+    if (!rows.length) {
+      const msg = restrictByEstado
+        ? "Usuario no encontrado o fuera de tu alcance"
+        : "Usuario no encontrado";
+      console.warn("ℹ️ getByUserId vacío:", { requestedUserId, restrictByEstado });
+      return res.status(404).json({ error: msg });
     }
 
-    if (loggedUser.rol === "moderador") {
-      const sql = "SELECT nombre, apellido_pat, apellido_mat, curp, matricula, estado, telefono FROM users WHERE id = ? AND estado = ?";
-      const [results] = await db.query(sql, [requestedUserId, loggedUser.estado]);
-      if (results.length === 0) return res.status(404).json({ error: "Usuario no encontrado o fuera de tu alcance" });
-      return res.json(results[0]);
-    }
+    // Puedes devolver tal cual la fila; el front ya normaliza snake/camel y oculta uid/correo.
+    const user = rows[0];
 
-    // admin
-    const sqlAdmin = "SELECT nombre, apellido_pat, apellido_mat, curp, matricula, estado, telefono FROM users WHERE id = ?";
-    const [resultsAdmin] = await db.query(sqlAdmin, [requestedUserId]);
-    if (resultsAdmin.length === 0) return res.status(404).json({ error: "Usuario no encontrado" });
-    res.json(resultsAdmin[0]);
-
+    console.log("✅ getByUserId OK → campos devueltos:", Object.keys(user).length);
+    return res.json(user);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("❌ getByUserId error:", err.message);
+    return res.status(500).json({ error: err.message || "Error al obtener usuario" });
   }
 };
-
 // Actualizar usuario (solo el propio aspirante o admin/mod)
 exports.update = async (req, res) => {
   const targetUserId = req.params.userId;
