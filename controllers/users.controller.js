@@ -96,13 +96,13 @@ console.log("Campos a seleccionar:", campos);
 exports.getByUserId = async (req, res) => {
   const requestedUserId = String(req.params.userId || "").trim();
 
-  // Compat con tu middleware nuevo
+  // Con tu middleware nuevo:
   const requester = req.dbUser || req.user || {};
   const roles = req.dbRoles || (req.user ? [req.user.rol] : []);
   const hasRole = (r) => roles.includes(r);
 
-  if (!requestedUserId || isNaN(Number(requestedUserId))) {
-    console.warn("⛔ userId inválido:", requestedUserId);
+  if (!requestedUserId) {
+    console.warn("⛔ userId vacío");
     return res.status(400).json({ error: "Parámetro userId inválido" });
   }
 
@@ -112,7 +112,7 @@ exports.getByUserId = async (req, res) => {
     roles,
   });
 
-  // Reglas de autorización
+  // Reglas de autorización:
   // 1) Aspirante solo puede ver su propio perfil
   if (hasRole("aspirante") && String(requestedUserId) !== String(requester.id)) {
     console.warn("🚫 Aspirante intentando ver perfil ajeno");
@@ -120,10 +120,9 @@ exports.getByUserId = async (req, res) => {
   }
 
   // 2) Moderador solo puede ver usuarios de su mismo estado
-  // (para esto haremos el filtro por estado debajo)
   const restrictByEstado = hasRole("moderador") && !hasRole("admin");
 
-  // Campos completos del expediente (coinciden con lo que insertas en registerUser)
+  // Campos completos (alineados con tu SP y con snake_case reales)
   const FULL_COLUMNS = `
     u.id, u.uid, u.correo,
     u.nombre, u.apellido_pat, u.apellido_mat, u.fecha_nacimiento,
@@ -133,12 +132,12 @@ exports.getByUserId = async (req, res) => {
     u.idiomas, u.porcentaje_idioma, u.licencias, u.tipo_licencia, u.pasaporte, u.otro_documento,
     u.tipo_sangre, u.rh, u.enfermedades, u.alergias, u.medicamentos, u.ejercicio,
     u.como_se_entero, u.motivo_interes, u.voluntariado_previo, u.razon_proyecto,
-    u.estado, u.colonia, u.cp, u.coordinacion,
+    u.estado, u.colonia, u.codigo_postal AS cp, u.coordinacion,
     u.matricula, u.estado_validacion, u.fecha_registro,
     r.nombre_rol
   `;
 
-  // Query base
+  // Query base por ID (acepta numérico o UUID sin validar número)
   let sql = `
     SELECT ${FULL_COLUMNS}
     FROM users u
@@ -147,14 +146,31 @@ exports.getByUserId = async (req, res) => {
   `;
   const params = [requestedUserId];
 
-  // Si es moderador (no admin), restringimos por su estado
   if (restrictByEstado) {
     sql += " AND u.estado = ? ";
     params.push(requester.estado);
   }
 
   try {
-    const [rows] = await db.query(sql, params);
+    let [rows] = await db.query(sql, params);
+
+    // Fallback: si no encontró por id, intenta por uid del requester (útil si el front envió algo raro)
+    if (!rows.length && req.firebaseUser?.uid) {
+      console.warn("ℹ️ No se encontró por id; intentando por uid del requester");
+      let sqlUid = `
+        SELECT ${FULL_COLUMNS}
+        FROM users u
+        LEFT JOIN roles r ON r.user_id = u.id
+        WHERE u.uid = ?
+      `;
+      const paramsUid = [req.firebaseUser.uid];
+      if (restrictByEstado) {
+        sqlUid += " AND u.estado = ? ";
+        paramsUid.push(requester.estado);
+      }
+      const respUid = await db.query(sqlUid, paramsUid);
+      rows = respUid[0] || [];
+    }
 
     if (!rows.length) {
       const msg = restrictByEstado
@@ -164,16 +180,17 @@ exports.getByUserId = async (req, res) => {
       return res.status(404).json({ error: msg });
     }
 
-    // Puedes devolver tal cual la fila; el front ya normaliza snake/camel y oculta uid/correo.
     const user = rows[0];
-
-    console.log("✅ getByUserId OK → campos devueltos:", Object.keys(user).length);
+    console.log("✅ getByUserId OK → campos devueltos:", Object.keys(user));
     return res.json(user);
   } catch (err) {
-    console.error("❌ getByUserId error:", err.message);
+    console.error("❌ getByUserId error:", err);
     return res.status(500).json({ error: err.message || "Error al obtener usuario" });
   }
 };
+
+
+
 // Actualizar usuario (solo el propio aspirante o admin/mod)
 exports.update = async (req, res) => {
   const targetUserId = req.params.userId;
