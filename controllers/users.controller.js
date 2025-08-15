@@ -208,44 +208,108 @@ exports.getByUserId = async (req, res) => {
 exports.update = async (req, res) => {
   const targetUserId = req.params.userId;
   const loggedUser = req.user;
-  const updateFields = { ...req.body };
+  const body = { ...req.body };
 
   // Aspirante solo su propio perfil
   if (loggedUser.rol === "aspirante" && String(targetUserId) !== String(loggedUser.id)) {
     return res.status(403).json({ error: "No tienes permiso para modificar este perfil" });
   }
 
-  // Bloquear edición de campos sensibles
-  delete updateFields.id;
-  delete updateFields.matricula;
-  delete updateFields.uid;
-  delete updateFields.correo;
-  delete updateFields.estado_validacion;
+  // Campos bloqueados pase lo que pase
+  delete body.id;
+  delete body.matricula;
+  delete body.uid;
+  delete body.correo;
+  delete body.estado_validacion;
 
-  if (Object.keys(updateFields).length === 0) {
+  // Mapa de llaves “API” -> columnas reales en la tabla `users`
+  const FIELD_MAP = {
+    nombre: "nombre",
+    apellido_paterno: "apellido_pat",
+    apellido_materno: "apellido_mat",
+    fecha_nacimiento: "fecha_nacimiento",
+    curp: "curp",
+    sexo: "sexo",
+    estado_civil: "estado_civil",
+    telefono: "telefono",
+    celular: "celular",
+    emergencia_nombre: "emergencia_nombre",
+    emergencia_relacion: "emergencia_relacion",
+    emergencia_telefono: "emergencia_telefono",
+    emergencia_celular: "emergencia_celular",
+    grado_estudios: "grado_estudios",
+    especifica_estudios: "especifica_estudios",
+    ocupacion: "ocupacion",
+    empresa: "empresa",
+    idiomas: "idiomas",
+    porcentaje_idioma: "porcentaje_idioma",
+    licencias: "licencias",
+    tipo_licencia: "tipo_licencia",
+    pasaporte: "pasaporte",
+    otro_documento: "otro_documento",
+    tipo_sangre: "tipo_sangre",
+    rh: "rh",
+    enfermedades: "enfermedades",
+    alergias: "alergias",
+    medicamentos: "medicamentos",
+    ejercicio: "ejercicio",
+    como_se_entero: "como_se_entero",
+    motivo_interes: "motivo_interes",
+    voluntariado_previo: "voluntariado_previo",
+    razon_proyecto: "razon_proyecto",
+    estado: "estado",
+    colonia: "colonia",
+    codigo_postal: "codigo_postal",
+    coordinacion: "coordinacion",
+    // Si más adelante agregas campos nuevos, mapea aquí:
+    // nuevo_campo_api: "columna_real",
+  };
+
+  // Construir whitelist a partir del mapa
+  const allowedApiKeys = Object.keys(FIELD_MAP);
+
+  // Filtrar solo llaves permitidas y mapear a columnas reales
+  const entries = Object.entries(body).filter(([k]) => allowedApiKeys.includes(k));
+
+  if (!entries.length) {
     return res.status(400).json({
-      error: "No se enviaron campos para actualizar o sólo campos no editables",
+      error: "No se enviaron campos válidos para actualizar",
     });
   }
 
+  // Normalizaciones ligeras (opcional)
+  const normalize = (k, v) => {
+    if (v === "") return null; // vacíos a NULL
+    if (k === "curp" && typeof v === "string") return v.trim().toUpperCase();
+    if (k === "fecha_nacimiento" && typeof v === "string") return v.trim(); // espera YYYY-MM-DD
+    return v;
+  };
+
+  // SET y valores
+  const setClauses = [];
+  const values = [];
+
+  for (const [apiKey, val] of entries) {
+    const column = FIELD_MAP[apiKey];
+    setClauses.push(`${column} = ?`);
+    values.push(normalize(apiKey, val));
+  }
+
+  values.push(targetUserId);
+
   try {
-    const [existingUser] = await db.query("SELECT u.id FROM users u WHERE u.id = ?", [targetUserId]);
+    // Verificar existencia
+    const [existingUser] = await db.query("SELECT id FROM users WHERE id = ?", [targetUserId]);
     if (!Array.isArray(existingUser) || existingUser.length === 0) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    const fields = Object.keys(updateFields)
-      .map((field) => `${field} = ?`)
-      .join(", ");
-    const values = Object.values(updateFields);
-    values.push(targetUserId);
-
-    const sql = `UPDATE users SET ${fields} WHERE id = ?`;
+    const sql = `UPDATE users SET ${setClauses.join(", ")} WHERE id = ?`;
     await db.query(sql, values);
 
-    res.json({ message: "Perfil actualizado correctamente" });
+    return res.json({ message: "Perfil actualizado correctamente" });
   } catch (err) {
     console.error("❌ update error:", err);
-    res.status(500).json({ error: err.message || "Error al actualizar usuario" });
+    return res.status(500).json({ error: err.message || "Error al actualizar usuario" });
   }
 };
