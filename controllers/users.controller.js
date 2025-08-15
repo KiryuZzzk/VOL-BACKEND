@@ -1,5 +1,12 @@
+// controllers/users.controller.js
 const db = require("../config/db");
 
+/**
+ * GET /users
+ * - Admin: ve a todos
+ * - Moderador: solo de su mismo estado
+ * Soporta filtros opcionales: ?searchField=matricula|correo|curp&search=VALOR
+ */
 exports.getAll = async (req, res) => {
   const { rol, estado } = req.user;
   const { searchField, search } = req.query;
@@ -8,71 +15,70 @@ exports.getAll = async (req, res) => {
 
   const validFields = ["matricula", "correo", "curp"];
   let sql = "";
-  let params = [];
+  const params = [];
 
   try {
-    // Selección explícita de todos los campos menos id y uid
+    // Selección explícita de campos (incluye id)
     const campos = [
-      "matricula",
-      "correo",
-      "nombre",
-      "apellido_pat AS apellido_paterno",
-      "apellido_mat AS apellido_materno",
-      "fecha_nacimiento",
-      "curp",
-      "sexo",
-      "estado_civil",
-      "telefono",
-      "celular",
-      "emergencia_nombre",
-      "emergencia_relacion",
-      "emergencia_telefono",
-      "emergencia_celular",
-      "grado_estudios",
-      "especifica_estudios",
-      "ocupacion",
-      "empresa",
-      "idiomas",
-      "porcentaje_idioma",
-      "licencias",
-      "tipo_licencia",
-      "pasaporte",
-      "otro_documento",
-      "tipo_sangre",
-      "rh",
-      "enfermedades",
-      "alergias",
-      "medicamentos",
-      "ejercicio",
-      "como_se_entero",
-      "motivo_interes",
-      "voluntariado_previo",
-      "razon_proyecto",
-      "estado_validacion",
-      "fecha_registro",
-      "estado",
-      "colonia",
-      "codigo_postal",
-      "coordinacion",
+      "u.id AS id", // necesario para PUT /users/:id
+      "u.matricula",
+      "u.correo",
+      "u.nombre",
+      "u.apellido_pat AS apellido_paterno",
+      "u.apellido_mat AS apellido_materno",
+      "u.fecha_nacimiento",
+      "u.curp",
+      "u.sexo",
+      "u.estado_civil",
+      "u.telefono",
+      "u.celular",
+      "u.emergencia_nombre",
+      "u.emergencia_relacion",
+      "u.emergencia_telefono",
+      "u.emergencia_celular",
+      "u.grado_estudios",
+      "u.especifica_estudios",
+      "u.ocupacion",
+      "u.empresa",
+      "u.idiomas",
+      "u.porcentaje_idioma",
+      "u.licencias",
+      "u.tipo_licencia",
+      "u.pasaporte",
+      "u.otro_documento",
+      "u.tipo_sangre",
+      "u.rh",
+      "u.enfermedades",
+      "u.alergias",
+      "u.medicamentos",
+      "u.ejercicio",
+      "u.como_se_entero",
+      "u.motivo_interes",
+      "u.voluntariado_previo",
+      "u.razon_proyecto",
+      "u.estado_validacion",
+      "u.fecha_registro",
+      "u.estado",
+      "u.colonia",
+      "u.codigo_postal",
+      "u.coordinacion",
     ].join(", ");
 
     if (rol === "moderador") {
-      sql = `SELECT ${campos} FROM users WHERE estado = ?`;
+      sql = `SELECT ${campos} FROM users u WHERE u.estado = ?`;
       params.push(estado);
-      console.log("🏃‍♂️ Ejecutando getAll...");
-console.log("Campos a seleccionar:", campos);
     } else if (rol === "admin") {
-      sql = `SELECT ${campos} FROM users WHERE 1=1`;
-      console.log("🏃‍♂️ Ejecutando getAll...");
-console.log("Campos a seleccionar:", campos);
+      sql = `SELECT ${campos} FROM users u WHERE 1=1`;
     } else {
       return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
     }
 
     if (search && search.trim() !== "" && validFields.includes(searchField)) {
-      sql += ` AND ${searchField} LIKE ?`;
+      sql += ` AND u.${searchField} LIKE ?`;
       params.push(`%${search.trim()}%`);
     }
+
+    sql += " ORDER BY u.fecha_registro DESC";
 
     console.log("🛠 Ejecutando SQL:", sql);
     console.log("📦 Con parámetros:", params);
@@ -91,12 +97,17 @@ console.log("Campos a seleccionar:", campos);
   }
 };
 
-
-// Obtener usuario por ID (admin/mod/aspirante con restricciones)
+/**
+ * GET /users/:userId
+ * Reglas:
+ * - Aspirante: solo puede ver su propio perfil
+ * - Moderador: solo usuarios de su mismo estado (a menos que también sea admin)
+ * - Admin: sin restricción
+ */
 exports.getByUserId = async (req, res) => {
   const requestedUserId = String(req.params.userId || "").trim();
 
-  // Con tu middleware nuevo:
+  // Con tu middleware:
   const requester = req.dbUser || req.user || {};
   const roles = req.dbRoles || (req.user ? [req.user.rol] : []);
   const hasRole = (r) => roles.includes(r);
@@ -112,17 +123,15 @@ exports.getByUserId = async (req, res) => {
     roles,
   });
 
-  // Reglas de autorización:
   // 1) Aspirante solo puede ver su propio perfil
   if (hasRole("aspirante") && String(requestedUserId) !== String(requester.id)) {
     console.warn("🚫 Aspirante intentando ver perfil ajeno");
     return res.status(403).json({ error: "No tienes permiso para ver este perfil" });
   }
 
-  // 2) Moderador solo puede ver usuarios de su mismo estado
+  // 2) Moderador restringido por estado (si no es admin)
   const restrictByEstado = hasRole("moderador") && !hasRole("admin");
 
-  // Campos completos (alineados con tu SP y con snake_case reales)
   const FULL_COLUMNS = `
     u.id, u.uid, u.correo,
     u.nombre, u.apellido_pat, u.apellido_mat, u.fecha_nacimiento,
@@ -137,7 +146,7 @@ exports.getByUserId = async (req, res) => {
     r.nombre_rol
   `;
 
-  // Query base por ID (acepta numérico o UUID sin validar número)
+  // Query base por ID
   let sql = `
     SELECT ${FULL_COLUMNS}
     FROM users u
@@ -154,7 +163,7 @@ exports.getByUserId = async (req, res) => {
   try {
     let [rows] = await db.query(sql, params);
 
-    // Fallback: si no encontró por id, intenta por uid del requester (útil si el front envió algo raro)
+    // Fallback por uid del requester (por si front envía algo raro)
     if (!rows.length && req.firebaseUser?.uid) {
       console.warn("ℹ️ No se encontró por id; intentando por uid del requester");
       let sqlUid = `
@@ -189,16 +198,20 @@ exports.getByUserId = async (req, res) => {
   }
 };
 
-
-
-// Actualizar usuario (solo el propio aspirante o admin/mod)
+/**
+ * PUT /users/:userId
+ * Reglas:
+ * - Aspirante solo puede editar su propio perfil
+ * - Admin/mod pueden editar cualquier perfil
+ * Se bloquean campos sensibles: id, matricula, uid, correo, estado_validacion
+ */
 exports.update = async (req, res) => {
   const targetUserId = req.params.userId;
   const loggedUser = req.user;
   const updateFields = { ...req.body };
 
-  // Solo aspirante puede editar su perfil, admin/mod pueden editar cualquier perfil
-  if (loggedUser.rol === "aspirante" && targetUserId !== loggedUser.id) {
+  // Aspirante solo su propio perfil
+  if (loggedUser.rol === "aspirante" && String(targetUserId) !== String(loggedUser.id)) {
     return res.status(403).json({ error: "No tienes permiso para modificar este perfil" });
   }
 
@@ -210,14 +223,20 @@ exports.update = async (req, res) => {
   delete updateFields.estado_validacion;
 
   if (Object.keys(updateFields).length === 0) {
-    return res.status(400).json({ error: "No se enviaron campos para actualizar o sólo campos no editables" });
+    return res.status(400).json({
+      error: "No se enviaron campos para actualizar o sólo campos no editables",
+    });
   }
 
   try {
-    const [existingUser] = await db.query("SELECT * FROM users WHERE id = ?", [targetUserId]);
-    if (existingUser.length === 0) return res.status(404).json({ error: "Usuario no encontrado" });
+    const [existingUser] = await db.query("SELECT u.id FROM users u WHERE u.id = ?", [targetUserId]);
+    if (!Array.isArray(existingUser) || existingUser.length === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
 
-    const fields = Object.keys(updateFields).map(field => `${field} = ?`).join(", ");
+    const fields = Object.keys(updateFields)
+      .map((field) => `${field} = ?`)
+      .join(", ");
     const values = Object.values(updateFields);
     values.push(targetUserId);
 
@@ -226,6 +245,7 @@ exports.update = async (req, res) => {
 
     res.json({ message: "Perfil actualizado correctamente" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("❌ update error:", err);
+    res.status(500).json({ error: err.message || "Error al actualizar usuario" });
   }
 };
