@@ -42,12 +42,16 @@ const certificadosRoutes = require("./routes/certificados.routes");
 const disponibilidadRoutes = require("./routes/disponibilidad.routes");
 const publicRoutes = require("./routes/public.routes");
 const documentosRoutes = require("./routes/documentos.routes");
+const inscripcionesRoutes = require("./routes/inscripciones.routes");
+
 
 app.use("/users", usersRoutes);
 app.use("/certificados", certificadosRoutes);
 app.use("/disponibilidad", disponibilidadRoutes);
 app.use("/public", publicRoutes);
 app.use("/documentos", documentosRoutes);
+app.use("/inscripciones", inscripcionesRoutes);
+
 
 // Ruta raíz
 app.get("/", (req, res) => {
