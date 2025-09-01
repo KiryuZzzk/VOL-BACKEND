@@ -115,6 +115,7 @@ exports.guardarFinalAprobado = async (req, res) => {
  * Fuerza la misma collation en JOIN y WHERE para evitar "Illegal mix of collations".
  * Devuelve: { fullName, fecha_finalizacion, curso_id, calificacion }
  */
+// Reemplaza tu queryCertData por esta versión mini:
 async function queryCertData(dbConn, userIdRaw, cursoIdRaw) {
   const userId = String(userIdRaw).trim();
   const cursoId = String(cursoIdRaw).trim().toUpperCase();
@@ -125,18 +126,22 @@ async function queryCertData(dbConn, userIdRaw, cursoIdRaw) {
       i.fecha_finalizacion, i.curso_id, i.calificacion
     FROM inscripciones i
     INNER JOIN users u
-      ON u.id COLLATE ${COLLATION} = i.user_id COLLATE ${COLLATION}
-    WHERE i.user_id COLLATE ${COLLATION} = (? COLLATE ${COLLATION})
-      AND i.curso_id COLLATE ${COLLATION} = (? COLLATE ${COLLATION})
+      ON BINARY u.id = BINARY i.user_id
+    WHERE BINARY i.user_id = BINARY ?
+      AND BINARY i.curso_id = BINARY ?
     ORDER BY i.fecha_finalizacion DESC
     LIMIT 1
   `;
+
+  // (opcional) sanity check: confirma que esta versión sí se está ejecutando
+  // console.info("[queryCertData] comparando en BINARY", { userId, cursoId });
 
   const [rows] = await dbConn.query(sql, [userId, cursoId]);
   if (!rows || rows.length === 0) return null;
 
   const r = rows[0];
-  const fullName = [r.nombre, r.apellido_pat, r.apellido_mat].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+  const fullName = [r.nombre, r.apellido_pat, r.apellido_mat]
+    .filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
 
   return {
     fullName,
@@ -145,6 +150,7 @@ async function queryCertData(dbConn, userIdRaw, cursoIdRaw) {
     calificacion: Number(r.calificacion),
   };
 }
+
 
 /**
  * GET /inscripciones/me/:cursoId/cert-data
