@@ -105,3 +105,82 @@ exports.guardarFinalAprobado = async (req, res) => {
     return res.status(500).json({ error: msg });
   }
 };
+
+async function queryCertData(db, userId, cursoId) {
+  const sql = `
+    SELECT 
+      u.nombre, u.apellido_pat, u.apellido_mat,
+      i.fecha_finalizacion, i.curso_id, i.calificacion
+    FROM inscripciones i
+    INNER JOIN users u ON u.id = i.user_id
+    WHERE i.user_id = ? AND i.curso_id = ?
+    ORDER BY i.fecha_finalizacion DESC
+    LIMIT 1
+  `;
+  const [rows] = await db.query(sql, [userId, cursoId]);
+  if (!rows || rows.length === 0) return null;
+
+  const r = rows[0];
+  const fullName = [r.nombre, r.apellido_pat, r.apellido_mat]
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return {
+    fullName,
+    fecha_finalizacion: r.fecha_finalizacion,
+    curso_id: r.curso_id,
+    calificacion: Number(r.calificacion),
+  };
+}
+
+/**
+ * GET /inscripciones/me/:cursoId/cert-data
+ * Toma el userId de req.user.id
+ */
+exports.getCertDataForMe = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { cursoId } = req.params;
+    if (!userId || !cursoId) {
+      return res.status(400).json({ error: "Faltan userId o cursoId" });
+    }
+
+    const data = await queryCertData(db, userId, cursoId);
+    if (!data) return res.status(404).json({ error: "No hay finalización registrada para ese curso." });
+
+    // (Opcional) exigir >= 8.0 para emitir reconocimiento:
+    // if (data.calificacion < 8.0) {
+    //   return res.status(403).json({ error: "Calificación insuficiente para generar reconocimiento." });
+    // }
+
+    const { fullName, fecha_finalizacion, curso_id } = data;
+    return res.json({ fullName, fecha_finalizacion, curso_id });
+  } catch (e) {
+    console.error("getCertDataForMe error:", e);
+    return res.status(500).json({ error: "Error interno" });
+  }
+};
+
+/**
+ * GET /inscripciones/:userId/:cursoId/cert-data
+ * Versión para pasar userId explícito (útil en admin)
+ */
+exports.getCertDataByUser = async (req, res) => {
+  try {
+    const { userId, cursoId } = req.params;
+    if (!userId || !cursoId) {
+      return res.status(400).json({ error: "Faltan userId o cursoId" });
+    }
+
+    const data = await queryCertData(db, userId, cursoId);
+    if (!data) return res.status(404).json({ error: "No hay finalización registrada para ese curso." });
+
+    const { fullName, fecha_finalizacion, curso_id } = data;
+    return res.json({ fullName, fecha_finalizacion, curso_id });
+  } catch (e) {
+    console.error("getCertDataByUser error:", e);
+    return res.status(500).json({ error: "Error interno" });
+  }
+};
