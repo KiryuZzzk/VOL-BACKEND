@@ -3,6 +3,7 @@ const db = require("../config/db");
 const { v4: uuidv4 } = require("uuid");
 
 const DEBUG_INSCR = process.env.DEBUG_INSCR === "1"; // o true duro mientras pruebas
+const COLLATION = "utf8mb4_0900_ai_ci"; // collation único para comparar
 
 // Mapa de nombres → código de curso
 const COURSE_CODE_MAP = {
@@ -29,12 +30,11 @@ exports.guardarFinalAprobado = async (req, res) => {
       console.info("➡️ [guardarFinalAprobado] input", {
         userId,
         body: req.body,
-        // OJO: no loguees el token completo en producción
-        authClaims: req.user, // si aquí guardas claims útiles del JWT
+        authClaims: req.user,
         headers: {
-          'content-type': req.headers['content-type'],
-          'user-agent': req.headers['user-agent'],
-          'x-forwarded-for': req.headers['x-forwarded-for'],
+          "content-type": req.headers["content-type"],
+          "user-agent": req.headers["user-agent"],
+          "x-forwarded-for": req.headers["x-forwarded-for"],
         },
       });
     }
@@ -85,7 +85,11 @@ exports.guardarFinalAprobado = async (req, res) => {
 
     if (DEBUG_INSCR) {
       console.info("📝 [guardarFinalAprobado] UPSERT params", {
-        id, userId, cursoCodigo, cal, dur
+        id,
+        userId,
+        cursoCodigo,
+        cal,
+        dur,
       });
     }
 
@@ -99,33 +103,40 @@ exports.guardarFinalAprobado = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ guardarFinalAprobado:", err);
-    const msg = /no reconocido/i.test(err.message)
-      ? "Curso inválido"
-      : "Error interno al guardar inscripción";
+    const msg = /no reconocido/i.test(err.message) ? "Curso inválido" : "Error interno al guardar inscripción";
     return res.status(500).json({ error: msg });
   }
 };
 
-async function queryCertData(db, userId, cursoId) {
+// ====== Helpers y endpoints NUEVOS para certificados/reconocimientos ======
+
+/**
+ * Trae la última finalización (por fecha_finalizacion DESC) del user/curso.
+ * Fuerza la misma collation en JOIN y WHERE para evitar "Illegal mix of collations".
+ * Devuelve: { fullName, fecha_finalizacion, curso_id, calificacion }
+ */
+async function queryCertData(dbConn, userIdRaw, cursoIdRaw) {
+  const userId = String(userIdRaw).trim();
+  const cursoId = String(cursoIdRaw).trim().toUpperCase();
+
   const sql = `
-    SELECT 
+    SELECT
       u.nombre, u.apellido_pat, u.apellido_mat,
       i.fecha_finalizacion, i.curso_id, i.calificacion
     FROM inscripciones i
-    INNER JOIN users u ON u.id = i.user_id
-    WHERE i.user_id = ? AND i.curso_id = ?
+    INNER JOIN users u
+      ON u.id COLLATE ${COLLATION} = i.user_id COLLATE ${COLLATION}
+    WHERE i.user_id COLLATE ${COLLATION} = (? COLLATE ${COLLATION})
+      AND i.curso_id COLLATE ${COLLATION} = (? COLLATE ${COLLATION})
     ORDER BY i.fecha_finalizacion DESC
     LIMIT 1
   `;
-  const [rows] = await db.query(sql, [userId, cursoId]);
+
+  const [rows] = await dbConn.query(sql, [userId, cursoId]);
   if (!rows || rows.length === 0) return null;
 
   const r = rows[0];
-  const fullName = [r.nombre, r.apellido_pat, r.apellido_mat]
-    .filter(Boolean)
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const fullName = [r.nombre, r.apellido_pat, r.apellido_mat].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
 
   return {
     fullName,
