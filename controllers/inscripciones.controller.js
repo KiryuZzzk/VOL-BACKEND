@@ -112,10 +112,9 @@ exports.guardarFinalAprobado = async (req, res) => {
 
 /**
  * Trae la última finalización (por fecha_finalizacion DESC) del user/curso.
- * Fuerza la misma collation en JOIN y WHERE para evitar "Illegal mix of collations".
+ * Fuerza BINARY en JOIN y WHERE para evitar mixes de collations.
  * Devuelve: { fullName, fecha_finalizacion, curso_id, calificacion }
  */
-// Reemplaza tu queryCertData por esta versión mini:
 async function queryCertData(dbConn, userIdRaw, cursoIdRaw) {
   const userId = String(userIdRaw).trim();
   const cursoId = String(cursoIdRaw).trim().toUpperCase();
@@ -133,9 +132,6 @@ async function queryCertData(dbConn, userIdRaw, cursoIdRaw) {
     LIMIT 1
   `;
 
-  // (opcional) sanity check: confirma que esta versión sí se está ejecutando
-  // console.info("[queryCertData] comparando en BINARY", { userId, cursoId });
-
   const [rows] = await dbConn.query(sql, [userId, cursoId]);
   if (!rows || rows.length === 0) return null;
 
@@ -151,7 +147,6 @@ async function queryCertData(dbConn, userIdRaw, cursoIdRaw) {
   };
 }
 
-
 /**
  * GET /inscripciones/me/:cursoId/cert-data
  * Toma el userId de req.user.id
@@ -166,11 +161,6 @@ exports.getCertDataForMe = async (req, res) => {
 
     const data = await queryCertData(db, userId, cursoId);
     if (!data) return res.status(404).json({ error: "No hay finalización registrada para ese curso." });
-
-    // (Opcional) exigir >= 8.0 para emitir reconocimiento:
-    // if (data.calificacion < 8.0) {
-    //   return res.status(403).json({ error: "Calificación insuficiente para generar reconocimiento." });
-    // }
 
     const { fullName, fecha_finalizacion, curso_id } = data;
     return res.json({ fullName, fecha_finalizacion, curso_id });
@@ -198,6 +188,34 @@ exports.getCertDataByUser = async (req, res) => {
     return res.json({ fullName, fecha_finalizacion, curso_id });
   } catch (e) {
     console.error("getCertDataByUser error:", e);
+    return res.status(500).json({ error: "Error interno" });
+  }
+};
+
+/**
+ * ✅ GET /inscripciones/me/completed-count
+ * Cuenta cursos “aprobados/finalizados” del usuario autenticado.
+ * Regla: COUNT(DISTINCT curso_id) con fecha_finalizacion IS NOT NULL y calificacion >= 8.0
+ */
+exports.getCompletedCountForMe = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: "No autenticado" });
+
+    const sql = `
+      SELECT COUNT(DISTINCT i.curso_id) AS total
+      FROM inscripciones i
+      WHERE BINARY i.user_id = BINARY ?
+        AND i.fecha_finalizacion IS NOT NULL
+        AND i.calificacion >= 8.0
+    `;
+
+    const [rows] = await db.query(sql, [String(userId).trim()]);
+    const total = rows?.[0]?.total ?? 0;
+
+    return res.json({ total });
+  } catch (e) {
+    console.error("getCompletedCountForMe error:", e);
     return res.status(500).json({ error: "Error interno" });
   }
 };

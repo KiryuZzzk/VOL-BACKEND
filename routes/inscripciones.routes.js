@@ -15,4 +15,7 @@ router.get("/me/:cursoId/cert-data", authMiddleware, inscCtrl.getCertDataForMe);
 // (Opcional, admin) pasar userId explícito en la URL
 router.get("/:userId/:cursoId/cert-data", authMiddleware, inscCtrl.getCertDataByUser);
 
+// ✅ NUEVO: conteo de cursos finalizados (DISTINCT curso_id) para el usuario autenticado
+router.get("/me/completed-count", authMiddleware, inscCtrl.getCompletedCountForMe);
+
 module.exports = router;
