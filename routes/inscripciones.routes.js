@@ -18,4 +18,10 @@ router.get("/:userId/:cursoId/cert-data", authMiddleware, inscCtrl.getCertDataBy
 // ✅ NUEVO: conteo de cursos finalizados (DISTINCT curso_id) para el usuario autenticado
 router.get("/me/completed-count", authMiddleware, inscCtrl.getCompletedCountForMe);
 
+// ✅ PROGRESO (solo admin/mod): último intento por curso + resumen
+router.get("/:userId/progreso", authMiddleware, inscCtrl.getProgresoByUserForAdmins);
+
+// (opcional) que el propio usuario vea su progreso
+router.get("/me/progreso", authMiddleware, inscCtrl.getProgresoForMe);
+
 module.exports = router;
