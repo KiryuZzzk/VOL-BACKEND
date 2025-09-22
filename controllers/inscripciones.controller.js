@@ -11,7 +11,7 @@ const COURSE_CODE_MAP = {
   "Inducción a los Desastres": "ID",
   "Inducción a la Cruz Roja Mexicana": "CRM",
   "Regulación de emociones": "RE",
-  "Acceso más Seguro": "AS",
+  "Acceso Más Seguro": "AMS",
 };
 
 // Inverso: código → nombre (para respuesta legible en progreso)
