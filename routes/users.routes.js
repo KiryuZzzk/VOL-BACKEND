@@ -12,4 +12,8 @@ router.get("/:userId", authMiddleware, roleMiddleware(["admin", "moderador", "as
 // Actualizar usuario (por ID)
 router.put("/:userId", authMiddleware, usersCtrl.update);
 
+// Elegir Coordinación
+router.post(
+"/:userId/coordinaciones", authMiddleware, usersCtrl.setCoordinaciones);
+
 module.exports = router;

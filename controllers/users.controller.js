@@ -313,3 +313,54 @@ exports.update = async (req, res) => {
     return res.status(500).json({ error: err.message || "Error al actualizar usuario" });
   }
 };
+
+exports.setCoordinaciones = async (req, res) => {
+try {
+const targetUserId = String(req.params.userId).trim();
+const { coordinacion, coordinacion2 } = req.body || {};
+
+
+if (!targetUserId) return res.status(400).json({ error: "userId inválido" });
+
+
+// Sólo aspirante puede fijar las suyas, y sólo si es su propio perfil
+const requester = req.user || {};
+const isSelf = String(requester.id) === targetUserId;
+const isAdminOrMod = ["admin", "moderador"].includes(requester.rol);
+
+
+if (!isSelf && !isAdminOrMod) {
+return res.status(403).json({ error: "Sin permiso" });
+}
+
+
+const valid = (k) => ["CAP", "COM", "APS", "MIG", "PREV", "RDR", "VOL"].includes(k);
+if (!valid(coordinacion) || !valid(coordinacion2) || coordinacion === coordinacion2) {
+return res.status(400).json({ error: "Debes elegir dos áreas válidas y distintas" });
+}
+
+
+// Verifica si ya tenía elecciones (inmutables para aspirante)
+const [rows] = await db.query("SELECT coordinacion, coordinacion2 FROM users WHERE id = ?", [targetUserId]);
+if (!rows?.length) return res.status(404).json({ error: "Usuario no encontrado" });
+
+
+const current = rows[0];
+const already = !!(current.coordinacion || current.coordinacion2);
+if (already && !isAdminOrMod) {
+return res.status(409).json({ error: "Ya tienes áreas registradas. Solicita cambio a un administrador." });
+}
+
+
+await db.query(
+"UPDATE users SET coordinacion = ?, coordinacion2 = ? WHERE id = ?",
+[coordinacion, coordinacion2, targetUserId]
+);
+
+
+return res.json({ message: "Coordinaciones guardadas", coordinacion, coordinacion2 });
+} catch (err) {
+console.error("setCoordinaciones error:", err);
+return res.status(500).json({ error: "Error al guardar coordinaciones" });
+}
+};
