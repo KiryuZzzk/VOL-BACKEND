@@ -142,7 +142,7 @@ exports.getByUserId = async (req, res) => {
     u.tipo_sangre, u.rh, u.enfermedades, u.alergias, u.medicamentos, u.ejercicio,
     u.como_se_entero, u.motivo_interes, u.voluntariado_previo, u.razon_proyecto,
     u.estado, u.colonia, u.codigo_postal AS cp, u.coordinacion,
-    u.matricula, u.estado_validacion, u.fecha_registro,
+    u.matricula, u.estado_validacion, u.fecha_registro, u.estatus,
     r.nombre_rol
   `;
 
