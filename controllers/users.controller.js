@@ -323,7 +323,6 @@ exports.setCoordinaciones = async (req, res) => {
       return res.status(400).json({ error: "userId inválido" });
     }
 
-    // Auth context (asumimos que un middleware ya llenó req.user)
     const requester = req.user || {};
     const isSelf = String(requester.id) === targetUserId;
     const rol = (requester.rol || "").toLowerCase();
@@ -333,20 +332,26 @@ exports.setCoordinaciones = async (req, res) => {
       return res.status(403).json({ error: "Sin permiso" });
     }
 
-    // Normaliza inputs
-    const norm = (v) => String(v || "").trim().toUpperCase();
+    // Normaliza
+    const norm = (v) => (v == null ? null : String(v).trim().toUpperCase());
     coordinacion = norm(coordinacion);
     coordinacion2 = norm(coordinacion2);
 
     const VALID = ["CAP", "COM", "APS", "MIG", "PREV", "RDR", "VOL"];
-    const valid = (k) => VALID.includes(k);
+    const isValid = (k) => k != null && VALID.includes(k);
 
-    // Deben ser dos y distintas
-    if (!valid(coordinacion) || !valid(coordinacion2) || coordinacion === coordinacion2) {
-      return res.status(400).json({ error: "Debes elegir dos áreas válidas y distintas" });
+    // Debe haber al menos 1 válida
+    if (!isValid(coordinacion)) {
+      return res.status(400).json({ error: "Debes elegir al menos 1 área válida" });
+    }
+    // Si hay segunda, válida y distinta
+    if (coordinacion2 != null) {
+      if (!isValid(coordinacion2) || coordinacion2 === coordinacion) {
+        return res.status(400).json({ error: "La segunda área debe ser válida y distinta a la primera" });
+      }
     }
 
-    // Trae estatus y elecciones actuales
+    // Estatus + elecciones actuales
     const [rows] = await db.query(
       "SELECT estatus, coordinacion AS c1, coordinacion2 AS c2 FROM users WHERE id = ?",
       [targetUserId]
@@ -358,12 +363,10 @@ exports.setCoordinaciones = async (req, res) => {
     const { estatus, c1, c2 } = rows[0];
     const isActive = String(estatus || "").toLowerCase() === "activo";
 
-    // Solo usuarios ACTIVO pueden elegir (admin/mod puede forzar)
     if (!isActive && !isAdminOrMod) {
       return res.status(403).json({ error: "Tu perfil no está activo" });
     }
 
-    // Inmutables para aspirante (si ya tenía), salvo admin/mod
     const already = !!(c1 || c2);
     if (already && !isAdminOrMod) {
       return res.status(409).json({
@@ -371,16 +374,19 @@ exports.setCoordinaciones = async (req, res) => {
       });
     }
 
-    // Guarda
+    // Si no mandaron segunda, guardamos NULL (o "NA" si lo prefieres)
+    const secondValue = coordinacion2 ?? null;
+    // const secondValue = coordinacion2 ?? "NA"; // ← descomenta si prefieres "NA"
+
     await db.query(
       "UPDATE users SET coordinacion = ?, coordinacion2 = ? WHERE id = ?",
-      [coordinacion, coordinacion2, targetUserId]
+      [coordinacion, secondValue, targetUserId]
     );
 
     return res.json({
       message: "Coordinaciones guardadas",
       coordinacion,
-      coordinacion2,
+      coordinacion2: secondValue,
     });
   } catch (err) {
     console.error("setCoordinaciones error:", err);
