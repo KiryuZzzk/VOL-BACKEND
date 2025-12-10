@@ -1,70 +1,262 @@
 // controllers/public.controller.js
 const admin = require("firebase-admin");
-const db = require("../config/db"); // pool directo, no getDB()
+const db = require("../config/db"); // pool mysql2/promise
 
 // ─────────────────────────────────────────────────────────────
-// Registro normal (lo dejo igual que lo tenías)
+// REGISTRO IDEAL
+// - Front SOLO manda los datos (incluida contraseña)
+// - Backend:
+//   1) Valida datos mínimos
+//   2) Verifica duplicados en BD (correo / CURP) antes de Firebase
+//   3) Crea usuario en Firebase (Admin SDK)
+//   4) Abre transacción MySQL -> CALL insertar_usuario + CALL insertar_rol_por_defecto
+//   5) Si algo falla: ROLLBACK + deleteUser(uid) en Firebase
 // ─────────────────────────────────────────────────────────────
 exports.registerUser = async (req, res) => {
-  const data = req.body;
-
-  const {
-    uid, correo, nombre, apellidoPat, apellidoMat, fechaNacimiento,
-    curp, sexo, estadoCivil, telefono, celular,
-    emergenciaNombre, emergenciaRelacion, emergenciaTelefono, emergenciaCelular,
-    gradoEstudios, especificaEstudios, ocupacion, empresa,
-    idiomas, porcentajeIdioma, licencias, tipoLicencia, pasaporte, otroDocumento,
-    tipoSangre, rh, enfermedades, alergias, medicamentos, ejercicio,
-    comoSeEntero, motivoInteres, voluntariadoPrevio, razonProyecto,
-    estado, colonia, cp, coordinacion
-  } = data;
-
-  if (!uid || !correo || !curp) {
-    console.warn("⛔ registerUser: faltan campos obligatorios", { uid: !!uid, correo: !!correo, curp: !!curp });
-    return res.status(400).json({ error: "Faltan campos obligatorios (uid, correo, curp)" });
-  }
+  let connection = null;
+  let firebaseUser = null;
 
   try {
-    const [result] = await db.query(
+    const data = req.body;
+
+    const {
+      // mínimos obligatorios
+      correo,
+      contraseña,
+
+      // legales
+      avisoPrivacidad,
+      terminosyCondiciones,
+
+      // resto de campos para SP
+      nombre,
+      apellidoPat,
+      apellidoMat,
+      fechaNacimiento,
+      curp,
+      sexo,
+      estadoCivil,
+      telefono,
+      celular,
+      emergenciaNombre,
+      emergenciaRelacion,
+      emergenciaTelefono,
+      emergenciaCelular,
+      gradoEstudios,
+      especificaEstudios,
+      ocupacion,
+      empresa,
+      idiomas,
+      porcentajeIdioma,
+      licencias,
+      tipoLicencia,
+      pasaporte,
+      otroDocumento,
+      tipoSangre,
+      rh,
+      enfermedades,
+      alergias,
+      medicamentos,
+      ejercicio,
+      comoSeEntero,
+      motivoInteres,
+      voluntariadoPrevio,
+      razonProyecto,
+      estado,
+      colonia,
+      cp,
+      coordinacion,
+    } = data;
+
+    // 1) Validaciones básicas
+    if (!correo || !contraseña || !curp) {
+      return res.status(400).json({
+        code: "MISSING_FIELDS",
+        message: "Faltan campos obligatorios (correo, contraseña y CURP).",
+      });
+    }
+
+    if (!avisoPrivacidad || !terminosyCondiciones) {
+      return res.status(400).json({
+        code: "LEGAL_REQUIRED",
+        message:
+          "Debes aceptar el aviso de privacidad y los términos y condiciones para continuar.",
+      });
+    }
+
+    // 2) Verificar si ya existe en BD por correo o CURP (antes de tocar Firebase)
+    const [existingRows] = await db.query(
+      `SELECT id, correo, curp 
+       FROM users 
+       WHERE correo = ? OR curp = ?
+       LIMIT 1`,
+      [correo, curp]
+    );
+
+    if (existingRows.length) {
+      const existing = existingRows[0];
+      const isCorreo = existing.correo === correo;
+
+      return res.status(409).json({
+        code: "EMAIL_OR_CURP_EXISTS",
+        field: isCorreo ? "correo" : "curp",
+        message: isCorreo
+          ? "Ya existe una cuenta registrada con este correo."
+          : "Ya existe una cuenta registrada con esta CURP.",
+      });
+    }
+
+    // 3) Crear usuario en Firebase (Admin SDK)
+    firebaseUser = await admin.auth().createUser({
+      email: correo,
+      password: contraseña,
+      emailVerified: false,
+      disabled: false,
+    });
+
+    const uid = firebaseUser.uid;
+    console.log("👤 Usuario creado en Firebase:", uid);
+
+    // 4) Abrir transacción MySQL
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    // 5) Insertar usuario en BD con tu SP
+    const [result] = await connection.query(
       `CALL insertar_usuario(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        uid, correo, nombre, apellidoPat, apellidoMat, fechaNacimiento,
-        curp, sexo, estadoCivil, telefono, celular,
-        emergenciaNombre, emergenciaRelacion, emergenciaTelefono, emergenciaCelular,
-        gradoEstudios, especificaEstudios, ocupacion, empresa,
-        idiomas, porcentajeIdioma, licencias, tipoLicencia, pasaporte, otroDocumento,
-        tipoSangre, rh, enfermedades, alergias, medicamentos, ejercicio,
-        comoSeEntero, motivoInteres, voluntariadoPrevio, razonProyecto,
-        estado, colonia, cp, coordinacion
+        uid,
+        correo,
+        nombre,
+        apellidoPat,
+        apellidoMat,
+        fechaNacimiento,
+        curp,
+        sexo,
+        estadoCivil,
+        telefono,
+        celular,
+        emergenciaNombre,
+        emergenciaRelacion,
+        emergenciaTelefono,
+        emergenciaCelular,
+        gradoEstudios,
+        especificaEstudios,
+        ocupacion,
+        empresa,
+        idiomas,
+        porcentajeIdioma,
+        licencias,
+        tipoLicencia,
+        pasaporte,
+        otroDocumento,
+        tipoSangre,
+        rh,
+        enfermedades,
+        alergias,
+        medicamentos,
+        ejercicio,
+        comoSeEntero,
+        motivoInteres,
+        voluntariadoPrevio,
+        razonProyecto,
+        estado,
+        colonia,
+        cp,
+        coordinacion,
       ]
     );
 
-    const newUserId = result[0][0]?.id;
+    const newUserId = result?.[0]?.[0]?.id;
     if (!newUserId) {
-      console.error("❌ registerUser: no se pudo obtener el ID del nuevo usuario");
-      return res.status(500).json({ error: "No se pudo obtener el ID del nuevo usuario" });
+      throw new Error("No se pudo obtener el ID del nuevo usuario.");
     }
 
-    await db.query(`CALL insertar_rol_por_defecto(?)`, [newUserId]);
+    // 6) Asignar rol por defecto en la misma transacción
+    await connection.query(`CALL insertar_rol_por_defecto(?)`, [newUserId]);
+
+    // 7) Commit y liberar conexión
+    await connection.commit();
+    connection.release();
+    connection = null;
 
     console.log("✅ registerUser: usuario creado con id:", newUserId);
+
     return res.status(201).json({
-      message: "Usuario registrado correctamente con rol aspirante",
-      usuario: result[0][0]
+      code: "REGISTER_OK",
+      message: "Usuario registrado correctamente con rol aspirante.",
+      usuario: {
+        id: newUserId,
+        uid,
+        correo,
+        nombre,
+        apellidoPat,
+        apellidoMat,
+      },
+    });
+  } catch (err) {
+    console.error("❌ Error en registro completo:", {
+      message: err.message,
+      code: err.code,
+      errno: err.errno,
+      sqlState: err.sqlState,
     });
 
-  } catch (err) {
-    console.error("❌ Error en registro:", err);
-    return res.status(500).json({ error: err.message || "Error al registrar usuario" });
+    // Si hay transacción abierta, hacer rollback
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch (rollbackErr) {
+        console.error("⚠️ Error haciendo rollback:", rollbackErr.message);
+      }
+      connection.release();
+    }
+
+    // Si ya se creó el usuario en Firebase pero la BD falló, borrarlo
+    if (firebaseUser) {
+      try {
+        await admin.auth().deleteUser(firebaseUser.uid);
+        console.log("🧹 Usuario Firebase eliminado por error en BD:", firebaseUser.uid);
+      } catch (delErr) {
+        console.error("⚠️ No se pudo borrar usuario Firebase:", delErr.message);
+      }
+    }
+
+    // Mapear errores de Firebase
+    if (err.code === "auth/email-already-exists") {
+      return res.status(409).json({
+        code: "EMAIL_EXISTS",
+        field: "correo",
+        message: "Ya existe una cuenta registrada con este correo.",
+      });
+    }
+
+    if (err.code === "auth/invalid-password") {
+      return res.status(400).json({
+        code: "INVALID_PASSWORD",
+        field: "contraseña",
+        message: "La contraseña no cumple con los requisitos mínimos.",
+      });
+    }
+
+    // Duplicados en BD (por si el SP o constraints revientan)
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        code: "DB_DUPLICATE",
+        message: "Ya existe un usuario con estos datos en la base de datos.",
+      });
+    }
+
+    // Error genérico
+    return res.status(500).json({
+      code: "REGISTER_ERROR",
+      message: err.message || "Error al registrar usuario.",
+    });
   }
 };
 
 // ─────────────────────────────────────────────────────────────
-// Validar usuario (AHORA por UID del token; middleware: authFirebase)
-// Devuelve:
-//  - 200 con user (rol puede ser null si aún no tiene)
-//  - 404 si UID no existe en BD
-//  - 401 si el token no trae UID (mal token)
+// Validar usuario POR UID (usado con middleware authFirebase)
 // ─────────────────────────────────────────────────────────────
 exports.validarUsuario = async (req, res) => {
   try {

@@ -1,0 +1,1325 @@
+{
+  "id": "soy_voluntario",
+  "title": "Programa SoyVoluntario",
+  "description": "",
+  "estimatedMinutes": null,
+  "level": null,
+  "tags": [
+    "voluntariado",
+    "formacion_inicial"
+  ],
+  "blocks": [
+    {
+      "id": "bloque_primeros_auxilios",
+      "title": "Primeros Auxilios",
+      "description": "",
+      "order": 1,
+      "estimatedMinutes": null,
+      "optional": false,
+      "modules": [
+        {
+          "id": "primeros_auxilios_introduccion_a_los_primeros_auxilios",
+          "title": "Introducción a los Primeros Auxilios",
+          "description": "",
+          "order": 1,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": false,
+          "activities": [
+            {
+              "id": "primeros_auxilios_introduccion_a_los_primeros_auxilios_video",
+              "title": "Video: Introducción a los Primeros Auxilios",
+              "type": "video",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "provider": "youtube",
+                "videoIds": [
+                  "l89qiD3aqVQ"
+                ]
+              }
+            },
+            {
+              "id": "primeros_auxilios_introduccion_a_los_primeros_auxilios_quiz",
+              "title": "Quiz: Introducción a los Primeros Auxilios",
+              "type": "quiz",
+              "order": 2,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "isFinalExam": false,
+                "questions": [
+                  {
+                    "texto": "¿Qué son los primeros auxilios?",
+                    "opciones": [
+                      "Es la ayuda inmediata que se presenta a una persona enferma, herida o afectada antes de la llegada del sistema médico de urgencias.",
+                      "Son procedimientos médicos avanzados realizados únicamente por personal hospitalario especializado.",
+                      "Es el conjunto de terapias prolongadas que se aplican durante la recuperación total del paciente en un centro de rehabilitación."
+                    ],
+                    "respuestaCorrecta": "Es la ayuda inmediata que se presenta a una persona enferma, herida o afectada antes de la llegada del sistema médico de urgencias."
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "primeros_auxilios_protocolo_inicial",
+          "title": "Protocolo inicial",
+          "description": "",
+          "order": 2,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": false,
+          "activities": [
+            {
+              "id": "primeros_auxilios_protocolo_inicial_video",
+              "title": "Video: Protocolo inicial",
+              "type": "video",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "provider": "youtube",
+                "videoIds": [
+                  "uHJ3m0P_Kls"
+                ]
+              }
+            },
+            {
+              "id": "primeros_auxilios_protocolo_inicial_quiz",
+              "title": "Quiz: Protocolo inicial",
+              "type": "quiz",
+              "order": 2,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "isFinalExam": false,
+                "questions": [
+                  {
+                    "texto": "Son 2 puntos que evalúas en la escena.",
+                    "opciones": [
+                      "Observa lo que hay alrededor y escucha o busca posibles riesgos.",
+                      "Ignorar el entorno y enfocarse solo en mover inmediatamente a la persona herida.",
+                      "Esperar a que llegue otra persona para evaluar la escena sin hacer ninguna observación inicial"
+                    ],
+                    "respuestaCorrecta": "Observa lo que hay alrededor y escucha o busca posibles riesgos."
+                  },
+                  {
+                    "texto": "¿Cuál es la función del equipo de protección personal y el equipo de aislamiento de sustancias corporales?",
+                    "opciones": [
+                      "Se utiliza solo para transportar herramientas y materiales médicos",
+                      "Te ayuda a proteger ojos, boca y manos de salpicaduras o líquidos corporales u orgánicos",
+                      "Sirve únicamente para identificar a los rescatistas durante una emergencia"
+                    ],
+                    "respuestaCorrecta": "Te ayuda a proteger ojos, boca y manos de salpicaduras o líquidos corporales u orgánicos"
+                  },
+                  {
+                    "texto": "¿Qué significa AVDI?",
+                    "opciones": [
+                      "Atento, Vigilante, Dinámico e Intacto.",
+                      "Agitado, Vacilante, Despierto e Inmóvil",
+                      "Alerta, Verbal, Dolor e Inconsciente"
+                    ],
+                    "respuestaCorrecta": "Alerta, Verbal, Dolor e Inconsciente"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "primeros_auxilios_reanimacion_cardiopulmonar",
+          "title": "Reanimación Cardiopulmonar",
+          "description": "",
+          "order": 3,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": false,
+          "activities": [
+            {
+              "id": "primeros_auxilios_reanimacion_cardiopulmonar_video",
+              "title": "Video: Reanimación Cardiopulmonar",
+              "type": "video",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "provider": "youtube",
+                "videoIds": [
+                  "7SBBka5fwW8"
+                ]
+              }
+            },
+            {
+              "id": "primeros_auxilios_reanimacion_cardiopulmonar_quiz",
+              "title": "Quiz: Reanimación Cardiopulmonar",
+              "type": "quiz",
+              "order": 2,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "isFinalExam": false,
+                "questions": [
+                  {
+                    "texto": "¿Qué significa RCP?",
+                    "opciones": [
+                      "Recuperación Completa del Paciente",
+                      "Reanimación cardiopulmonar",
+                      "Respiración Continua y Prolongada"
+                    ],
+                    "respuestaCorrecta": "Reanimación cardiopulmonar"
+                  },
+                  {
+                    "texto": "Características de las compresiones torácicas",
+                    "opciones": [
+                      "Suaves, lentas y ocasionales",
+                      "Fuertes, rápidas e ininterrumpidas",
+                      "Respiración Continua y Prolongada"
+                    ],
+                    "respuestaCorrecta": "Fuertes, rápidas e ininterrumpidas"
+                  },
+                  {
+                    "texto": "¿Qué significa DEA?",
+                    "opciones": [
+                      "Detector Eléctrico Automático",
+                      "Dispositivo de Emergencia Aérea",
+                      "Desfibrilador externo automático"
+                    ],
+                    "respuestaCorrecta": "Desfibrilador externo automático"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "primeros_auxilios_hemorragias_o_perdidas_de_sangre",
+          "title": "Hemorragias o pérdidas de sangre",
+          "description": "",
+          "order": 4,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": false,
+          "activities": [
+            {
+              "id": "primeros_auxilios_hemorragias_o_perdidas_de_sangre_video",
+              "title": "Video: Hemorragias o pérdidas de sangre",
+              "type": "video",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "provider": "youtube",
+                "videoIds": [
+                  "p7UNkf-06EY"
+                ]
+              }
+            },
+            {
+              "id": "primeros_auxilios_hemorragias_o_perdidas_de_sangre_quiz",
+              "title": "Quiz: Hemorragias o pérdidas de sangre",
+              "type": "quiz",
+              "order": 2,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "isFinalExam": false,
+                "questions": [
+                  {
+                    "texto": "¿Qué es una hemorragia?",
+                    "opciones": [
+                      "Pérdida de sangre de los vasos sanguíneos al exterior",
+                      "Acumulación de aire en los pulmones después de un esfuerzo físico.",
+                      "Incremento repentino de la presión arterial por estrés o miedo"
+                    ],
+                    "respuestaCorrecta": "Pérdida de sangre de los vasos sanguíneos al exterior"
+                  },
+                  {
+                    "texto": "¿Cuál es la clasificación del tipo de hemorragias?",
+                    "opciones": [
+                      "Rápidas y lentas",
+                      "Leves y graves",
+                      "Externa e interna"
+                    ],
+                    "respuestaCorrecta": "Externa e interna"
+                  },
+                  {
+                    "texto": "¿Tipo de vendaje que ayuda a detener una hemorragia externa?",
+                    "opciones": [
+                      "En ocho",
+                      "Espiga",
+                      "Compresivo"
+                    ],
+                    "respuestaCorrecta": "Compresivo"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "primeros_auxilios_atragantamiento",
+          "title": "Atragantamiento",
+          "description": "",
+          "order": 5,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": false,
+          "activities": [
+            {
+              "id": "primeros_auxilios_atragantamiento_video",
+              "title": "Video: Atragantamiento",
+              "type": "video",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "provider": "youtube",
+                "videoIds": [
+                  "2txGz7zLdHE"
+                ]
+              }
+            },
+            {
+              "id": "primeros_auxilios_atragantamiento_quiz",
+              "title": "Quiz: Atragantamiento",
+              "type": "quiz",
+              "order": 2,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "isFinalExam": false,
+                "questions": [
+                  {
+                    "texto": "¿Qué es la obstrucción de la vía aérea?",
+                    "opciones": [
+                      "Cuando el conducto por donde pasa el aire es obstruido por un objeto o alimento",
+                      "Cuando el aire entra con mayor velocidad por hacer ejercicio intenso",
+                      "Cuando la persona respira más de lo normal por estar nerviosa"
+                    ],
+                    "respuestaCorrecta": "Cuando el conducto por donde pasa el aire es obstruido por un objeto o alimento"
+                  },
+                  {
+                    "texto": "¿Tipos de obstrucción de la vía aérea?",
+                    "opciones": [
+                      "Interna y externa",
+                      "Total y parcial",
+                      "Alta y baja presión"
+                    ],
+                    "respuestaCorrecta": "Total y parcial"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "primeros_auxilios_como_atender_una_herida_o_quemadura",
+          "title": "¿Cómo atender una herida o quemadura?",
+          "description": "",
+          "order": 6,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": false,
+          "activities": [
+            {
+              "id": "primeros_auxilios_como_atender_una_herida_o_quemadura_video",
+              "title": "Video: ¿Cómo atender una herida o quemadura?",
+              "type": "video",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "provider": "youtube",
+                "videoIds": [
+                  "cECkv6xUuTY"
+                ]
+              }
+            },
+            {
+              "id": "primeros_auxilios_como_atender_una_herida_o_quemadura_quiz",
+              "title": "Quiz: ¿Cómo atender una herida o quemadura?",
+              "type": "quiz",
+              "order": 2,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "isFinalExam": false,
+                "questions": [
+                  {
+                    "texto": "¿Qué es una herida?",
+                    "opciones": [
+                      "Pérdida de la continuidad de la piel o mucosa",
+                      "Un tipo de inflamación interna sin ruptura visible",
+                      "Una infección causada por virus sin daño en la piel"
+                    ],
+                    "respuestaCorrecta": "Pérdida de la continuidad de la piel o mucosa"
+                  },
+                  {
+                    "texto": "La técnica vertical es una manera de limpiar una herida",
+                    "opciones": [
+                      "Verdadero",
+                      "Falso"
+                    ],
+                    "respuestaCorrecta": "Verdadero"
+                  },
+                  {
+                    "texto": "Se usan remedios caseros para curar una quemadura",
+                    "opciones": [
+                      "Verdadero",
+                      "Falso"
+                    ],
+                    "respuestaCorrecta": "Falso"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "primeros_auxilios_fracturas",
+          "title": "Fracturas",
+          "description": "",
+          "order": 7,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": false,
+          "activities": [
+            {
+              "id": "primeros_auxilios_fracturas_video",
+              "title": "Video: Fracturas",
+              "type": "video",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "provider": "youtube",
+                "videoIds": [
+                  "Hhg2HKiAN-o"
+                ]
+              }
+            },
+            {
+              "id": "primeros_auxilios_fracturas_quiz",
+              "title": "Quiz: Fracturas",
+              "type": "quiz",
+              "order": 2,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "isFinalExam": false,
+                "questions": [
+                  {
+                    "texto": "¿Qué es una fractura?",
+                    "opciones": [
+                      "Pérdida de la continuidad de una estructura ósea",
+                      "Pérdida de la continuidad de una estructura de la piel",
+                      "Es la continuidad de una estructura ósea"
+                    ],
+                    "respuestaCorrecta": "Pérdida de la continuidad de una estructura ósea"
+                  },
+                  {
+                    "texto": "¿Cuál es la clasificación de las fracturas?",
+                    "opciones": [
+                      "Abiertas o cerradas",
+                      "Total o parcial",
+                      "Alta y baja"
+                    ],
+                    "respuestaCorrecta": "Abiertas o cerradas"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "primeros_auxilios_atencion_de_emergencias_por_frio_y_calor",
+          "title": "Atención de emergencias por frío y calor",
+          "description": "",
+          "order": 8,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": false,
+          "activities": [
+            {
+              "id": "primeros_auxilios_atencion_de_emergencias_por_frio_y_calor_video",
+              "title": "Video: Atención de emergencias por frío y calor",
+              "type": "video",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "provider": "youtube",
+                "videoIds": [
+                  "JczBVv-A4VY"
+                ]
+              }
+            },
+            {
+              "id": "primeros_auxilios_atencion_de_emergencias_por_frio_y_calor_quiz",
+              "title": "Quiz: Atención de emergencias por frío y calor",
+              "type": "quiz",
+              "order": 2,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "isFinalExam": false,
+                "questions": [
+                  {
+                    "texto": "¿Qué es la hipotermia?",
+                    "opciones": [
+                      "Temperatura arriba de los 37 °C en una persona",
+                      "Temperatura debajo de los 35 °C en una persona",
+                      "Temperatura de 36 °C en una persona"
+                    ],
+                    "respuestaCorrecta": "Temperatura debajo de los 35 °C en una persona"
+                  },
+                  {
+                    "texto": "Se puede revertir una hipotermia con recalentamiento pasivo",
+                    "opciones": [
+                      "Verdadero",
+                      "Falso"
+                    ],
+                    "respuestaCorrecta": "Verdadero"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "primeros_auxilios_examen_final",
+          "title": "Examen final",
+          "description": "",
+          "order": 9,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": true,
+          "activities": [
+            {
+              "id": "primeros_auxilios_examen_final_quiz",
+              "title": "Examen final",
+              "type": "quiz",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "isFinalExam": true,
+                "questions": [
+                  {
+                    "texto": "¿Qué síntoma no es característico de un infarto agudo al miocardio?",
+                    "opciones": [
+                      "Dolor en el pecho",
+                      "Dificultad para respirar",
+                      "Sudoración excesiva",
+                      "Fiebre"
+                    ],
+                    "respuestaCorrecta": "Fiebre"
+                  },
+                  {
+                    "texto": "¿Qué significa la sigla RCP?",
+                    "opciones": [
+                      "Rescate Cardiopulmonar.",
+                      "Reanimación Cardiopulmonar.",
+                      "Respuesta Cardiopreventiva.",
+                      "Rehabilitación Cardiológica Personalizada."
+                    ],
+                    "respuestaCorrecta": "Reanimación Cardiopulmonar."
+                  },
+                  {
+                    "texto": "¿Cuál es el primer paso en la evaluación primaria de un paciente?",
+                    "opciones": [
+                      "Inmovilizar las extremidades fracturadas.",
+                      "Controlar las hemorragias.",
+                      "Evaluar el ABCD",
+                      "Aplicar un vendaje en las heridas."
+                    ],
+                    "respuestaCorrecta": "Evaluar el ABCD"
+                  },
+                  {
+                    "texto": "¿Cuál es la proporción correcta de compresiones torácicas y ventilaciones en RCP para un adulto?",
+                    "opciones": [
+                      "30 compresiones por 1 ventilación.",
+                      "15 compresiones por 2 ventilaciones.",
+                      "30 compresiones por 2 ventilaciones.",
+                      "50 compresiones por 3 ventilaciones."
+                    ],
+                    "respuestaCorrecta": "30 compresiones por 2 ventilaciones."
+                  },
+                  {
+                    "texto": "¿Qué debe hacer un Primer Respondiente ante una hemorragia severa?",
+                    "opciones": [
+                      "Colocar a la víctima en posición de recuperación.",
+                      "Aplicar la técnica más adecuada de contención de hemorragia.",
+                      "Administrar medicamentos hemostáticos.",
+                      "Esperar a que llegue la ambulancia, asegurando la escena."
+                    ],
+                    "respuestaCorrecta": "Aplicar la técnica más adecuada de contención de hemorragia."
+                  },
+                  {
+                    "texto": "¿Qué es lo primero que debe comunicar el Primer Respondiente al solicitar ayuda a los servicios de emergencia?",
+                    "opciones": [
+                      "El estado emocional de la víctima.",
+                      "Motivo de la llamada y ubicación exacta.",
+                      "Su opinión sobre la causa del accidente.",
+                      "Detalles personales de las víctimas."
+                    ],
+                    "respuestaCorrecta": "Motivo de la llamada y ubicación exacta."
+                  },
+                  {
+                    "texto": "¿Qué equipo básico puede usar un Primer Respondiente para protegerse durante una atención?",
+                    "opciones": [
+                      "Ropa de uso diario.",
+                      "Guantes de látex, mascarilla y lentes de seguridad.",
+                      "Bata quirúrgica, gorro quirúrgico y guantes de tela.",
+                      "Gafas de sol, repelente de insectos, bloqueador solar."
+                    ],
+                    "respuestaCorrecta": "Guantes de látex, mascarilla y lentes de seguridad."
+                  },
+                  {
+                    "texto": "¿Cuál es la técnica adecuada para abrir la vía aérea de una persona inconsciente sin sospecha de lesión cervical?",
+                    "opciones": [
+                      "Tracción mandibular.",
+                      "Maniobra de inclinación de cabeza y elevación del mentón.",
+                      "Compresión torácica con compresiones de al menos 120 cpm.",
+                      "Aplicación de un collarín cervical."
+                    ],
+                    "respuestaCorrecta": "Maniobra de inclinación de cabeza y elevación del mentón."
+                  },
+                  {
+                    "texto": "¿Cómo se identifica una obstrucción completa de la vía aérea?",
+                    "opciones": [
+                      "Tos fuerte y continua.",
+                      "Incapacidad para hablar, toser o respirar.",
+                      "Pérdida de conciencia inmediata.",
+                      "Respiración rápida y superficial."
+                    ],
+                    "respuestaCorrecta": "Incapacidad para hablar, toser o respirar."
+                  },
+                  {
+                    "texto": "¿Cuál es el propósito de la posición de recuperación en un paciente inconsciente que respira?",
+                    "opciones": [
+                      "Evitar que la lengua bloquee la vía aérea y, en caso de existencia de secreciones, evitar un atragantamiento.",
+                      "Mejorar la circulación sanguínea.",
+                      "Facilitar la administración de medicamentos.",
+                      "Elevar la presión arterial, poniendo al paciente en posición de recuperación."
+                    ],
+                    "respuestaCorrecta": "Evitar que la lengua bloquee la vía aérea y, en caso de existencia de secreciones, evitar un atragantamiento."
+                  },
+                  {
+                    "texto": "¿Qué se debe hacer primero al tratar una quemadura térmica?",
+                    "opciones": [
+                      "Aplicar ungüento",
+                      "Enfriar la quemadura con agua corriente",
+                      "Cubrir con un apósito seco",
+                      "Retirar la ropa adherida, en un solo movimiento rápido."
+                    ],
+                    "respuestaCorrecta": "Enfriar la quemadura con agua corriente"
+                  },
+                  {
+                    "texto": "¿Cómo se evalúa la respiración de una persona inconsciente?",
+                    "opciones": [
+                      "Escuchando su pecho",
+                      "Mirando si el abdomen se eleva y desciende",
+                      "Colocando el oído cerca de la boca",
+                      "Observando los labios por al menos 5 minutos"
+                    ],
+                    "respuestaCorrecta": "Mirando si el abdomen se eleva y desciende"
+                  },
+                  {
+                    "texto": "¿Qué se debe hacer si una persona con diabetes tiene síntomas de hipoglucemia?",
+                    "opciones": [
+                      "Administrar insulina, suministrando más de la dosis indicada.",
+                      "Darle algo dulce, como jugo o caramelos",
+                      "Acostarla sin intervención",
+                      "Llamar inmediatamente a emergencias"
+                    ],
+                    "respuestaCorrecta": "Darle algo dulce, como jugo o caramelos"
+                  },
+                  {
+                    "texto": "¿Qué acción es incorrecta al atender a una persona que presenta signos de un evento cerebral vascular?",
+                    "opciones": [
+                      "Llamar a emergencias inmediatamente",
+                      "Sentar a la persona y mantenerla tranquila",
+                      "Administrar alimentos o líquidos",
+                      "Observar si hay asimetría facial"
+                    ],
+                    "respuestaCorrecta": "Administrar alimentos o líquidos"
+                  },
+                  {
+                    "texto": "¿Cuál es el objetivo principal de los primeros auxilios?",
+                    "opciones": [
+                      "Diagnosticar la causa de la emergencia, recetando medicamentos y dejando indicaciones.",
+                      "Preservar la vida, limitar el daño y promover la recuperación",
+                      "Sustituir al personal médico",
+                      "Proporcionar tratamiento definitivo"
+                    ],
+                    "respuestaCorrecta": "Preservar la vida, limitar el daño y promover la recuperación"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "bloque_regulacion_de_emociones",
+      "title": "Regulación de emociones",
+      "description": "",
+      "order": 2,
+      "estimatedMinutes": null,
+      "optional": false,
+      "modules": [
+        {
+          "id": "regulacion_de_emociones_regulacion_de_emociones",
+          "title": "Regulación de emociones",
+          "description": "",
+          "order": 1,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": false,
+          "activities": [
+            {
+              "id": "regulacion_de_emociones_regulacion_de_emociones_video",
+              "title": "Video: Regulación de emociones",
+              "type": "video",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "provider": "youtube",
+                "videoIds": [
+                  "8Gsig9CUHlM"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "regulacion_de_emociones_examen_final",
+          "title": "Examen final",
+          "description": "",
+          "order": 2,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": true,
+          "activities": [
+            {
+              "id": "regulacion_de_emociones_examen_final_quiz",
+              "title": "Examen final",
+              "type": "quiz",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "isFinalExam": true,
+                "questions": [
+                  {
+                    "texto": "Según la perspectiva de la TCC, las emociones son:",
+                    "opciones": [
+                      "Respuestas automáticas y automotivadas sin influencia de los pensamientos",
+                      "Respuestas fisiológicas y psicológicas influenciadas por la interpretación de eventos",
+                      "Reacciones que ocurren sin relación con los pensamientos o creencias",
+                      "Siempre involuntariamente provocadas por los eventos externos"
+                    ],
+                    "respuestaCorrecta": "Respuestas fisiológicas y psicológicas influenciadas por la interpretación de eventos"
+                  },
+                  {
+                    "texto": "¿Cuál de las siguientes afirmaciones refleja la relación entre pensamientos y emociones en la TCC?",
+                    "opciones": [
+                      "Las emociones provocan automáticamente los pensamientos y comportamientos",
+                      "Los pensamientos no tienen impacto sobre las emociones",
+                      "Los pensamientos influyen en las emociones, que a su vez afectan los comportamientos",
+                      "Las emociones y pensamientos son independientes y no se afectan mutuamente"
+                    ],
+                    "respuestaCorrecta": "Los pensamientos influyen en las emociones, que a su vez afectan los comportamientos"
+                  },
+                  {
+                    "texto": "Cuando una persona recibe una crítica en el trabajo y la interpreta como un fracaso, ¿qué emoción suele experimentar?",
+                    "opciones": [
+                      "Motivación",
+                      "Alegría",
+                      "Tristeza o frustración",
+                      "Confianza"
+                    ],
+                    "respuestaCorrecta": "Tristeza o frustración"
+                  },
+                  {
+                    "texto": "¿Qué son los pensamientos automáticos en la TCC?",
+                    "opciones": [
+                      "Evaluaciones racionales y positivas que mejoran las emociones",
+                      "Evaluaciones rápidas, a menudo irracionales o distorsionadas, que generan emociones disfuncionales",
+                      "Pensamientos que siempre aportan soluciones prácticas",
+                      "Opiniones que no afectan la respuesta emocional"
+                    ],
+                    "respuestaCorrecta": "Evaluaciones rápidas, a menudo irracionales o distorsionadas, que generan emociones disfuncionales"
+                  },
+                  {
+                    "texto": "¿Cuál es una de las seis emociones básicas según la información?",
+                    "opciones": [
+                      "Curiosidad",
+                      "Gratitud",
+                      "Enojo",
+                      "Serenidad"
+                    ],
+                    "respuestaCorrecta": "Enojo"
+                  },
+                  {
+                    "texto": "¿Qué significa \"somatizar\" en relación con las emociones?",
+                    "opciones": [
+                      "Cancelar las emociones para evitar conflictos",
+                      "Manifestar o expresar emociones a través de síntomas físicos",
+                      "Ignorar las emociones para alcanzar la tranquilidad",
+                      "Incrementar las emociones mediante la actividad física"
+                    ],
+                    "respuestaCorrecta": "Manifestar o expresar emociones a través de síntomas físicos"
+                  },
+                  {
+                    "texto": "La regulación emocional implica:",
+                    "opciones": [
+                      "Reprimir todas las emociones negativas",
+                      "Identificar, gestionar y responder apropiadamente a las emociones",
+                      "Evitar experimentar emociones en situaciones difíciles",
+                      "Permanecer siempre en un estado emocional neutro"
+                    ],
+                    "respuestaCorrecta": "Identificar, gestionar y responder apropiadamente a las emociones"
+                  },
+                  {
+                    "texto": "¿Cuál de las siguientes técnicas ayuda a practicar la atención plena para regular las emociones?",
+                    "opciones": [
+                      "Reestructuración cognitiva",
+                      "Mindfulness",
+                      "Desensibilización sistemática",
+                      "Reevaluación cognitiva"
+                    ],
+                    "respuestaCorrecta": "Mindfulness"
+                  },
+                  {
+                    "texto": "¿En qué consiste la validación emocional?",
+                    "opciones": [
+                      "Suprimir las emociones para evitarlas",
+                      "Reconocer y aceptar las emociones tal como son sin juzgarlas",
+                      "Cambiar las emociones negativas por positivas inmediatamente",
+                      "Ignorar las emociones para poder seguir con la rutina"
+                    ],
+                    "respuestaCorrecta": "Reconocer y aceptar las emociones tal como son sin juzgarlas"
+                  },
+                  {
+                    "texto": "¿Cuál es el objetivo de la técnica de reestructuración cognitiva?",
+                    "opciones": [
+                      "Eliminar por completo las emociones negativas",
+                      "Identificar pensamientos disfuncionales y reemplazarlos por otros más adaptativos",
+                      "Suprimir las emociones mediante técnicas de respiración",
+                      "Aumentar la intensidad de las emociones para sentirlas mejor"
+                    ],
+                    "respuestaCorrecta": "Identificar pensamientos disfuncionales y reemplazarlos por otros más adaptativos"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "bloque_induccion_a_los_desastres",
+      "title": "Inducción a los Desastres",
+      "description": "",
+      "order": 3,
+      "estimatedMinutes": null,
+      "optional": false,
+      "modules": [
+        {
+          "id": "induccion_a_los_desastres_charla_de_induccion_a_los_desastres",
+          "title": "Charla de Inducción a los Desastres",
+          "description": "",
+          "order": 1,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": false,
+          "activities": [
+            {
+              "id": "induccion_a_los_desastres_charla_de_induccion_a_los_desastres_video",
+              "title": "Video: Charla de Inducción a los Desastres",
+              "type": "video",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "provider": "youtube",
+                "videoIds": [
+                  "EQ44yM01jAc"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "induccion_a_los_desastres_examen_final",
+          "title": "Examen final",
+          "description": "",
+          "order": 2,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": true,
+          "activities": [
+            {
+              "id": "induccion_a_los_desastres_examen_final_quiz",
+              "title": "Examen final",
+              "type": "quiz",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "isFinalExam": true,
+                "questions": [
+                  {
+                    "texto": "Según la definición, un desastre es principalmente:",
+                    "opciones": [
+                      "Un fenómeno natural que siempre provoca heridos y muertos",
+                      "Un evento cotidiano que afecta levemente a la población",
+                      "Un evento que supera la capacidad de respuesta de la comunidad, causa afectaciones a la población y a los sistemas, y genera daños",
+                      "Una situación compleja que solo afecta al ambiente sin impacto social"
+                    ],
+                    "respuestaCorrecta": "Un evento que supera la capacidad de respuesta de la comunidad, causa afectaciones a la población y a los sistemas, y genera daños"
+                  },
+                  {
+                    "texto": "¿Cuáles son componentes fundamentales para que exista un desastre?",
+                    "opciones": [
+                      "Huracanes, terremotos y tormentas",
+                      "Amenaza, vulnerabilidad, exposición/capacidades y riesgo",
+                      "Muertes, heridos y destrucción",
+                      "Contaminación, comunidades y destrucción"
+                    ],
+                    "respuestaCorrecta": "Amenaza, vulnerabilidad, exposición/capacidades y riesgo"
+                  },
+                  {
+                    "texto": "Los desastres se clasifican principalmente:",
+                    "opciones": [
+                      "En grandes o pequeños, más destructivos o menos destructivos",
+                      "Por velocidad de aparición y según su origen (natural, antrópico o socio-natural)",
+                      "En urbanos o rurales",
+                      "En costosos o económicos"
+                    ],
+                    "respuestaCorrecta": "Por velocidad de aparición y según su origen (natural, antrópico o socio-natural)"
+                  },
+                  {
+                    "texto": "¿Cuál opción contiene de forma más completa las etapas del ciclo de los desastres?",
+                    "opciones": [
+                      "Análisis de riesgos, Reducción del riesgo, Manejo de desastres, Recuperación y Desarrollo",
+                      "Prevención, Evacuación y Fin de la emergencia",
+                      "Alarma, Respuesta y Reconstrucción",
+                      "Mitigación, Evacuación y Ayuda humanitaria"
+                    ],
+                    "respuestaCorrecta": "Análisis de riesgos, Reducción del riesgo, Manejo de desastres, Recuperación y Desarrollo"
+                  },
+                  {
+                    "texto": "¿Qué conjunto de términos corresponde principalmente a la fase de Preparación del ciclo de los desastres?",
+                    "opciones": [
+                      "Rehabilitación y reconstrucción",
+                      "Capacitación, simulacros, recursos, alerta/alarma",
+                      "Prevención y mitigación de largo plazo",
+                      "Desarrollo económico y social sostenible"
+                    ],
+                    "respuestaCorrecta": "Capacitación, simulacros, recursos, alerta/alarma"
+                  },
+                  {
+                    "texto": "Relaciona correctamente cada concepto con su definición (A, B, C): A) Preparación, B) Desarrollo, C) Respuesta",
+                    "opciones": [
+                      "A=Acciones ante el evento para salvar vidas; B=Aumento acumulativo y durable de bienes y servicios; C=Medidas para organizar respuesta y rehabilitación",
+                      "A=Medidas para organizar respuesta y rehabilitación; B=Aumento acumulativo y durable de bienes y servicios; C=Acciones ante el evento para salvar vidas",
+                      "A=Aumento acumulativo y durable de bienes y servicios; B=Acciones ante el evento para salvar vidas; C=Medidas para organizar respuesta y rehabilitación",
+                      "A=Prevención; B=Mitigación; C=Reconstrucción"
+                    ],
+                    "respuestaCorrecta": "A=Medidas para organizar respuesta y rehabilitación; B=Aumento acumulativo y durable de bienes y servicios; C=Acciones ante el evento para salvar vidas"
+                  },
+                  {
+                    "texto": "¿Cuál opción incluye únicamente fenómenos hidrometeorológicos?",
+                    "opciones": [
+                      "Inundaciones, huracanes y tormentas",
+                      "Terremotos, erupciones volcánicas y tsunamis",
+                      "Deslizamientos, sismos y hundimientos",
+                      "Incendios industriales, derrames químicos y explosiones"
+                    ],
+                    "respuestaCorrecta": "Inundaciones, huracanes y tormentas"
+                  },
+                  {
+                    "texto": "¿Cuál opción incluye únicamente fenómenos geológicos?",
+                    "opciones": [
+                      "Sequías, olas de calor y granizadas",
+                      "Terremotos, erupciones volcánicas y deslizamientos",
+                      "Huracanes, ciclones y tornados",
+                      "Contaminación, incendios industriales y fallas tecnológicas"
+                    ],
+                    "respuestaCorrecta": "Terremotos, erupciones volcánicas y deslizamientos"
+                  },
+                  {
+                    "texto": "Los fenómenos producidos por la acción del ser humano suelen clasificarse en:",
+                    "opciones": [
+                      "Naturales y socio-naturales",
+                      "Geológicos e hidrometeorológicos",
+                      "Tecnológicos/industriales y sanitarios/ambientales",
+                      "Rurales y urbanos"
+                    ],
+                    "respuestaCorrecta": "Tecnológicos/industriales y sanitarios/ambientales"
+                  },
+                  {
+                    "texto": "Completa la definición: Los __________ son sacudidas de la superficie terrestre, producidas por la liberación súbita de energía en forma de ondas.",
+                    "opciones": [
+                      "sismos",
+                      "tornados",
+                      "maremotos",
+                      "aludes"
+                    ],
+                    "respuestaCorrecta": "sismos"
+                  },
+                  {
+                    "texto": "Completa la definición: Una __________ es el paso de magma, cenizas y gases desde el interior de la Tierra hacia la superficie.",
+                    "opciones": [
+                      "erupción volcánica",
+                      "inundación",
+                      "granizada",
+                      "avalancha"
+                    ],
+                    "respuestaCorrecta": "erupción volcánica"
+                  },
+                  {
+                    "texto": "Completa la definición: Los __________ son movimientos descendentes de masa de suelo o roca en laderas, debidos a cambios en composición, estructura, hidrología o vegetación.",
+                    "opciones": [
+                      "deslizamientos",
+                      "maremotos",
+                      "tormentas",
+                      "marejadas"
+                    ],
+                    "respuestaCorrecta": "deslizamientos"
+                  },
+                  {
+                    "texto": "Completa la definición: Una __________ es la crecida del nivel del agua en ríos, lagos o zonas costeras por lluvias intensas o escaso escurrimiento, que causa daños a personas y bienes.",
+                    "opciones": [
+                      "inundación",
+                      "sequía",
+                      "erupción",
+                      "granizada"
+                    ],
+                    "respuestaCorrecta": "inundación"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "bloque_induccion_a_la_cruz_roja_mexicana",
+      "title": "Inducción a la Cruz Roja Mexicana",
+      "description": "",
+      "order": 4,
+      "estimatedMinutes": null,
+      "optional": false,
+      "modules": [
+        {
+          "id": "induccion_a_la_cruz_roja_mexicana_induccion_a_la_cruz_roja_mexicana",
+          "title": "Inducción a la Cruz Roja Mexicana",
+          "description": "",
+          "order": 1,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": false,
+          "activities": [
+            {
+              "id": "induccion_a_la_cruz_roja_mexicana_induccion_a_la_cruz_roja_mexicana_video",
+              "title": "Video: Inducción a la Cruz Roja Mexicana",
+              "type": "video",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "provider": "youtube",
+                "videoIds": [
+                  "qxcwnz0Owbk"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "induccion_a_la_cruz_roja_mexicana_examen_final",
+          "title": "Examen final",
+          "description": "",
+          "order": 2,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": true,
+          "activities": [
+            {
+              "id": "induccion_a_la_cruz_roja_mexicana_examen_final_quiz",
+              "title": "Examen final",
+              "type": "quiz",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "isFinalExam": true,
+                "questions": [
+                  {
+                    "texto": "¿Qué fue la Batalla de Solferino?",
+                    "opciones": [
+                      "Una guerra entre México y Francia",
+                      "Una batalla en Italia que inspiró la creación del Movimiento de la Cruz Roja",
+                      "La primera misión humanitaria de la Cruz Roja",
+                      "Una rebelión interna en Suiza"
+                    ],
+                    "respuestaCorrecta": "Una batalla en Italia que inspiró la creación del Movimiento de la Cruz Roja"
+                  },
+                  {
+                    "texto": "¿Quién es considerado el fundador del Movimiento Internacional de la Cruz Roja?",
+                    "opciones": [
+                      "Louis Appia",
+                      "Clara Barton",
+                      "Henry Dunant",
+                      "Gustave Moynier"
+                    ],
+                    "respuestaCorrecta": "Henry Dunant"
+                  },
+                  {
+                    "texto": "¿Quién inició el movimiento de la Cruz Roja en México?",
+                    "opciones": [
+                      "Carmen Serdán",
+                      "María de Cosío",
+                      "Porfirio Díaz",
+                      "Elena Arizmendi"
+                    ],
+                    "respuestaCorrecta": "María de Cosío"
+                  },
+                  {
+                    "texto": "¿Cuáles son los Principios Fundamentales de la Cruz Roja?",
+                    "opciones": [
+                      "Humanidad, Imparcialidad, Neutralidad, Independencia, Voluntariado, Unidad y Universalidad",
+                      "Justicia, Igualdad, Paz, Fraternidad, Solidaridad, Respeto y Dignidad",
+                      "Humanismo, Pacifismo, Caridad, Amistad, Integridad, Servicio y Comunidad",
+                      "Lealtad, Patriotismo, Servicio, Solidaridad, Fraternidad, Justicia y Paz"
+                    ],
+                    "respuestaCorrecta": "Humanidad, Imparcialidad, Neutralidad, Independencia, Voluntariado, Unidad y Universalidad"
+                  },
+                  {
+                    "texto": "¿En qué año se fundó oficialmente la Cruz Roja Mexicana?",
+                    "opciones": [
+                      "1900",
+                      "1910",
+                      "1921",
+                      "1945"
+                    ],
+                    "respuestaCorrecta": "1910"
+                  },
+                  {
+                    "texto": "¿Cuál es la misión principal de la Cruz Roja Mexicana?",
+                    "opciones": [
+                      "Proteger a los combatientes en conflictos armados",
+                      "Brindar asistencia humanitaria en casos de desastre y urgencias",
+                      "Representar al gobierno en temas de salud",
+                      "Promover únicamente la medicina preventiva"
+                    ],
+                    "respuestaCorrecta": "Brindar asistencia humanitaria en casos de desastre y urgencias"
+                  },
+                  {
+                    "texto": "¿Qué emblema utiliza la Cruz Roja como símbolo de protección y neutralidad?",
+                    "opciones": [
+                      "Una paloma blanca",
+                      "Una cruz roja sobre fondo blanco",
+                      "Una bandera blanca con escudo",
+                      "Un círculo rojo sobre fondo blanco"
+                    ],
+                    "respuestaCorrecta": "Una cruz roja sobre fondo blanco"
+                  },
+                  {
+                    "texto": "¿Quiénes pueden recibir apoyo de la Cruz Roja?",
+                    "opciones": [
+                      "Únicamente voluntarios y trabajadores de salud",
+                      "Solo personas afiliadas a la institución",
+                      "Todas las personas, sin distinción alguna",
+                      "Solamente en casos de guerra"
+                    ],
+                    "respuestaCorrecta": "Todas las personas, sin distinción alguna"
+                  },
+                  {
+                    "texto": "¿Qué significa el principio de Imparcialidad?",
+                    "opciones": [
+                      "Que la Cruz Roja no hace distinción de nacionalidad, raza, religión ni ideología",
+                      "Que la Cruz Roja no apoya a ningún país en conflicto",
+                      "Que los voluntarios no expresan opiniones políticas",
+                      "Que la ayuda solo se da en guerras"
+                    ],
+                    "respuestaCorrecta": "Que la Cruz Roja no hace distinción de nacionalidad, raza, religión ni ideología"
+                  },
+                  {
+                    "texto": "¿Cómo está estructurada la Cruz Roja Mexicana?",
+                    "opciones": [
+                      "Local, estatal y nacional",
+                      "Municipal y nacional",
+                      "Únicamente nacional",
+                      "Regional y continental"
+                    ],
+                    "respuestaCorrecta": "Local, estatal y nacional"
+                  },
+                  {
+                    "texto": "¿Qué acción distingue a Henry Dunant en la Batalla de Solferino?",
+                    "opciones": [
+                      "Organizó un hospital militar en Suiza",
+                      "Movilizó a la población civil para atender heridos sin importar el bando",
+                      "Escribió el Reglamento Nacional de la Cruz Roja",
+                      "Fundó la primera sede en México"
+                    ],
+                    "respuestaCorrecta": "Movilizó a la población civil para atender heridos sin importar el bando"
+                  },
+                  {
+                    "texto": "¿Qué papel jugó María de Cosío en México?",
+                    "opciones": [
+                      "Fue la primera presidenta de la Cruz Roja Mexicana",
+                      "Fue enfermera en la Revolución Mexicana",
+                      "Dirigió la Cruz Roja Internacional en América",
+                      "Creó el símbolo de la Cruz Roja"
+                    ],
+                    "respuestaCorrecta": "Fue la primera presidenta de la Cruz Roja Mexicana"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "bloque_acceso_mas_seguro",
+      "title": "Acceso Más Seguro",
+      "description": "",
+      "order": 5,
+      "estimatedMinutes": null,
+      "optional": false,
+      "modules": [
+        {
+          "id": "acceso_mas_seguro_introduccion_al_acceso_mas_seguro",
+          "title": "Introducción al Acceso Más Seguro",
+          "description": "",
+          "order": 1,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": false,
+          "activities": [
+            {
+              "id": "acceso_mas_seguro_introduccion_al_acceso_mas_seguro_video",
+              "title": "Video: Introducción al Acceso Más Seguro",
+              "type": "video",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "provider": "youtube",
+                "videoIds": [
+                  "pA0TUIF7l9M"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "acceso_mas_seguro_examen_final",
+          "title": "Examen final",
+          "description": "",
+          "order": 2,
+          "estimatedMinutes": null,
+          "prerequisites": [],
+          "isFinalExam": true,
+          "activities": [
+            {
+              "id": "acceso_mas_seguro_examen_final_quiz",
+              "title": "Examen final",
+              "type": "quiz",
+              "order": 1,
+              "required": true,
+              "estimatedMinutes": null,
+              "config": {
+                "isFinalExam": true,
+                "questions": [
+                  {
+                    "texto": "¿Cuál es el objetivo del curso?",
+                    "opciones": [
+                      "Enseñar únicamente primeros auxilios básicos a los voluntarios",
+                      "Fortalecer estrategias que permitan a los voluntarios realizar su labor con mayor seguridad y sin comprometer su bienestar",
+                      "Capacitar solo a coordinadores de nivel nacional",
+                      "Brindar atención médica especializada en hospitales"
+                    ],
+                    "respuestaCorrecta": "Fortalecer estrategias que permitan a los voluntarios realizar su labor con mayor seguridad y sin comprometer su bienestar"
+                  },
+                  {
+                    "texto": "¿Cuáles son las dos etapas del Acceso Más Seguro?",
+                    "opciones": [
+                      "Prevención y atención hospitalaria",
+                      "Difusión del marco de trabajo y gestión de riesgos",
+                      "Evaluación psicológica y monitoreo comunitario",
+                      "Entrenamiento militar y primeros auxilios"
+                    ],
+                    "respuestaCorrecta": "Difusión del marco de trabajo y gestión de riesgos"
+                  },
+                  {
+                    "texto": "¿En qué consiste la difusión dentro de Acceso Más Seguro?",
+                    "opciones": [
+                      "Capacitar únicamente a voluntarios médicos",
+                      "Capacitar a todo el personal, independientemente del nivel jerárquico en la institución y ubicación geográfica",
+                      "Hacer campañas publicitarias en medios de comunicación",
+                      "Compartir información solo con la directiva nacional"
+                    ],
+                    "respuestaCorrecta": "Capacitar a todo el personal, independientemente del nivel jerárquico en la institución y ubicación geográfica"
+                  },
+                  {
+                    "texto": "¿En qué consiste la gestión de riesgos?",
+                    "opciones": [
+                      "Análisis, monitoreo y creación de protocolos de seguridad",
+                      "Atención psicológica a los voluntarios",
+                      "Reclutamiento y selección de nuevos voluntarios",
+                      "Organización de campañas de recaudación de fondos"
+                    ],
+                    "respuestaCorrecta": "Análisis, monitoreo y creación de protocolos de seguridad"
+                  },
+                  {
+                    "texto": "¿Cuáles son los cuatro elementos de la seguridad en Acceso Más Seguro?",
+                    "opciones": [
+                      "Capacitación, visibilidad e identificación, conductas seguras y gestión de riesgos",
+                      "Protección legal, entrenamiento físico, trabajo en equipo y resiliencia",
+                      "Protocolos de emergencia, equipamiento, comunicación y liderazgo",
+                      "Prevención, curación, atención hospitalaria y reconstrucción"
+                    ],
+                    "respuestaCorrecta": "Capacitación, visibilidad e identificación, conductas seguras y gestión de riesgos"
+                  },
+                  {
+                    "texto": "¿Qué usos tiene el emblema de la Cruz Roja?",
+                    "opciones": [
+                      "Protector e indicativo",
+                      "Comercial y decorativo",
+                      "Político y militar",
+                      "Administrativo y legal"
+                    ],
+                    "respuestaCorrecta": "Protector e indicativo"
+                  },
+                  {
+                    "texto": "¿Por qué es importante Acceso Más Seguro?",
+                    "opciones": [
+                      "Porque ayuda a reducir costos en operaciones internacionales",
+                      "Porque permite priorizar únicamente la atención hospitalaria",
+                      "Porque el Movimiento Internacional de la Cruz Roja y Media Luna Roja brinda ayuda humanitaria en situaciones de desastres, violencia, guerra y apoyo a comunidades vulnerables, por lo que es fundamental priorizar la seguridad de nuestros voluntarios",
+                      "Porque fortalece las relaciones diplomáticas entre países"
+                    ],
+                    "respuestaCorrecta": "Porque el Movimiento Internacional de la Cruz Roja y Media Luna Roja brinda ayuda humanitaria en situaciones de desastres, violencia, guerra y apoyo a comunidades vulnerables, por lo que es fundamental priorizar la seguridad de nuestros voluntarios"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
