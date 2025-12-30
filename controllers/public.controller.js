@@ -128,7 +128,10 @@ exports.registerUser = async (req, res) => {
     await connection.beginTransaction();
 
     // 5) Insertar usuario en BD (SP)
-const params = [
+// IMPORTANTE: tu SP espera 39 args exactos
+// Por ahora mandamos solo los primeros 39 EN EL ORDEN ACTUAL.
+// (Esto asume que el orden de los primeros 39 coincide con tu SP.)
+const fullParams = [
   nombre,
   apellidoPat,
   apellidoMat,
@@ -174,16 +177,19 @@ const params = [
   fecha,
   correo,
   firebaseUser.uid,
-  coordinacion ?? null, // explícito
+  // coordinacion ?? null,  // NO: SP no lo espera si son 39
 ];
 
-// 👇 genera exactamente N signos de ?
-const placeholders = params.map(() => "?").join(",");
+const params = fullParams.slice(0, 39);
 
+const placeholders = params.map(() => "?").join(",");
 const [result] = await connection.query(
   `CALL insertar_usuario(${placeholders})`,
   params
 );
+
+console.log("✅ insertar_usuario args enviados:", params.length);
+
 
 
     const newUserId = result?.[0]?.[0]?.id;
