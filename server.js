@@ -43,6 +43,7 @@ const disponibilidadRoutes = require("./routes/disponibilidad.routes");
 const publicRoutes = require("./routes/public.routes");
 const documentosRoutes = require("./routes/documentos.routes");
 const inscripcionesRoutes = require("./routes/inscripciones.routes");
+const progresoRoutes = require("./routes/progreso.routes");
 
 
 app.use("/users", usersRoutes);
@@ -51,6 +52,8 @@ app.use("/disponibilidad", disponibilidadRoutes);
 app.use("/public", publicRoutes);
 app.use("/documentos", documentosRoutes);
 app.use("/inscripciones", inscripcionesRoutes);
+app.use("/progreso", progresoRoutes);
+
 
 
 // Ruta raíz
