@@ -1,12 +1,17 @@
+// controllers/public.controller.js
 const admin = require("firebase-admin");
-const db = require("../config/db");
-const crypto = require("crypto");
+const db = require("../config/db"); // pool mysql2/promise
 
-function genMatricula10() {
-  // 10 chars; cámbialo si tú quieres otro formato
-  return crypto.randomBytes(6).toString("hex").slice(0, 10).toUpperCase();
-}
-
+// ─────────────────────────────────────────────────────────────
+// REGISTRO IDEAL
+// - Front SOLO manda los datos (incluida contraseña)
+// - Backend:
+//   1) Valida datos mínimos
+//   2) Verifica duplicados en BD (correo / CURP) antes de Firebase
+//   3) Crea usuario en Firebase (Admin SDK)
+//   4) Abre transacción MySQL -> CALL insertar_usuario + CALL insertar_rol_por_defecto
+//   5) Si algo falla: ROLLBACK + deleteUser(uid) en Firebase
+// ─────────────────────────────────────────────────────────────
 exports.registerUser = async (req, res) => {
   let connection = null;
   let firebaseUser = null;
@@ -15,7 +20,7 @@ exports.registerUser = async (req, res) => {
     const data = req.body;
 
     const {
-      // cuenta
+      // mínimos obligatorios
       correo,
       contraseña,
 
@@ -23,7 +28,7 @@ exports.registerUser = async (req, res) => {
       avisoPrivacidad,
       terminosyCondiciones,
 
-      // personales
+      // resto de campos para SP
       nombre,
       apellidoPat,
       apellidoMat,
@@ -33,59 +38,41 @@ exports.registerUser = async (req, res) => {
       estadoCivil,
       telefono,
       celular,
-
-      // emergencia
       emergenciaNombre,
       emergenciaRelacion,
       emergenciaTelefono,
       emergenciaCelular,
-
-      // estudios/trabajo
       gradoEstudios,
       especificaEstudios,
       ocupacion,
       empresa,
       idiomas,
       porcentajeIdioma,
-
-      // docs/licencias
       licencias,
       tipoLicencia,
       pasaporte,
       otroDocumento,
-
-      // salud
       tipoSangre,
       rh,
       enfermedades,
       alergias,
       medicamentos,
       ejercicio,
-
-      // motivación
       comoSeEntero,
       motivoInteres,
       voluntariadoPrevio,
       razonProyecto,
-
-      // ubicación
       estado,
       colonia,
       cp,
-
-      // coordinacion (la guardo porque tu tabla sí la tiene)
       coordinacion,
-
-      // fecha del front (si viene)
-      fecha,
     } = data;
 
-    // ✅ Validaciones mínimas
-    if (!correo || !contraseña) {
+    // 1) Validaciones básicas
+    if (!correo || !contraseña || !curp) {
       return res.status(400).json({
-        code: "REQUIRED_FIELDS",
-        field: "correo",
-        message: "Correo y contraseña son obligatorios.",
+        code: "MISSING_FIELDS",
+        message: "Faltan campos obligatorios (correo, contraseña y CURP).",
       });
     }
 
@@ -93,114 +80,150 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({
         code: "LEGAL_REQUIRED",
         message:
-          "Debes aceptar el aviso de privacidad y los términos y condiciones.",
+          "Debes aceptar el aviso de privacidad y los términos y condiciones para continuar.",
       });
     }
 
-    // ✅ Bloquea SOLO correo duplicado (Firebase también lo hará)
+    // 2) Verificar si ya existe en BD por correo o CURP (antes de tocar Firebase)
     const [existingRows] = await db.query(
-      `SELECT id FROM users WHERE correo = ? LIMIT 1`,
-      [correo]
+      `SELECT id, correo, curp 
+       FROM users 
+       WHERE correo = ? OR curp = ?
+       LIMIT 1`,
+      [correo, curp]
     );
+
     if (existingRows.length) {
+      const existing = existingRows[0];
+      const isCorreo = existing.correo === correo;
+
       return res.status(409).json({
-        code: "EMAIL_EXISTS",
-        field: "correo",
-        message: "Ya existe una cuenta registrada con este correo.",
+        code: "EMAIL_OR_CURP_EXISTS",
+        field: isCorreo ? "correo" : "curp",
+        message: isCorreo
+          ? "Ya existe una cuenta registrada con este correo."
+          : "Ya existe una cuenta registrada con esta CURP.",
       });
     }
 
-    // ✅ Crear usuario en Firebase
+    // 3) Crear usuario en Firebase (Admin SDK)
     firebaseUser = await admin.auth().createUser({
       email: correo,
       password: contraseña,
+      emailVerified: false,
+      disabled: false,
     });
 
-    // ✅ Insert en MySQL (sin SP)
+    const uid = firebaseUser.uid;
+    console.log("👤 Usuario creado en Firebase:", uid);
+
+    // 4) Abrir transacción MySQL
     connection = await db.getConnection();
     await connection.beginTransaction();
 
-    const id = crypto.randomUUID(); // char(36)
-    const uid = firebaseUser.uid;
-    const matricula = genMatricula10();
-
-    // OJO: tu tabla dice fecha_nacimiento DATE y fecha_registro DATETIME
-    const fechaRegistro = fecha ? new Date(fecha) : new Date();
-
-    await connection.query(
-      `
-      INSERT INTO users (
-        id, uid, matricula, correo,
-        nombre, apellido_pat, apellido_mat,
-        fecha_nacimiento, curp, sexo, estado_civil,
-        telefono, celular,
-        emergencia_nombre, emergencia_relacion, emergencia_telefono, emergencia_celular,
-        grado_estudios, especifica_estudios,
-        ocupacion, empresa,
-        idiomas, porcentaje_idioma,
-        licencias, tipo_licencia, pasaporte, otro_documento,
-        tipo_sangre, rh,
-        enfermedades, alergias, medicamentos, ejercicio,
-        como_se_entero, motivo_interes, voluntariado_previo, razon_proyecto,
-        estado_validacion, fecha_registro,
-        estado, colonia, codigo_postal,
-        coordinacion, coordinacion2, estatus
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-      `,
+    // 5) Insertar usuario en BD con tu SP
+    const [result] = await connection.query(
+      `CALL insertar_usuario(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        id, uid, matricula, correo,
-        nombre ?? null, apellidoPat ?? null, apellidoMat ?? null,
-        fechaNacimiento || null, curp ?? null, sexo ?? null, estadoCivil ?? null,
-        telefono ?? null, celular ?? null,
-        emergenciaNombre ?? null, emergenciaRelacion ?? null, emergenciaTelefono ?? null, emergenciaCelular ?? null,
-        gradoEstudios ?? null, especificaEstudios ?? null,
-        ocupacion ?? null, empresa ?? null,
-        idiomas ?? null, porcentajeIdioma ?? null,
-        licencias ?? null, tipoLicencia ?? null, pasaporte ?? null, otroDocumento ?? null,
-        tipoSangre ?? null, rh ?? null,
-        enfermedades ?? null, alergias ?? null, medicamentos ?? null, ejercicio ?? null,
-        comoSeEntero ?? null, motivoInteres ?? null, voluntariadoPrevio ?? null, razonProyecto ?? null,
-        "inactivo", fechaRegistro,
-        estado ?? null, colonia ?? null, cp ?? null,
-        coordinacion ?? null, null, null,
+        uid,
+        correo,
+        nombre,
+        apellidoPat,
+        apellidoMat,
+        fechaNacimiento,
+        curp,
+        sexo,
+        estadoCivil,
+        telefono,
+        celular,
+        emergenciaNombre,
+        emergenciaRelacion,
+        emergenciaTelefono,
+        emergenciaCelular,
+        gradoEstudios,
+        especificaEstudios,
+        ocupacion,
+        empresa,
+        idiomas,
+        porcentajeIdioma,
+        licencias,
+        tipoLicencia,
+        pasaporte,
+        otroDocumento,
+        tipoSangre,
+        rh,
+        enfermedades,
+        alergias,
+        medicamentos,
+        ejercicio,
+        comoSeEntero,
+        motivoInteres,
+        voluntariadoPrevio,
+        razonProyecto,
+        estado,
+        colonia,
+        cp,
+        coordinacion,
       ]
     );
 
+    const newUserId = result?.[0]?.[0]?.id;
+    if (!newUserId) {
+      throw new Error("No se pudo obtener el ID del nuevo usuario.");
+    }
+
+    // 6) Asignar rol por defecto en la misma transacción
+    await connection.query(`CALL insertar_rol_por_defecto(?)`, [newUserId]);
+
+    // 7) Commit y liberar conexión
     await connection.commit();
     connection.release();
+    connection = null;
+
+    console.log("✅ registerUser: usuario creado con id:", newUserId);
 
     return res.status(201).json({
-      ok: true,
-      message: "Registro exitoso.",
-      uid,
-      userId: id,
-      matricula,
+      code: "REGISTER_OK",
+      message: "Usuario registrado correctamente con rol aspirante.",
+      usuario: {
+        id: newUserId,
+        uid,
+        correo,
+        nombre,
+        apellidoPat,
+        apellidoMat,
+      },
     });
-  } catch (error) {
-    console.error("❌ Error en registerUser:", error);
+  } catch (err) {
+    console.error("❌ Error en registro completo:", {
+      message: err.message,
+      code: err.code,
+      errno: err.errno,
+      sqlState: err.sqlState,
+    });
 
+    // Si hay transacción abierta, hacer rollback
     if (connection) {
       try {
         await connection.rollback();
-        connection.release();
-      } catch (e) {
-        console.error("⚠️ Error al hacer rollback:", e);
+      } catch (rollbackErr) {
+        console.error("⚠️ Error haciendo rollback:", rollbackErr.message);
       }
+      connection.release();
     }
 
-    // Si Firebase ya se creó pero MySQL falló, lo borramos para no dejar basura
-    if (firebaseUser?.uid) {
+    // Si ya se creó el usuario en Firebase pero la BD falló, borrarlo
+    if (firebaseUser) {
       try {
         await admin.auth().deleteUser(firebaseUser.uid);
-      } catch (e) {
-        console.error("⚠️ Error al borrar usuario Firebase:", e);
+        console.log("🧹 Usuario Firebase eliminado por error en BD:", firebaseUser.uid);
+      } catch (delErr) {
+        console.error("⚠️ No se pudo borrar usuario Firebase:", delErr.message);
       }
     }
 
-    const msg = error?.message || "";
-
-    // Firebase: email ya existe
-    if (msg.includes("auth/email-already-exists")) {
+    // Mapear errores de Firebase
+    if (err.code === "auth/email-already-exists") {
       return res.status(409).json({
         code: "EMAIL_EXISTS",
         field: "correo",
@@ -208,10 +231,81 @@ exports.registerUser = async (req, res) => {
       });
     }
 
+    if (err.code === "auth/invalid-password") {
+      return res.status(400).json({
+        code: "INVALID_PASSWORD",
+        field: "contraseña",
+        message: "La contraseña no cumple con los requisitos mínimos.",
+      });
+    }
+
+    // Duplicados en BD (por si el SP o constraints revientan)
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        code: "DB_DUPLICATE",
+        message: "Ya existe un usuario con estos datos en la base de datos.",
+      });
+    }
+
+    // Error genérico
     return res.status(500).json({
       code: "REGISTER_ERROR",
-      message: "Ocurrió un error al registrar tu cuenta. Inténtalo nuevamente.",
-      error: msg,
+      message: err.message || "Error al registrar usuario.",
     });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// Validar usuario POR UID (usado con middleware authFirebase)
+// ─────────────────────────────────────────────────────────────
+exports.validarUsuario = async (req, res) => {
+  try {
+    const uid = req.firebaseUser?.uid; // <-- viene de authFirebase
+    if (!uid) {
+      console.warn("⛔ validarUsuario: token sin UID");
+      return res.status(401).json({ error: "Token sin UID" });
+    }
+
+    console.log("🔎 validarUsuario: consultando por UID:", uid);
+
+    const [results] = await db.query(
+      `SELECT 
+         u.id, u.uid, u.nombre, u.apellido_pat, u.apellido_mat, u.estado, 
+         r.id AS rol_id, r.nombre_rol
+       FROM users u
+       LEFT JOIN roles r ON r.user_id = u.id
+       WHERE u.uid = ?
+       LIMIT 1`,
+      [uid]
+    );
+
+    if (!results.length) {
+      console.warn("⚠️ validarUsuario: UID válido pero NO existe en BD:", uid);
+      return res.status(404).json({ error: "Usuario no registrado en BD" });
+    }
+
+    const row = results[0];
+    const user = {
+      id: row.id,
+      uid: row.uid,
+      nombre: row.nombre,
+      apellido_pat: row.apellido_pat,
+      apellido_mat: row.apellido_mat,
+      estado: row.estado,
+      rol: row.rol_id
+        ? { id: row.rol_id, user_id: row.id, nombre_rol: row.nombre_rol }
+        : null, // toleramos usuario sin rol asignado
+    };
+
+    console.log("✅ validarUsuario: usuario encontrado:", {
+      id: user.id,
+      uid: user.uid,
+      rol: user.rol?.nombre_rol || null,
+    });
+
+    return res.json(user);
+  } catch (err) {
+    console.error("❌ validarUsuario: error en BD:", err.message);
+    return res.status(500).json({ error: "Error al obtener datos del usuario" });
   }
 };
