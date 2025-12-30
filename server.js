@@ -37,12 +37,12 @@ const authApiKey = (req, res, next) => {
 const db = require("./config/db");
 
 // 📦 Rutas
-const usersRoutes = require("../routes/users.routes");
-const certificadosRoutes = require("../routes/certificados.routes");
-const disponibilidadRoutes = require("../routes/disponibilidad.routes");
-const publicRoutes = require("../routes/public.routes");
-const documentosRoutes = require("../routes/documentos.routes");
-const inscripcionesRoutes = require("../routes/inscripciones.routes");
+const usersRoutes = require("./routes/users.routes");
+const certificadosRoutes = require("./routes/certificados.routes");
+const disponibilidadRoutes = require("./routes/disponibilidad.routes");
+const publicRoutes = require("./routes/public.routes");
+const documentosRoutes = require("./routes/documentos.routes");
+const inscripcionesRoutes = require("./routes/inscripciones.routes");
 
 
 app.use("/users", usersRoutes);
