@@ -14,6 +14,7 @@
  * Run:
  *   node scripts/syncCatalog.js
  */
+require("dotenv").config({ path: require("path").resolve(process.cwd(), ".env") });
 
 const fs = require("fs");
 const path = require("path");
