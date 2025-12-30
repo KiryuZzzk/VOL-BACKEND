@@ -34,7 +34,7 @@ const authApiKey = (req, res, next) => {
 };
 
 // 🧠 Base de datos (no necesitas conectarte manualmente con pool)
-const db = require("../config/db");
+const db = require("./config/db");
 
 // 📦 Rutas
 const usersRoutes = require("../routes/users.routes");
