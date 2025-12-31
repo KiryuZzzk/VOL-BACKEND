@@ -7,7 +7,7 @@ const db = require("../config/db"); // pool mysql2/promise
 // - Front SOLO manda los datos (incluida contraseña)
 // - Backend:
 //   1) Valida datos mínimos
-//   2) Verifica duplicados en BD (correo / CURP) antes de Firebase
+//   2) Verifica duplicados en BD (correo) antes de Firebase
 //   3) Crea usuario en Firebase (Admin SDK)
 //   4) Abre transacción MySQL -> CALL insertar_usuario + CALL insertar_rol_por_defecto
 //   5) Si algo falla: ROLLBACK + deleteUser(uid) en Firebase
@@ -84,26 +84,34 @@ exports.registerUser = async (req, res) => {
       });
     }
 
-    // 2) Verificar si ya existe en BD por correo o CURP (antes de tocar Firebase)
+    // 2) Verificar si ya existe en BD por CORREO (NO bloqueamos por CURP)
     const [existingRows] = await db.query(
-      `SELECT id, correo, curp 
+      `SELECT id, correo 
        FROM users 
-       WHERE correo = ? OR curp = ?
+       WHERE correo = ?
        LIMIT 1`,
-      [correo, curp]
+      [correo]
     );
 
     if (existingRows.length) {
-      const existing = existingRows[0];
-      const isCorreo = existing.correo === correo;
-
       return res.status(409).json({
-        code: "EMAIL_OR_CURP_EXISTS",
-        field: isCorreo ? "correo" : "curp",
-        message: isCorreo
-          ? "Ya existe una cuenta registrada con este correo."
-          : "Ya existe una cuenta registrada con esta CURP.",
+        code: "EMAIL_EXISTS",
+        field: "correo",
+        message: "Ya existe una cuenta registrada con este correo.",
       });
+    }
+
+    // (Opcional) Detectar CURP duplicada sin bloquear (solo para logging)
+    // Esto no detiene el registro; solo deja rastro en consola.
+    const [curpRows] = await db.query(
+      `SELECT id, curp 
+       FROM users 
+       WHERE curp = ?
+       LIMIT 1`,
+      [curp]
+    );
+    if (curpRows.length) {
+      console.warn("⚠️ Registro con CURP duplicada (permitido):", curp);
     }
 
     // 3) Crear usuario en Firebase (Admin SDK)
