@@ -46,6 +46,7 @@ const inscripcionesRoutes = require("./routes/inscripciones.routes");
 const progresoRoutes = require("./routes/progreso.routes");
 
 
+
 app.use("/users", usersRoutes);
 app.use("/certificados", certificadosRoutes);
 app.use("/disponibilidad", disponibilidadRoutes);

@@ -13,9 +13,9 @@ exports.getProgramaArbol = async (req, res) => {
   }
 
   try {
-    // 1️⃣ Programa
+    // 1) Programa
     const [programRows] = await db.query(
-      "SELECT program_id, code, name FROM program WHERE code = ? LIMIT 1",
+      "SELECT program_id, code, name, description FROM program WHERE code = ? LIMIT 1",
       [programCode]
     );
 
@@ -25,10 +25,17 @@ exports.getProgramaArbol = async (req, res) => {
 
     const program = programRows[0];
 
-    // 2️⃣ Bloques
+    // 2) Bloques (alias order_index -> order)
     const [blockRows] = await db.query(
       `
-      SELECT block_id, program_id, code, name, order_index
+      SELECT 
+        block_id,
+        program_id,
+        code,
+        name,
+        description,
+        order_index,
+        order_index AS \`order\`
       FROM block
       WHERE program_id = ?
       ORDER BY order_index ASC, block_id ASC
@@ -36,13 +43,20 @@ exports.getProgramaArbol = async (req, res) => {
       [program.program_id]
     );
 
-    // 3️⃣ Módulos
-    const blockIds = blockRows.map(b => b.block_id);
+    const blockIds = blockRows.map((b) => b.block_id);
 
+    // 3) Módulos (alias order_index -> order)
     const [moduleRows] = blockIds.length
       ? await db.query(
           `
-          SELECT module_id, block_id, code, name, order_index
+          SELECT
+            module_id,
+            block_id,
+            code,
+            name,
+            description,
+            order_index,
+            order_index AS \`order\`
           FROM module
           WHERE block_id IN (${blockIds.map(() => "?").join(",")})
           ORDER BY order_index ASC, module_id ASC
@@ -51,9 +65,9 @@ exports.getProgramaArbol = async (req, res) => {
         )
       : [[]];
 
-    // 4️⃣ Actividades
-    const moduleIds = moduleRows.map(m => m.module_id);
+    const moduleIds = moduleRows.map((m) => m.module_id);
 
+    // 4) Actividades (alias order_index -> order)
     const [activityRows] = moduleIds.length
       ? await db.query(
           `
@@ -62,11 +76,14 @@ exports.getProgramaArbol = async (req, res) => {
             module_id,
             code,
             name,
+            description,
             order_index,
+            order_index AS \`order\`,
             type,
             required,
             min_score,
-            is_final_exam
+            is_final_exam,
+            xp
           FROM activity
           WHERE module_id IN (${moduleIds.map(() => "?").join(",")})
           ORDER BY order_index ASC, activity_id ASC
@@ -75,35 +92,74 @@ exports.getProgramaArbol = async (req, res) => {
         )
       : [[]];
 
-    // 5️⃣ Armar árbol
+    // 5) Armar árbol (sin ".m" / ".b")
     const modulesByBlock = new Map();
-    moduleRows.forEach(m => {
-      if (!modulesByBlock.has(m.block_id)) {
-        modulesByBlock.set(m.block_id, []);
-      }
+    for (const m of moduleRows) {
+      if (!modulesByBlock.has(m.block_id)) modulesByBlock.set(m.block_id, []);
+
       modulesByBlock.get(m.block_id).push({
-        ...m,
+        id: m.module_id,
+        module_id: m.module_id,
+        block_id: m.block_id,
+        code: m.code,
+        name: m.name,
+        title: m.name, // por si tu front usa title
+        description: m.description || "",
+        order_index: m.order_index,
+        order: m.order, // ✅ el que quieres
         activities: [],
       });
-    });
+    }
 
     const moduleById = new Map();
-    modulesByBlock.forEach(mods => {
-      mods.forEach(m => moduleById.set(m.module_id, m));
-    });
+    for (const mods of modulesByBlock.values()) {
+      for (const m of mods) moduleById.set(m.module_id, m);
+    }
 
-    activityRows.forEach(a => {
+    for (const a of activityRows) {
       const mod = moduleById.get(a.module_id);
-      if (mod) mod.activities.push(a);
-    });
+      if (!mod) continue;
 
-    const blocks = blockRows.map(b => ({
-      ...b,
+      mod.activities.push({
+        id: a.activity_id,
+        activity_id: a.activity_id,
+        module_id: a.module_id,
+        code: a.code,
+        name: a.name,
+        title: a.name,
+        description: a.description || "",
+        order_index: a.order_index,
+        order: a.order, // ✅ el que quieres
+        type: a.type,
+        required: !!a.required,
+        min_score: a.min_score ?? null,
+        is_final_exam: !!a.is_final_exam,
+        xp: a.xp ?? 0,
+      });
+    }
+
+    const blocks = blockRows.map((b) => ({
+      id: b.block_id,
+      block_id: b.block_id,
+      program_id: b.program_id,
+      code: b.code,
+      name: b.name,
+      title: b.name,
+      description: b.description || "",
+      order_index: b.order_index,
+      order: b.order, // ✅ el que quieres
       modules: modulesByBlock.get(b.block_id) || [],
     }));
 
     return res.json({
-      program,
+      program: {
+        id: program.program_id,
+        program_id: program.program_id,
+        code: program.code,
+        name: program.name,
+        title: program.name,
+        description: program.description || "",
+      },
       blocks,
     });
   } catch (err) {
