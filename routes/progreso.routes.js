@@ -3,6 +3,8 @@ const router = express.Router();
 
 const catalogoCtrl = require("../controllers/progreso.catalogo.controller");
 const progresoCtrl = require("../controllers/progreso.controller");
+const programasCtrl = require("../controllers/progreso.programas.controller");
+
 const { authMiddleware } = require("../middlewares/auth");
 
 // 📚 CATÁLOGO (estructura)
@@ -36,5 +38,10 @@ router.post(
   authMiddleware,
   progresoCtrl.heartbeatActividad
 );
+
+// Obtener el catálogo de programas inscritos
+router.get("/me/programas", 
+  authMiddleware, 
+  programasCtrl.getMisProgramas);
 
 module.exports = router;

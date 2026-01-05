@@ -10,7 +10,8 @@ const db = require("../config/db"); // pool mysql2/promise
 //   2) Verifica duplicados en BD (correo) antes de Firebase
 //   3) Crea usuario en Firebase (Admin SDK)
 //   4) Abre transacción MySQL -> CALL insertar_usuario + CALL insertar_rol_por_defecto
-//   5) Si algo falla: ROLLBACK + deleteUser(uid) en Firebase
+//   5) (NUEVO) Inscribe automáticamente al programa SV (user_program_enrollment)
+//   6) Si algo falla: ROLLBACK + deleteUser(uid) en Firebase
 // ─────────────────────────────────────────────────────────────
 exports.registerUser = async (req, res) => {
   let connection = null;
@@ -102,7 +103,6 @@ exports.registerUser = async (req, res) => {
     }
 
     // (Opcional) Detectar CURP duplicada sin bloquear (solo para logging)
-    // Esto no detiene el registro; solo deja rastro en consola.
     const [curpRows] = await db.query(
       `SELECT id, curp 
        FROM users 
@@ -183,12 +183,32 @@ exports.registerUser = async (req, res) => {
     // 6) Asignar rol por defecto en la misma transacción
     await connection.query(`CALL insertar_rol_por_defecto(?)`, [newUserId]);
 
-    // 7) Commit y liberar conexión
+    // 7) ✅ NUEVO: Inscribir automáticamente al programa SV (por code)
+    //    user_program_enrollment usa user_id = Firebase UID (no el id numérico)
+    const [pRows] = await connection.query(
+      `SELECT program_id FROM program WHERE code = 'SV' LIMIT 1`
+    );
+    const programId = pRows?.[0]?.program_id;
+
+    if (!programId) {
+      throw new Error("No existe el programa SV en la tabla program.");
+    }
+
+    await connection.query(
+      `
+      INSERT INTO user_program_enrollment (user_id, program_id, status)
+      VALUES (?, ?, 'enrolled')
+      ON DUPLICATE KEY UPDATE status = 'enrolled'
+      `,
+      [uid, programId]
+    );
+
+    // 8) Commit y liberar conexión
     await connection.commit();
     connection.release();
     connection = null;
 
-    console.log("✅ registerUser: usuario creado con id:", newUserId);
+    console.log("✅ registerUser: usuario creado con id:", newUserId, "y enrolado a SV:", programId);
 
     return res.status(201).json({
       code: "REGISTER_OK",
