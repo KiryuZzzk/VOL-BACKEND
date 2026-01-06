@@ -1,9 +1,30 @@
 const db = require("../config/db");
 
 /**
+ * Helper: parsea JSON seguro (soporta null, "", objetos ya parseados)
+ */
+function safeJsonParse(value, fallback = null) {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "object") return value; // ya viene parseado
+  const s = String(value).trim();
+  if (!s) return fallback;
+  try {
+    return JSON.parse(s);
+  } catch (e) {
+    // Si algo viene medio corrupto, no tiramos el endpoint
+    return fallback;
+  }
+}
+
+/**
  * GET /progreso/catalogo/programas/:code/arbol
  * Devuelve la estructura completa del programa:
  * programa -> bloques -> módulos -> actividades
+ *
+ * ✅ Backend source of truth:
+ * - expone "order" (derivado de order_index)
+ * - expone metadata completa
+ * - parsea JSONs a objetos (config, tags, prerequisites)
  */
 exports.getProgramaArbol = async (req, res) => {
   const programCode = String(req.params.code || "").trim().toUpperCase();
@@ -13,9 +34,24 @@ exports.getProgramaArbol = async (req, res) => {
   }
 
   try {
-    // 1️⃣ Programa
+    // 1️⃣ Programa (FULL)
     const [programRows] = await db.query(
-      "SELECT program_id, code, name FROM program WHERE code = ? LIMIT 1",
+      `
+      SELECT
+        program_id,
+        code,
+        name,
+        description,
+        image,
+        formacion,
+        level,
+        estimated_minutes,
+        tags_json,
+        is_active
+      FROM program
+      WHERE code = ?
+      LIMIT 1
+      `,
       [programCode]
     );
 
@@ -23,36 +59,80 @@ exports.getProgramaArbol = async (req, res) => {
       return res.status(404).json({ error: "Programa no encontrado" });
     }
 
-    const program = programRows[0];
+    const programRaw = programRows[0];
+    const program = {
+      ...programRaw,
+      id: programRaw.program_id,
+      title: programRaw.name,
+      tags: safeJsonParse(programRaw.tags_json, []),
+    };
 
-    // 2️⃣ Bloques
+    // 2️⃣ Bloques (FULL)
     const [blockRows] = await db.query(
       `
-      SELECT block_id, program_id, code, name, order_index
+      SELECT
+        block_id,
+        program_id,
+        code,
+        name,
+        description,
+        estimated_minutes,
+        optional,
+        order_index,
+        is_active
       FROM block
       WHERE program_id = ?
+        AND is_active = 1
       ORDER BY order_index ASC, block_id ASC
       `,
       [program.program_id]
     );
 
-    // 3️⃣ Módulos
-    const blockIds = blockRows.map((b) => b.block_id);
+    const blocksRaw = blockRows.map((b) => ({
+      ...b,
+      id: b.block_id,
+      title: b.name,
+      order: b.order_index, // ✅ alias esperado por el front
+      modules: [],
+    }));
+
+    // 3️⃣ Módulos (FULL)
+    const blockIds = blocksRaw.map((b) => b.block_id);
 
     const [moduleRows] = blockIds.length
       ? await db.query(
           `
-          SELECT module_id, block_id, code, name, order_index
+          SELECT
+            module_id,
+            block_id,
+            code,
+            name,
+            description,
+            estimated_minutes,
+            prerequisites_json,
+            is_final_exam,
+            order_index,
+            is_active
           FROM module
           WHERE block_id IN (${blockIds.map(() => "?").join(",")})
+            AND is_active = 1
           ORDER BY order_index ASC, module_id ASC
           `,
           blockIds
         )
       : [[]];
 
-    // 4️⃣ Actividades
-    const moduleIds = moduleRows.map((m) => m.module_id);
+    const modulesRaw = moduleRows.map((m) => ({
+      ...m,
+      id: m.module_id,
+      title: m.name,
+      order: m.order_index, // ✅ alias
+      prerequisites: safeJsonParse(m.prerequisites_json, []),
+      activities: [],
+    }));
+
+    // 4️⃣ Actividades (FULL + config_json)
+    const moduleIds = modulesRaw.map((m) => m.module_id);
 
     const [activityRows] = moduleIds.length
       ? await db.query(
@@ -62,49 +142,56 @@ exports.getProgramaArbol = async (req, res) => {
             module_id,
             code,
             name,
+            description,
+            estimated_minutes,
+            xp,
+            config_json,
             order_index,
             type,
             required,
             min_score,
-            is_final_exam
+            is_final_exam,
+            is_active
           FROM activity
           WHERE module_id IN (${moduleIds.map(() => "?").join(",")})
+            AND is_active = 1
           ORDER BY order_index ASC, activity_id ASC
           `,
           moduleIds
         )
       : [[]];
 
+    const activitiesRaw = activityRows.map((a) => ({
+      ...a,
+      id: a.activity_id,
+      title: a.name,
+      order: a.order_index, // ✅ alias
+      // ✅ lo que tu front necesita:
+      config: safeJsonParse(a.config_json, {}),
+    }));
+
     // 5️⃣ Armar árbol
-    const modulesByBlock = new Map();
-    moduleRows.forEach((m) => {
-      if (!modulesByBlock.has(m.block_id)) {
-        modulesByBlock.set(m.block_id, []);
-      }
-      modulesByBlock.get(m.block_id).push({
-        ...m, // <- ESTE era el que se rompió y se volvió ".m"
-        activities: [],
-      });
+    const blocksById = new Map();
+    blocksRaw.forEach((b) => blocksById.set(b.block_id, b));
+
+    const modulesById = new Map();
+    modulesRaw.forEach((m) => modulesById.set(m.module_id, m));
+
+    // Meter módulos dentro de bloques
+    modulesRaw.forEach((m) => {
+      const blk = blocksById.get(m.block_id);
+      if (blk) blk.modules.push(m);
     });
 
-    const moduleById = new Map();
-    modulesByBlock.forEach((mods) => {
-      mods.forEach((m) => moduleById.set(m.module_id, m));
-    });
-
-    activityRows.forEach((a) => {
-      const mod = moduleById.get(a.module_id);
+    // Meter actividades dentro de módulos
+    activitiesRaw.forEach((a) => {
+      const mod = modulesById.get(a.module_id);
       if (mod) mod.activities.push(a);
     });
 
-    const blocks = blockRows.map((b) => ({
-      ...b, // <- ESTE era el que se rompió y se volvió ".b"
-      modules: modulesByBlock.get(b.block_id) || [],
-    }));
-
     return res.json({
       program,
-      blocks,
+      blocks: blocksRaw,
     });
   } catch (err) {
     console.error("❌ getProgramaArbol error:", err);
