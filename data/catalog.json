@@ -1484,7 +1484,7 @@
         "fotografía"
       ],
       "program_id": null,
-      "code": "P02",
+      "code": "COM",
       "slug": "comunicacion",
       "blocks": [
         {
@@ -1495,7 +1495,7 @@
           "optional": false,
           "block_id": null,
           "code": "B01",
-          "slug": "p02_b01_ide_dc05d5e6",
+          "slug": "COM_b01_ide_dc05d5e6",
           "modules": [
             {
               "title": "Nuestra imagen",
@@ -1506,7 +1506,7 @@
               "isFinalExam": false,
               "module_id": null,
               "code": "M01",
-              "slug": "p02_b01_m01_nue_277db0b1",
+              "slug": "COM_b01_m01_nue_277db0b1",
               "activities": [
                 {
                   "title": "Lectura 1: Identidad visual 1",
@@ -1519,8 +1519,8 @@
                   },
                   "activity_id": null,
                   "code": "A01",
-                  "slug": "p02_b01_m01_a01_lec_2e95a792",
-                  "shortId": "P02-B01-M01-A01"
+                  "slug": "COM_b01_m01_a01_lec_2e95a792",
+                  "shortId": "COM-B01-M01-A01"
                 },
                 {
                   "title": "Lectura 2: Identidad visual 2",
@@ -1533,8 +1533,8 @@
                   },
                   "activity_id": null,
                   "code": "A02",
-                  "slug": "p02_b01_m01_a02_lec_af23bff8",
-                  "shortId": "P02-B01-M01-A02"
+                  "slug": "COM_b01_m01_a02_lec_af23bff8",
+                  "shortId": "COM-B01-M01-A02"
                 },
                 {
                   "title": "Lectura 3: Identidad visual 3",
@@ -1547,8 +1547,8 @@
                   },
                   "activity_id": null,
                   "code": "A03",
-                  "slug": "p02_b01_m01_a03_lec_8a573352",
-                  "shortId": "P02-B01-M01-A03"
+                  "slug": "COM_b01_m01_a03_lec_8a573352",
+                  "shortId": "COM-B01-M01-A03"
                 },
                 {
                   "title": "Lectura 4: Identidad visual 4",
@@ -1561,17 +1561,17 @@
                   },
                   "activity_id": null,
                   "code": "A04",
-                  "slug": "p02_b01_m01_a04_lec_02e4d9e1",
-                  "shortId": "P02-B01-M01-A04"
+                  "slug": "COM_b01_m01_a04_lec_02e4d9e1",
+                  "shortId": "COM-B01-M01-A04"
                 }
               ],
-              "shortId": "P02-B01-M01"
+              "shortId": "COM-B01-M01"
             }
           ],
-          "shortId": "P02-B01"
+          "shortId": "COM-B01"
         }
       ],
-      "shortId": "P02"
+      "shortId": "COM"
     },
     {
       "title": "Voluntariado",
@@ -1585,7 +1585,7 @@
         "habilidades_blandas"
       ],
       "program_id": null,
-      "code": "P03",
+      "code": "vol",
       "slug": "voluntariado",
       "blocks": [
         {
@@ -1596,7 +1596,7 @@
           "optional": false,
           "block_id": null,
           "code": "B01",
-          "slug": "p03_b01_arm_591ba85a",
+          "slug": "vol_b01_arm_591ba85a",
           "modules": [
             {
               "title": "Armado de kits",
@@ -1607,7 +1607,7 @@
               "isFinalExam": false,
               "module_id": null,
               "code": "M01",
-              "slug": "p03_b01_m01_arm_3bf457ba",
+              "slug": "vol_b01_m01_arm_3bf457ba",
               "activities": [
                 {
                   "title": "Video: Introducción",
@@ -1623,8 +1623,8 @@
                   },
                   "activity_id": null,
                   "code": "A01",
-                  "slug": "p03_b01_m01_a01_vid_75adc619",
-                  "shortId": "P03-B01-M01-A01"
+                  "slug": "vol_b01_m01_a01_vid_75adc619",
+                  "shortId": "vol-B01-M01-A01"
                 },
                 {
                   "title": "Video 1: Armado de kits 1",
@@ -1640,8 +1640,8 @@
                   },
                   "activity_id": null,
                   "code": "A02",
-                  "slug": "p03_b01_m01_a02_vid_e54ba96f",
-                  "shortId": "P03-B01-M01-A02"
+                  "slug": "vol_b01_m01_a02_vid_e54ba96f",
+                  "shortId": "vol-B01-M01-A02"
                 },
                 {
                   "title": "Video 2: Armado de kits 2",
@@ -1657,8 +1657,8 @@
                   },
                   "activity_id": null,
                   "code": "A03",
-                  "slug": "p03_b01_m01_a03_vid_9ad4f02c",
-                  "shortId": "P03-B01-M01-A03"
+                  "slug": "vol_b01_m01_a03_vid_9ad4f02c",
+                  "shortId": "vol-B01-M01-A03"
                 },
                 {
                   "title": "Video 3: Armado de kits 3",
@@ -1674,8 +1674,8 @@
                   },
                   "activity_id": null,
                   "code": "A04",
-                  "slug": "p03_b01_m01_a04_vid_5f2fba5b",
-                  "shortId": "P03-B01-M01-A04"
+                  "slug": "vol_b01_m01_a04_vid_5f2fba5b",
+                  "shortId": "vol-B01-M01-A04"
                 },
                 {
                   "title": "Video 4: Armado de kits 4",
@@ -1691,17 +1691,17 @@
                   },
                   "activity_id": null,
                   "code": "A05",
-                  "slug": "p03_b01_m01_a05_vid_cdfaa298",
-                  "shortId": "P03-B01-M01-A05"
+                  "slug": "vol_b01_m01_a05_vid_cdfaa298",
+                  "shortId": "vol-B01-M01-A05"
                 }
               ],
-              "shortId": "P03-B01-M01"
+              "shortId": "vol-B01-M01"
             }
           ],
-          "shortId": "P03-B01"
+          "shortId": "vol-B01"
         }
       ],
-      "shortId": "P03"
+      "shortId": "vol"
     },
     {
       "title": "Migración",
@@ -1715,7 +1715,7 @@
         "movilidad_humana"
       ],
       "program_id": null,
-      "code": "P04",
+      "code": "MIG",
       "slug": "migracion",
       "blocks": [
         {
@@ -1726,7 +1726,7 @@
           "optional": false,
           "block_id": null,
           "code": "B01",
-          "slug": "p04_b01_int_d8d40f03",
+          "slug": "MIG_b01_int_d8d40f03",
           "modules": [
             {
               "title": "Módulo Único",
@@ -1737,7 +1737,7 @@
               "isFinalExam": false,
               "module_id": null,
               "code": "M01",
-              "slug": "p04_b01_m01_m_dulo_nico",
+              "slug": "MIG_b01_m01_m_dulo_nico",
               "activities": [
                 {
                   "title": "SCORM: Introducción a la migración",
@@ -1750,17 +1750,17 @@
                   },
                   "activity_id": null,
                   "code": "A01",
-                  "slug": "p04_b01_m01_a01_sco_c7395804",
-                  "shortId": "P04-B01-M01-A01"
+                  "slug": "MIG_b01_m01_a01_sco_c7395804",
+                  "shortId": "MIG-B01-M01-A01"
                 }
               ],
-              "shortId": "P04-B01-M01"
+              "shortId": "MIG-B01-M01"
             }
           ],
-          "shortId": "P04-B01"
+          "shortId": "MIG-B01"
         }
       ],
-      "shortId": "P04"
+      "shortId": "MIG"
     },
     {
       "title": "Reducción de Riesgos y Desastres",
@@ -1774,7 +1774,7 @@
         "reduccion_de_riesgos"
       ],
       "program_id": null,
-      "code": "P05",
+      "code": "RDR",
       "slug": "reduccion_de_riesgos",
       "blocks": [
         {
@@ -1785,7 +1785,7 @@
           "optional": false,
           "block_id": null,
           "code": "B01",
-          "slug": "p05_b01_red_6adc25a6",
+          "slug": "RDR_b01_red_6adc25a6",
           "modules": [
             {
               "title": "Módulo Único",
@@ -1796,7 +1796,7 @@
               "isFinalExam": false,
               "module_id": null,
               "code": "M01",
-              "slug": "p05_b01_m01_m_dulo_nico",
+              "slug": "RDR_b01_m01_m_dulo_nico",
               "activities": [
                 {
                   "title": "Actividad 1",
@@ -1807,8 +1807,8 @@
                   "config": {},
                   "activity_id": null,
                   "code": "A01",
-                  "slug": "p05_b01_m01_a01_actividad_1",
-                  "shortId": "P05-B01-M01-A01"
+                  "slug": "RDR_b01_m01_a01_actividad_1",
+                  "shortId": "RDR-B01-M01-A01"
                 },
                 {
                   "title": "Actividad 2",
@@ -1819,17 +1819,17 @@
                   "config": {},
                   "activity_id": null,
                   "code": "A02",
-                  "slug": "p05_b01_m01_a02_actividad_2",
-                  "shortId": "P05-B01-M01-A02"
+                  "slug": "RDR_b01_m01_a02_actividad_2",
+                  "shortId": "RDR-B01-M01-A02"
                 }
               ],
-              "shortId": "P05-B01-M01"
+              "shortId": "RDR-B01-M01"
             }
           ],
-          "shortId": "P05-B01"
+          "shortId": "RDR-B01"
         }
       ],
-      "shortId": "P05"
+      "shortId": "RDR"
     },
     {
       "title": "Apoyo Psicosocial",
@@ -1844,7 +1844,7 @@
         "intervencion_en_crisis"
       ],
       "program_id": null,
-      "code": "P06",
+      "code": "APS",
       "slug": "apoyo_psicosocial",
       "blocks": [
         {
@@ -1855,7 +1855,7 @@
           "optional": false,
           "block_id": null,
           "code": "B01",
-          "slug": "p06_b01_apo_5a6c0877",
+          "slug": "APS_b01_apo_5a6c0877",
           "modules": [
             {
               "title": "Módulo 1: Introducción al apoyo psicosocial",
@@ -1866,7 +1866,7 @@
               "isFinalExam": false,
               "module_id": null,
               "code": "M01",
-              "slug": "p06_b01_m01_m_d_1a48fcf8",
+              "slug": "APS_b01_m01_m_d_1a48fcf8",
               "activities": [
                 {
                   "title": "Video 1",
@@ -1882,8 +1882,8 @@
                   },
                   "activity_id": null,
                   "code": "A01",
-                  "slug": "p06_b01_m01_a01_video_1",
-                  "shortId": "P06-B01-M01-A01"
+                  "slug": "APS_b01_m01_a01_video_1",
+                  "shortId": "APS-B01-M01-A01"
                 },
                 {
                   "title": "Video 2",
@@ -1899,8 +1899,8 @@
                   },
                   "activity_id": null,
                   "code": "A02",
-                  "slug": "p06_b01_m01_a02_video_2",
-                  "shortId": "P06-B01-M01-A02"
+                  "slug": "APS_b01_m01_a02_video_2",
+                  "shortId": "APS-B01-M01-A02"
                 },
                 {
                   "title": "Video 3",
@@ -1916,8 +1916,8 @@
                   },
                   "activity_id": null,
                   "code": "A03",
-                  "slug": "p06_b01_m01_a03_video_3",
-                  "shortId": "P06-B01-M01-A03"
+                  "slug": "APS_b01_m01_a03_video_3",
+                  "shortId": "APS-B01-M01-A03"
                 },
                 {
                   "title": "Video 4",
@@ -1933,8 +1933,8 @@
                   },
                   "activity_id": null,
                   "code": "A04",
-                  "slug": "p06_b01_m01_a04_video_4",
-                  "shortId": "P06-B01-M01-A04"
+                  "slug": "APS_b01_m01_a04_video_4",
+                  "shortId": "APS-B01-M01-A04"
                 },
                 {
                   "title": "Video 5",
@@ -1950,8 +1950,8 @@
                   },
                   "activity_id": null,
                   "code": "A05",
-                  "slug": "p06_b01_m01_a05_video_5",
-                  "shortId": "P06-B01-M01-A05"
+                  "slug": "APS_b01_m01_a05_video_5",
+                  "shortId": "APS-B01-M01-A05"
                 },
                 {
                   "title": "Video 6",
@@ -1967,11 +1967,11 @@
                   },
                   "activity_id": null,
                   "code": "A06",
-                  "slug": "p06_b01_m01_a06_video_6",
-                  "shortId": "P06-B01-M01-A06"
+                  "slug": "APS_b01_m01_a06_video_6",
+                  "shortId": "APS-B01-M01-A06"
                 }
               ],
-              "shortId": "P06-B01-M01"
+              "shortId": "APS-B01-M01"
             },
             {
               "title": "Módulo 2: Examen diagnóstico",
@@ -1982,7 +1982,7 @@
               "isFinalExam": false,
               "module_id": null,
               "code": "M02",
-              "slug": "p06_b01_m02_m_d_9f37ee40",
+              "slug": "APS_b01_m02_m_d_9f37ee40",
               "activities": [
                 {
                   "title": "Examen diagnóstico de apoyo psicosocial",
@@ -1999,17 +1999,17 @@
                   },
                   "activity_id": null,
                   "code": "A01",
-                  "slug": "p06_b01_m02_a01_exa_dc5705df",
-                  "shortId": "P06-B01-M02-A01"
+                  "slug": "APS_b01_m02_a01_exa_dc5705df",
+                  "shortId": "APS-B01-M02-A01"
                 }
               ],
-              "shortId": "P06-B01-M02"
+              "shortId": "APS-B01-M02"
             }
           ],
-          "shortId": "P06-B01"
+          "shortId": "APS-B01"
         }
       ],
-      "shortId": "P06"
+      "shortId": "APS"
     },
     {
       "title": "Técnico en Urgencias Médicas",
@@ -2024,7 +2024,7 @@
         "tum"
       ],
       "program_id": null,
-      "code": "P07",
+      "code": "TUM",
       "slug": "capacitacion_tum",
       "blocks": [
         {
@@ -2035,7 +2035,7 @@
           "optional": false,
           "block_id": null,
           "code": "B01",
-          "slug": "p07_b01_for_0c202c81",
+          "slug": "TUM_b01_for_0c202c81",
           "modules": [
             {
               "title": "Introducción al Técnico en Urgencias Médicas",
@@ -2046,7 +2046,7 @@
               "isFinalExam": false,
               "module_id": null,
               "code": "M01",
-              "slug": "p07_b01_m01_int_ea77498f",
+              "slug": "TUM_b01_m01_int_ea77498f",
               "activities": [
                 {
                   "title": "Lectura: ¿Cómo ser TUM?",
@@ -2059,17 +2059,17 @@
                   },
                   "activity_id": null,
                   "code": "A01",
-                  "slug": "p07_b01_m01_a01_lec_05f3144b",
-                  "shortId": "P07-B01-M01-A01"
+                  "slug": "TUM_b01_m01_a01_lec_05f3144b",
+                  "shortId": "TUM-B01-M01-A01"
                 }
               ],
-              "shortId": "P07-B01-M01"
+              "shortId": "TUM-B01-M01"
             }
           ],
-          "shortId": "P07-B01"
+          "shortId": "TUM-B01"
         }
       ],
-      "shortId": "P07"
+      "shortId": "TUM"
     },
     {
       "title": "Capacitación",
@@ -2084,7 +2084,7 @@
         "tum"
       ],
       "program_id": null,
-      "code": "P08",
+      "code": "CAP",
       "slug": "capacitacion_admin",
       "blocks": [
         {
@@ -2095,7 +2095,7 @@
           "optional": false,
           "block_id": null,
           "code": "B01",
-          "slug": "p08_b01_for_0c202c81",
+          "slug": "CAP_b01_for_0c202c81",
           "modules": [
             {
               "title": "Introducción al Técnico en Urgencias Médicas",
@@ -2106,7 +2106,7 @@
               "isFinalExam": false,
               "module_id": null,
               "code": "M01",
-              "slug": "p08_b01_m01_int_ea77498f",
+              "slug": "CAP_b01_m01_int_ea77498f",
               "activities": [
                 {
                   "title": "Lectura: ¿Cómo ser TUM?",
@@ -2119,17 +2119,17 @@
                   },
                   "activity_id": null,
                   "code": "A01",
-                  "slug": "p08_b01_m01_a01_lec_05f3144b",
-                  "shortId": "P08-B01-M01-A01"
+                  "slug": "CAP_b01_m01_a01_lec_05f3144b",
+                  "shortId": "CAP-B01-M01-A01"
                 }
               ],
-              "shortId": "P08-B01-M01"
+              "shortId": "CAP-B01-M01"
             }
           ],
-          "shortId": "P08-B01"
+          "shortId": "CAP-B01"
         }
       ],
-      "shortId": "P08"
+      "shortId": "CAP"
     },
     {
       "title": "Prevención",
@@ -2144,7 +2144,7 @@
         "seguridad"
       ],
       "program_id": null,
-      "code": "P09",
+      "code": "PREV",
       "slug": "prevencion",
       "blocks": [
         {
