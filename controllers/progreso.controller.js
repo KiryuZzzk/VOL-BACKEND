@@ -94,6 +94,44 @@ exports.iniciarActividad = async (req, res) => {
 };
 
 /**
+ * POST /progreso/actividades/:activityId/completar
+ * body: { score?: number, passed?: boolean }
+ */
+exports.completarActividad = async (req, res) => {
+  const uid = String(getUid(req) || "").trim();
+  const activityId = Number(req.params.activityId);
+  const score = req.body?.score ?? null;
+  const passed = req.body?.passed ?? true;
+
+  if (!uid) return res.status(401).json({ error: "No autenticado" });
+  if (!activityId) return res.status(400).json({ error: "activityId inválido" });
+
+  try {
+    const status = passed ? "completed" : "failed";
+
+    await db.query(
+      `
+      INSERT INTO user_activity_progress
+        (user_id, activity_id, status, attempts, score, started_at, completed_at, last_seen_at)
+      VALUES (?, ?, ?, 1, ?, NOW(), NOW(), NOW())
+      ON DUPLICATE KEY UPDATE
+        attempts = attempts + 1,
+        status = VALUES(status),
+        score = VALUES(score),
+        completed_at = NOW(),
+        last_seen_at = NOW()
+      `,
+      [uid, activityId, status, score]
+    );
+
+    return res.json({ ok: true, status });
+  } catch (err) {
+    console.error("❌ completarActividad error:", err);
+    return res.status(500).json({ error: "Error al completar actividad" });
+  }
+};
+
+/**
  * POST /progreso/actividades/:activityId/heartbeat
  */
 exports.heartbeatActividad = async (req, res) => {
@@ -107,8 +145,8 @@ exports.heartbeatActividad = async (req, res) => {
     await db.query(
       `
       INSERT INTO user_activity_progress
-        (user_id, activity_id, status, last_seen_at)
-      VALUES (?, ?, 'in_progress', NOW())
+        (user_id, activity_id, status, started_at, last_seen_at)
+      VALUES (?, ?, 'in_progress', NOW(), NOW())
       ON DUPLICATE KEY UPDATE
         last_seen_at = NOW()
       `,
@@ -118,41 +156,6 @@ exports.heartbeatActividad = async (req, res) => {
     return res.json({ ok: true });
   } catch (err) {
     console.error("❌ heartbeatActividad error:", err);
-    return res.status(500).json({ error: "Error al guardar heartbeat" });
-  }
-};
-
-/**
- * POST /progreso/actividades/:activityId/completar
- */
-exports.completarActividad = async (req, res) => {
-  const uid = String(getUid(req) || "").trim();
-  const activityId = Number(req.params.activityId);
-  const score =
-    req.body?.score === undefined ? null : Number(req.body.score);
-
-  if (!uid) return res.status(401).json({ error: "No autenticado" });
-  if (!activityId) return res.status(400).json({ error: "activityId inválido" });
-
-  try {
-    await db.query(
-      `
-      INSERT INTO user_activity_progress
-        (user_id, activity_id, status, attempts, score, started_at, completed_at, last_seen_at)
-      VALUES (?, ?, 'completed', 1, ?, NOW(), NOW(), NOW())
-      ON DUPLICATE KEY UPDATE
-        status = 'completed',
-        attempts = attempts + 1,
-        score = ?,
-        completed_at = NOW(),
-        last_seen_at = NOW()
-      `,
-      [uid, activityId, score, score]
-    );
-
-    return res.json({ ok: true });
-  } catch (err) {
-    console.error("❌ completarActividad error:", err);
-    return res.status(500).json({ error: "Error al completar actividad" });
+    return res.status(500).json({ error: "Error heartbeat" });
   }
 };

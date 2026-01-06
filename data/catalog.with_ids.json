@@ -11,7 +11,7 @@
         "voluntariado",
         "formacion_inicial"
       ],
-      "program_id": 1,
+      "program_id": 2,
       "code": "SV",
       "slug": "soy_voluntario",
       "blocks": [
@@ -21,7 +21,7 @@
           "order": 1,
           "estimatedMinutes": null,
           "optional": false,
-          "block_id": 1,
+          "block_id": 2,
           "code": "B01",
           "slug": "sv_b01_pri_5658df82",
           "modules": [
@@ -32,7 +32,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 1,
+              "module_id": 2,
               "code": "M01",
               "slug": "sv_b01_m01_int_73ac5680",
               "activities": [
@@ -88,7 +88,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 2,
+              "module_id": 3,
               "code": "M02",
               "slug": "sv_b01_m02_pro_8c5c9526",
               "activities": [
@@ -162,7 +162,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 3,
+              "module_id": 4,
               "code": "M03",
               "slug": "sv_b01_m03_rea_a9729375",
               "activities": [
@@ -236,7 +236,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 4,
+              "module_id": 5,
               "code": "M04",
               "slug": "sv_b01_m04_hem_1d23265c",
               "activities": [
@@ -310,7 +310,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 5,
+              "module_id": 6,
               "code": "M05",
               "slug": "sv_b01_m05_atr_159cbec8",
               "activities": [
@@ -375,7 +375,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 6,
+              "module_id": 7,
               "code": "M06",
               "slug": "sv_b01_m06_c_m_60d590be",
               "activities": [
@@ -447,7 +447,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 7,
+              "module_id": 8,
               "code": "M07",
               "slug": "sv_b01_m07_fracturas",
               "activities": [
@@ -512,7 +512,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 8,
+              "module_id": 9,
               "code": "M08",
               "slug": "sv_b01_m08_ate_22ac6d24",
               "activities": [
@@ -576,7 +576,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": true,
-              "module_id": 9,
+              "module_id": 10,
               "code": "M09",
               "slug": "sv_b01_m09_examen_final",
               "activities": [
@@ -758,7 +758,7 @@
           "order": 2,
           "estimatedMinutes": null,
           "optional": false,
-          "block_id": 2,
+          "block_id": 3,
           "code": "B02",
           "slug": "sv_b02_reg_b50114ea",
           "modules": [
@@ -769,7 +769,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 10,
+              "module_id": 11,
               "code": "M01",
               "slug": "sv_b02_m01_reg_b50114ea",
               "activities": [
@@ -800,7 +800,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": true,
-              "module_id": 11,
+              "module_id": 12,
               "code": "M02",
               "slug": "sv_b02_m02_examen_final",
               "activities": [
@@ -932,7 +932,7 @@
           "order": 3,
           "estimatedMinutes": null,
           "optional": false,
-          "block_id": 3,
+          "block_id": 4,
           "code": "B03",
           "slug": "sv_b03_ind_786882bf",
           "modules": [
@@ -943,7 +943,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 12,
+              "module_id": 13,
               "code": "M01",
               "slug": "sv_b03_m01_cha_daad7547",
               "activities": [
@@ -974,7 +974,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": true,
-              "module_id": 13,
+              "module_id": 14,
               "code": "M02",
               "slug": "sv_b03_m02_examen_final",
               "activities": [
@@ -1136,7 +1136,7 @@
           "order": 4,
           "estimatedMinutes": null,
           "optional": false,
-          "block_id": 4,
+          "block_id": 5,
           "code": "B04",
           "slug": "sv_b04_ind_748e89d1",
           "modules": [
@@ -1147,7 +1147,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 14,
+              "module_id": 15,
               "code": "M01",
               "slug": "sv_b04_m01_ind_748e89d1",
               "activities": [
@@ -1178,7 +1178,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": true,
-              "module_id": 15,
+              "module_id": 16,
               "code": "M02",
               "slug": "sv_b04_m02_examen_final",
               "activities": [
@@ -1330,7 +1330,7 @@
           "order": 5,
           "estimatedMinutes": null,
           "optional": false,
-          "block_id": 5,
+          "block_id": 6,
           "code": "B05",
           "slug": "sv_b05_acc_94b327b2",
           "modules": [
@@ -1341,7 +1341,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 16,
+              "module_id": 17,
               "code": "M01",
               "slug": "sv_b05_m01_int_fe9d675c",
               "activities": [
@@ -1372,7 +1372,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": true,
-              "module_id": 17,
+              "module_id": 18,
               "code": "M02",
               "slug": "sv_b05_m02_examen_final",
               "activities": [
@@ -1483,7 +1483,7 @@
         "diseño",
         "fotografía"
       ],
-      "program_id": 10,
+      "program_id": 3,
       "code": "COM",
       "slug": "comunicacion",
       "blocks": [
@@ -1493,7 +1493,7 @@
           "order": 1,
           "estimatedMinutes": null,
           "optional": false,
-          "block_id": 14,
+          "block_id": 7,
           "code": "B01",
           "slug": "COM_b01_ide_dc05d5e6",
           "modules": [
@@ -1504,7 +1504,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 27,
+              "module_id": 19,
               "code": "M01",
               "slug": "COM_b01_m01_nue_277db0b1",
               "activities": [
@@ -1517,7 +1517,7 @@
                   "config": {
                     "manualId": "/manuals/comunicacion/comunicacion_manual_1.pdf"
                   },
-                  "activity_id": 48,
+                  "activity_id": 26,
                   "code": "A01",
                   "slug": "COM_b01_m01_a01_lec_2e95a792",
                   "shortId": "COM-B01-M01-A01"
@@ -1531,7 +1531,7 @@
                   "config": {
                     "manualId": "/manuals/comunicacion/comunicacion_manual_2.pdf"
                   },
-                  "activity_id": 49,
+                  "activity_id": 27,
                   "code": "A02",
                   "slug": "COM_b01_m01_a02_lec_af23bff8",
                   "shortId": "COM-B01-M01-A02"
@@ -1545,7 +1545,7 @@
                   "config": {
                     "manualId": "/manuals/comunicacion/comunicacion_manual_3.pdf"
                   },
-                  "activity_id": 50,
+                  "activity_id": 28,
                   "code": "A03",
                   "slug": "COM_b01_m01_a03_lec_8a573352",
                   "shortId": "COM-B01-M01-A03"
@@ -1559,7 +1559,7 @@
                   "config": {
                     "manualId": "/manuals/comunicacion/comunicacion_manual_4.pdf"
                   },
-                  "activity_id": 51,
+                  "activity_id": 29,
                   "code": "A04",
                   "slug": "COM_b01_m01_a04_lec_02e4d9e1",
                   "shortId": "COM-B01-M01-A04"
@@ -1584,8 +1584,8 @@
         "voluntariado",
         "habilidades_blandas"
       ],
-      "program_id": 11,
-      "code": "vol",
+      "program_id": 4,
+      "code": "VOL",
       "slug": "voluntariado",
       "blocks": [
         {
@@ -1594,7 +1594,7 @@
           "order": 1,
           "estimatedMinutes": null,
           "optional": false,
-          "block_id": 15,
+          "block_id": 8,
           "code": "B01",
           "slug": "vol_b01_arm_591ba85a",
           "modules": [
@@ -1605,7 +1605,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 28,
+              "module_id": 20,
               "code": "M01",
               "slug": "vol_b01_m01_arm_3bf457ba",
               "activities": [
@@ -1621,7 +1621,7 @@
                       "ITFGtBIComg"
                     ]
                   },
-                  "activity_id": 52,
+                  "activity_id": 30,
                   "code": "A01",
                   "slug": "vol_b01_m01_a01_vid_75adc619",
                   "shortId": "vol-B01-M01-A01"
@@ -1638,7 +1638,7 @@
                       "BoYVlTR-LO4"
                     ]
                   },
-                  "activity_id": 53,
+                  "activity_id": 31,
                   "code": "A02",
                   "slug": "vol_b01_m01_a02_vid_e54ba96f",
                   "shortId": "vol-B01-M01-A02"
@@ -1655,7 +1655,7 @@
                       "HQhlhSOTUqc"
                     ]
                   },
-                  "activity_id": 54,
+                  "activity_id": 32,
                   "code": "A03",
                   "slug": "vol_b01_m01_a03_vid_9ad4f02c",
                   "shortId": "vol-B01-M01-A03"
@@ -1672,7 +1672,7 @@
                       "H9KHqYIjuUU"
                     ]
                   },
-                  "activity_id": 55,
+                  "activity_id": 33,
                   "code": "A04",
                   "slug": "vol_b01_m01_a04_vid_5f2fba5b",
                   "shortId": "vol-B01-M01-A04"
@@ -1689,7 +1689,7 @@
                       "tvri4G-G7_g"
                     ]
                   },
-                  "activity_id": 56,
+                  "activity_id": 34,
                   "code": "A05",
                   "slug": "vol_b01_m01_a05_vid_cdfaa298",
                   "shortId": "vol-B01-M01-A05"
@@ -1714,7 +1714,7 @@
         "migracion",
         "movilidad_humana"
       ],
-      "program_id": 12,
+      "program_id": 5,
       "code": "MIG",
       "slug": "migracion",
       "blocks": [
@@ -1724,7 +1724,7 @@
           "order": 1,
           "estimatedMinutes": null,
           "optional": false,
-          "block_id": 16,
+          "block_id": 9,
           "code": "B01",
           "slug": "MIG_b01_int_d8d40f03",
           "modules": [
@@ -1735,7 +1735,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 29,
+              "module_id": 21,
               "code": "M01",
               "slug": "MIG_b01_m01_m_dulo_nico",
               "activities": [
@@ -1748,7 +1748,7 @@
                   "config": {
                     "scormPackageUrl": "/assets/scrom/RCF.zip"
                   },
-                  "activity_id": 57,
+                  "activity_id": 35,
                   "code": "A01",
                   "slug": "MIG_b01_m01_a01_sco_c7395804",
                   "shortId": "MIG-B01-M01-A01"
@@ -1773,7 +1773,7 @@
         "gestion_de_riesgos",
         "reduccion_de_riesgos"
       ],
-      "program_id": 13,
+      "program_id": 6,
       "code": "RDR",
       "slug": "reduccion_de_riesgos",
       "blocks": [
@@ -1783,7 +1783,7 @@
           "order": 1,
           "estimatedMinutes": null,
           "optional": false,
-          "block_id": 17,
+          "block_id": 10,
           "code": "B01",
           "slug": "RDR_b01_red_6adc25a6",
           "modules": [
@@ -1794,7 +1794,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 30,
+              "module_id": 22,
               "code": "M01",
               "slug": "RDR_b01_m01_m_dulo_nico",
               "activities": [
@@ -1805,7 +1805,7 @@
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {},
-                  "activity_id": 58,
+                  "activity_id": 36,
                   "code": "A01",
                   "slug": "RDR_b01_m01_a01_actividad_1",
                   "shortId": "RDR-B01-M01-A01"
@@ -1817,7 +1817,7 @@
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {},
-                  "activity_id": 59,
+                  "activity_id": 37,
                   "code": "A02",
                   "slug": "RDR_b01_m01_a02_actividad_2",
                   "shortId": "RDR-B01-M01-A02"
@@ -1843,7 +1843,7 @@
         "salud_mental",
         "intervencion_en_crisis"
       ],
-      "program_id": 14,
+      "program_id": 7,
       "code": "APS",
       "slug": "apoyo_psicosocial",
       "blocks": [
@@ -1853,7 +1853,7 @@
           "order": 1,
           "estimatedMinutes": null,
           "optional": false,
-          "block_id": 18,
+          "block_id": 11,
           "code": "B01",
           "slug": "APS_b01_apo_5a6c0877",
           "modules": [
@@ -1864,7 +1864,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 31,
+              "module_id": 23,
               "code": "M01",
               "slug": "APS_b01_m01_m_d_1a48fcf8",
               "activities": [
@@ -1880,7 +1880,7 @@
                       "VIDEO_ID_1"
                     ]
                   },
-                  "activity_id": 60,
+                  "activity_id": 38,
                   "code": "A01",
                   "slug": "APS_b01_m01_a01_video_1",
                   "shortId": "APS-B01-M01-A01"
@@ -1897,7 +1897,7 @@
                       "VIDEO_ID_2"
                     ]
                   },
-                  "activity_id": 61,
+                  "activity_id": 39,
                   "code": "A02",
                   "slug": "APS_b01_m01_a02_video_2",
                   "shortId": "APS-B01-M01-A02"
@@ -1914,7 +1914,7 @@
                       "VIDEO_ID_3"
                     ]
                   },
-                  "activity_id": 62,
+                  "activity_id": 40,
                   "code": "A03",
                   "slug": "APS_b01_m01_a03_video_3",
                   "shortId": "APS-B01-M01-A03"
@@ -1931,7 +1931,7 @@
                       "VIDEO_ID_4"
                     ]
                   },
-                  "activity_id": 63,
+                  "activity_id": 41,
                   "code": "A04",
                   "slug": "APS_b01_m01_a04_video_4",
                   "shortId": "APS-B01-M01-A04"
@@ -1948,7 +1948,7 @@
                       "VIDEO_ID_5"
                     ]
                   },
-                  "activity_id": 64,
+                  "activity_id": 42,
                   "code": "A05",
                   "slug": "APS_b01_m01_a05_video_5",
                   "shortId": "APS-B01-M01-A05"
@@ -1965,7 +1965,7 @@
                       "VIDEO_ID_6"
                     ]
                   },
-                  "activity_id": 65,
+                  "activity_id": 43,
                   "code": "A06",
                   "slug": "APS_b01_m01_a06_video_6",
                   "shortId": "APS-B01-M01-A06"
@@ -1980,7 +1980,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 32,
+              "module_id": 24,
               "code": "M02",
               "slug": "APS_b01_m02_m_d_9f37ee40",
               "activities": [
@@ -1997,7 +1997,7 @@
                     "lockOnOpen": true,
                     "questions": []
                   },
-                  "activity_id": 66,
+                  "activity_id": 44,
                   "code": "A01",
                   "slug": "APS_b01_m02_a01_exa_dc5705df",
                   "shortId": "APS-B01-M02-A01"
@@ -2023,7 +2023,7 @@
         "capacitacion",
         "tum"
       ],
-      "program_id": 15,
+      "program_id": 8,
       "code": "TUM",
       "slug": "capacitacion_tum",
       "blocks": [
@@ -2033,7 +2033,7 @@
           "order": 1,
           "estimatedMinutes": null,
           "optional": false,
-          "block_id": 19,
+          "block_id": 12,
           "code": "B01",
           "slug": "TUM_b01_for_0c202c81",
           "modules": [
@@ -2044,7 +2044,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 33,
+              "module_id": 25,
               "code": "M01",
               "slug": "TUM_b01_m01_int_ea77498f",
               "activities": [
@@ -2057,7 +2057,7 @@
                   "config": {
                     "manualId": "/manuals/capacitacion/informacion-tum.pdf"
                   },
-                  "activity_id": 67,
+                  "activity_id": 45,
                   "code": "A01",
                   "slug": "TUM_b01_m01_a01_lec_05f3144b",
                   "shortId": "TUM-B01-M01-A01"
@@ -2083,7 +2083,7 @@
         "capacitacion",
         "tum"
       ],
-      "program_id": 16,
+      "program_id": 9,
       "code": "CAP",
       "slug": "capacitacion_admin",
       "blocks": [
@@ -2093,7 +2093,7 @@
           "order": 1,
           "estimatedMinutes": null,
           "optional": false,
-          "block_id": 20,
+          "block_id": 13,
           "code": "B01",
           "slug": "CAP_b01_for_0c202c81",
           "modules": [
@@ -2104,7 +2104,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 34,
+              "module_id": 26,
               "code": "M01",
               "slug": "CAP_b01_m01_int_ea77498f",
               "activities": [
@@ -2117,7 +2117,7 @@
                   "config": {
                     "manualId": "manual_tum_introduccion"
                   },
-                  "activity_id": 68,
+                  "activity_id": 46,
                   "code": "A01",
                   "slug": "CAP_b01_m01_a01_lec_05f3144b",
                   "shortId": "CAP-B01-M01-A01"
@@ -2143,8 +2143,8 @@
         "lesiones",
         "seguridad"
       ],
-      "program_id": 9,
-      "code": "P09",
+      "program_id": 10,
+      "code": "PREV",
       "slug": "prevencion",
       "blocks": [
         {
@@ -2153,7 +2153,7 @@
           "order": 1,
           "estimatedMinutes": null,
           "optional": false,
-          "block_id": 13,
+          "block_id": 14,
           "code": "B01",
           "slug": "p09_b01_pre_49caa1d9",
           "modules": [
@@ -2164,7 +2164,7 @@
               "estimatedMinutes": null,
               "prerequisites": [],
               "isFinalExam": false,
-              "module_id": 26,
+              "module_id": 27,
               "code": "M01",
               "slug": "p09_b01_m01_m_dulo_nico",
               "activities": [
