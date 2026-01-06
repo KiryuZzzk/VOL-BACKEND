@@ -32,6 +32,33 @@ function getWriteUserId(req) {
 }
 
 /**
+ * Helper: normaliza JSON para MySQL (campo JSON acepta string JSON o null)
+ */
+function normalizeJsonForDb(value) {
+  if (value === undefined) return null;
+  if (value === null) return null;
+  if (typeof value === "string") {
+    const s = value.trim();
+    return s ? s : null;
+  }
+  // objeto / array / number / boolean -> stringify
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Helper: normaliza score
+ */
+function normalizeScore(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
  * GET /progreso/me/programas/:code
  * Devuelve el progreso del usuario para un programa
  */
@@ -70,7 +97,7 @@ exports.getMiProgresoPrograma = async (req, res) => {
 
         COALESCE(uap.status, 'not_started') AS status,
         COALESCE(uap.attempts, 0) AS attempts,
-        COALESCE(uap.score, 0) AS score,
+        uap.score,
         uap.data_json,
         uap.started_at,
         uap.completed_at,
@@ -136,14 +163,23 @@ exports.iniciarActividad = async (req, res) => {
 
 /**
  * POST /progreso/actividades/:activityId/completar
- * Marca actividad como completed (y guarda score si viene)
+ * Marca actividad como completed/failed (y guarda score/data_json si vienen)
+ *
+ * body opcional:
+ * {
+ *   score?: number,
+ *   passed?: boolean,     // default true
+ *   data_json?: any
+ * }
  */
 exports.completarActividad = async (req, res) => {
   const { activityId } = req.params;
   const userId = getWriteUserId(req);
 
-  const score = req.body?.score ?? null;
-  const data_json = req.body?.data_json ?? null;
+  const score = normalizeScore(req.body?.score);
+  const passed = req.body?.passed ?? true;
+  const status = passed ? "completed" : "failed";
+  const data_json = normalizeJsonForDb(req.body?.data_json);
 
   if (!userId) return res.status(401).json({ error: "No autenticado" });
   if (!activityId) return res.status(400).json({ error: "activityId inválido" });
@@ -153,19 +189,19 @@ exports.completarActividad = async (req, res) => {
       `
       INSERT INTO user_activity_progress
         (user_id, activity_id, status, attempts, score, data_json, started_at, completed_at, last_seen_at)
-      VALUES (?, ?, 'completed', 1, COALESCE(?, 0), ?, NOW(), NOW(), NOW())
+      VALUES (?, ?, ?, 1, ?, ?, NOW(), NOW(), NOW())
       ON DUPLICATE KEY UPDATE
-        status = 'completed',
+        status = VALUES(status),
         attempts = COALESCE(attempts,0) + 1,
-        score = COALESCE(?, score),
-        data_json = COALESCE(?, data_json),
+        score = COALESCE(VALUES(score), score),
+        data_json = COALESCE(VALUES(data_json), data_json),
         completed_at = NOW(),
         last_seen_at = NOW()
       `,
-      [userId, activityId, score, data_json, score, data_json]
+      [userId, activityId, status, score, data_json]
     );
 
-    return res.json({ ok: true });
+    return res.json({ ok: true, status });
   } catch (err) {
     console.error("❌ completarActividad error:", err);
     return res.status(500).json({ error: "Error al completar actividad" });
