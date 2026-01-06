@@ -6,7 +6,7 @@ const db = require("../config/db");
  * - dbUserId: number (users.id en MySQL)
  */
 function getUserKeys(req) {
-  const firebaseUid = String(req.firebaseUser?.uid || "").trim();
+  const firebaseUid = String(req.firebaseUser?.uid || "").trim() || null;
 
   const dbUserIdRaw =
     req.user?.id ?? req.dbUser?.id ?? req.user?.user_id ?? null;
@@ -17,31 +17,26 @@ function getUserKeys(req) {
       : Number(dbUserIdRaw);
 
   return {
-    firebaseUid: firebaseUid || null,
+    firebaseUid,
     dbUserId: Number.isFinite(dbUserId) ? dbUserId : null,
   };
 }
 
 /**
- * Para ESCRITURAS (insert/update) elegimos 1 solo ID, para no duplicar filas.
- * Preferimos el ID numérico de BD si existe, si no usamos Firebase UID.
+ * 🔥 CLAVE: para progreso usamos UN SOLO user_id consistente.
+ * Preferimos firebaseUid (porque tu plataforma ya vive en Firebase Auth),
+ * y si no existe, caemos a dbUserId como string.
  */
-function getWriteUserId(req) {
-  const { dbUserId, firebaseUid } = getUserKeys(req);
-  return dbUserId || firebaseUid || null;
+function getProgressUserId(req) {
+  const { firebaseUid, dbUserId } = getUserKeys(req);
+  if (firebaseUid) return firebaseUid;
+  if (dbUserId) return String(dbUserId);
+  return null;
 }
 
-/**
- * Helper: normaliza JSON para MySQL (campo JSON acepta string JSON o null)
- */
 function normalizeJsonForDb(value) {
-  if (value === undefined) return null;
-  if (value === null) return null;
-  if (typeof value === "string") {
-    const s = value.trim();
-    return s ? s : null;
-  }
-  // objeto / array / number / boolean -> stringify
+  if (value === undefined || value === null) return null;
+  if (typeof value === "string") return value.trim() ? value : null;
   try {
     return JSON.stringify(value);
   } catch {
@@ -49,13 +44,15 @@ function normalizeJsonForDb(value) {
   }
 }
 
-/**
- * Helper: normaliza score
- */
 function normalizeScore(value) {
   if (value === undefined || value === null || value === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function normalizeActivityId(raw) {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
 }
 
 /**
@@ -63,28 +60,13 @@ function normalizeScore(value) {
  * Devuelve el progreso del usuario para un programa
  */
 exports.getMiProgresoPrograma = async (req, res) => {
-  const { code } = req.params;
-  const { firebaseUid, dbUserId } = getUserKeys(req);
+  const uid = getProgressUserId(req);
+  const programCode = String(req.params.code || "").trim().toUpperCase();
 
-  if (!firebaseUid && !dbUserId) {
-    return res.status(401).json({ error: "No autenticado" });
-  }
-  if (!code) return res.status(400).json({ error: "code requerido" });
+  if (!uid) return res.status(401).json({ error: "No autenticado" });
+  if (!programCode) return res.status(400).json({ error: "code requerido" });
 
   try {
-    // Condición user_id: soporta num o uid
-    const userWhere = [];
-    const userParams = [];
-
-    if (dbUserId) {
-      userWhere.push("uap.user_id = ?");
-      userParams.push(dbUserId);
-    }
-    if (firebaseUid) {
-      userWhere.push("uap.user_id = ?");
-      userParams.push(firebaseUid);
-    }
-
     const [rows] = await db.query(
       `
       SELECT
@@ -108,7 +90,7 @@ exports.getMiProgresoPrograma = async (req, res) => {
       JOIN activity a ON a.module_id = m.module_id AND a.is_active = 1
       LEFT JOIN user_activity_progress uap
         ON uap.activity_id = a.activity_id
-       AND (${userWhere.join(" OR ")})
+       AND uap.user_id = ?
       WHERE p.code = ?
         AND p.is_active = 1
       ORDER BY
@@ -116,11 +98,12 @@ exports.getMiProgresoPrograma = async (req, res) => {
         m.order_index ASC,
         a.order_index ASC
       `,
-      [...userParams, code]
+      [uid, programCode]
     );
 
     return res.json({
-      programCode: code,
+      user_id: uid,
+      programCode,
       activities: rows,
     });
   } catch (err) {
@@ -134,10 +117,10 @@ exports.getMiProgresoPrograma = async (req, res) => {
  * Marca actividad como in_progress
  */
 exports.iniciarActividad = async (req, res) => {
-  const { activityId } = req.params;
-  const userId = getWriteUserId(req);
+  const uid = getProgressUserId(req);
+  const activityId = normalizeActivityId(req.params.activityId);
 
-  if (!userId) return res.status(401).json({ error: "No autenticado" });
+  if (!uid) return res.status(401).json({ error: "No autenticado" });
   if (!activityId) return res.status(400).json({ error: "activityId inválido" });
 
   try {
@@ -151,7 +134,7 @@ exports.iniciarActividad = async (req, res) => {
         started_at = COALESCE(started_at, NOW()),
         last_seen_at = NOW()
       `,
-      [userId, activityId]
+      [uid, activityId]
     );
 
     return res.json({ ok: true });
@@ -163,8 +146,6 @@ exports.iniciarActividad = async (req, res) => {
 
 /**
  * POST /progreso/actividades/:activityId/completar
- * Marca actividad como completed/failed (y guarda score/data_json si vienen)
- *
  * body opcional:
  * {
  *   score?: number,
@@ -173,15 +154,15 @@ exports.iniciarActividad = async (req, res) => {
  * }
  */
 exports.completarActividad = async (req, res) => {
-  const { activityId } = req.params;
-  const userId = getWriteUserId(req);
+  const uid = getProgressUserId(req);
+  const activityId = normalizeActivityId(req.params.activityId);
 
   const score = normalizeScore(req.body?.score);
   const passed = req.body?.passed ?? true;
   const status = passed ? "completed" : "failed";
   const data_json = normalizeJsonForDb(req.body?.data_json);
 
-  if (!userId) return res.status(401).json({ error: "No autenticado" });
+  if (!uid) return res.status(401).json({ error: "No autenticado" });
   if (!activityId) return res.status(400).json({ error: "activityId inválido" });
 
   try {
@@ -198,7 +179,7 @@ exports.completarActividad = async (req, res) => {
         completed_at = NOW(),
         last_seen_at = NOW()
       `,
-      [userId, activityId, status, score, data_json]
+      [uid, activityId, status, score, data_json]
     );
 
     return res.json({ ok: true, status });
@@ -213,10 +194,10 @@ exports.completarActividad = async (req, res) => {
  * Solo actualiza last_seen_at
  */
 exports.heartbeatActividad = async (req, res) => {
-  const { activityId } = req.params;
-  const userId = getWriteUserId(req);
+  const uid = getProgressUserId(req);
+  const activityId = normalizeActivityId(req.params.activityId);
 
-  if (!userId) return res.status(401).json({ error: "No autenticado" });
+  if (!uid) return res.status(401).json({ error: "No autenticado" });
   if (!activityId) return res.status(400).json({ error: "activityId inválido" });
 
   try {
@@ -228,7 +209,7 @@ exports.heartbeatActividad = async (req, res) => {
       ON DUPLICATE KEY UPDATE
         last_seen_at = NOW()
       `,
-      [userId, activityId]
+      [uid, activityId]
     );
 
     return res.json({ ok: true });
