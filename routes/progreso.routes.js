@@ -39,9 +39,18 @@ router.post(
   progresoCtrl.heartbeatActividad
 );
 
+// ✅ NUEVO: elegir camino (PATH)
+router.post(
+  "/actividades/:activityId/choose",
+  authMiddleware,
+  progresoCtrl.choosePathActividad
+);
+
 // Obtener el catálogo de programas inscritos
-router.get("/me/programas", 
-  authMiddleware, 
-  programasCtrl.getMisProgramas);
+router.get(
+  "/me/programas",
+  authMiddleware,
+  programasCtrl.getMisProgramas
+);
 
 module.exports = router;

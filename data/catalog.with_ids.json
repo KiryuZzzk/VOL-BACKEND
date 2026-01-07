@@ -1467,6 +1467,112 @@
             }
           ],
           "shortId": "SV-B05"
+        },
+        {
+          "title": "Elige tu proyecto",
+          "description": "Explora las áreas y selecciona el proyecto en el que deseas voluntariarte.",
+          "order": 6,
+          "estimatedMinutes": null,
+          "optional": false,
+          "block_id": 15,
+          "code": "B06",
+          "slug": "sv_b06_path_choice",
+          "modules": [
+            {
+              "title": "Explora y elige",
+              "description": "Conoce las áreas de voluntariado disponibles y elige tu siguiente paso.",
+              "order": 1,
+              "estimatedMinutes": null,
+              "prerequisites": [],
+              "isFinalExam": false,
+              "module_id": 28,
+              "code": "M01",
+              "slug": "sv_b06_m01_path_choice",
+              "activities": [
+                {
+                  "title": "Elige tu misión",
+                  "type": "path",
+                  "order": 1,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "prompt": "Elige el proyecto donde quieres voluntariarte",
+                    "autoNavigate": true,
+                    "options": [
+                      {
+                        "key": "COM",
+                        "label": "Tecnología e Imagen",
+                        "description": "Proyectos innovadoras, campañas y contenidos que conectan con personas y comunidades.",
+                        "image": "/assets/Comunicacion.png",
+                        "videoId": "geMYwYi7gmA"
+                      },
+                      {
+                        "key": "VOL",
+                        "label": "Voluntariado",
+                        "description": "Únete a una red nacional de personas comprometidas con la acción humanitaria.",
+                        "image": "/assets/Voluntariado.png",
+                        "videoId": "iJWz-2x-7e4"
+                      },
+                      {
+                        "key": "MIG",
+                        "label": "Migración",
+                        "description": "Acciones humanitarias para personas en movilidad: información, orientación y protección.",
+                        "image": "/assets/Migracion.png",
+                        "videoId": "wdSnJvdjCK0"
+                      },
+                      {
+                        "key": "RDR",
+                        "label": "Reducción de Riesgos de Desastres",
+                        "description": "Preparación, mitigación y resiliencia comunitaria ante amenazas y desastres.",
+                        "image": "/assets/Reduccion.png",
+                        "videoId": "v8BZC2X-8xk"
+                      },
+                      {
+                        "key": "APS",
+                        "label": "Apoyo Psicosocial",
+                        "description": "Acompañamiento emocional y psicosocial para personas y equipos en crisis.",
+                        "image": "/assets/Psicosocial.png",
+                        "videoId": "ry_Fo6tqtrI",
+                        "chip": "Exclusivo para Lic. en Psicología"
+                      },
+                      {
+                        "key": "TUM",
+                        "label": "Técnico en Urgencias Médicas",
+                        "description": "Capacítate como Técnico en Urgencias Médicas y apoya a tu comunidad en emergencias.",
+                        "image": "/assets/TUM.png",
+                        "videoId": "Cg4u8VUtQ5Y",
+                        "notesText": "Tiene un costo dependiendo de los Centros de Capacitación en tu estado.",
+                        "help": {
+                          "text": "¿Quieres más información?",
+                          "url": "https://drive.google.com/file/d/1WV8d1gZkbQZCsFfar3nXHgsIkiFvub8a/view?usp=sharing"
+                        }
+                      },
+                      {
+                        "key": "CAP",
+                        "label": "Capacitación",
+                        "description": "Apoya en materia de educación y formación",
+                        "image": "/assets/Capacitacion.png",
+                        "videoId": "Cg4u8VUtQ5Y"
+                      },
+                      {
+                        "key": "PREV",
+                        "label": "Prevención de Lesiones",
+                        "description": "Programas y hábitos seguros para reducir accidentes en casa, escuela y comunidad.",
+                        "image": "/assets/Prevencion.png",
+                        "videoId": "fkAzCuAHJDs"
+                      }
+                    ]
+                  },
+                  "activity_id": 48,
+                  "code": "A01",
+                  "slug": "sv_b06_m01_a01_path_choice",
+                  "shortId": "SV-B06-M01-A01"
+                }
+              ],
+              "shortId": "SV-B06-M01"
+            }
+          ],
+          "shortId": "SV-B06"
         }
       ],
       "shortId": "SV"
