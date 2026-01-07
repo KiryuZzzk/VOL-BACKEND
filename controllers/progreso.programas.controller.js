@@ -53,7 +53,16 @@ exports.getMisProgramas = async (req, res) => {
 
     const [rows] = await db.query(
       `
-      SELECT p.program_id, p.code, p.name
+      SELECT
+        p.program_id,
+        p.code,
+        p.name,
+        p.description,
+        p.image,
+        p.formacion,
+        p.level,
+        p.estimated_minutes,
+        p.tags_json
       FROM user_program_enrollment upe
       JOIN program p ON p.program_id = upe.program_id
       WHERE (${where.join(" OR ")})
