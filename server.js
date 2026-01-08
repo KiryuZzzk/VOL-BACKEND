@@ -4,6 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const app = express();
+const os = require("os");
 
 // ⚙️ Configuración CORS segura
 const corsOptions = {
@@ -56,7 +57,7 @@ app.use("/documentos", documentosRoutes);
 app.use("/inscripciones", inscripcionesRoutes);
 app.use("/progreso", progresoRoutes);
 // ✅ Servir SCORM montado
-app.use("/scorm/launch", express.static(path.join(process.cwd(), "scorm_launch")));
+app.use("/scorm/launch", express.static(path.join(os.tmpdir(), "scorm_launch")));
 
 
 

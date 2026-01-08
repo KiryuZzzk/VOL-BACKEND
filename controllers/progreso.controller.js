@@ -5,6 +5,7 @@ const fsp = require("fs/promises");
 const path = require("path");
 const crypto = require("crypto");
 const unzipper = require("unzipper");
+const os = require("os")
 
 /**
  * Devuelve ambos posibles identificadores del usuario:
@@ -81,7 +82,7 @@ function normalizeActivityId(raw) {
 
 // Root folder donde vamos a “montar” SCORM ya extraído.
 // OJO: esto NO es /public; lo servimos con express.static directo a este folder.
-const SCORM_LAUNCH_ROOT = path.join(process.cwd(), "scorm_launch");
+const SCORM_LAUNCH_ROOT = path.join(os.tmpdir(), "scorm_launch");
 
 // Busca el ZIP en rutas típicas basadas en tu URL pública:
 // - "/assets/scorm/archivo.zip"
