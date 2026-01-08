@@ -4,9 +4,6 @@ const fs = require("fs");
 const fsp = require("fs/promises");
 const path = require("path");
 const crypto = require("crypto");
-
-// ⚠️ Requiere instalar unzipper si no lo tienes:
-// npm i unzipper
 const unzipper = require("unzipper");
 
 /**
@@ -99,8 +96,9 @@ async function resolveZipAbsolutePath(scormPackageUrl) {
   const rel = url.startsWith("/") ? url.slice(1) : url;
 
   const candidates = [
-    path.join(process.cwd(), rel),
-    path.join(process.cwd(), "public", rel),
+    path.join(process.cwd(), clean),              // <- NUEVO (data/scorm)
+    path.join(process.cwd(), "assets", clean),
+    path.join(process.cwd(), "public", clean),
   ];
 
   for (const abs of candidates) {

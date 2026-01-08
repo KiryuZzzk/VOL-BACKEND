@@ -1854,7 +1854,7 @@
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {
-                    "scormPackageUrl": "/assets/scrom/RCF.zip"
+                    "scormPackageUrl": "/data/scorm/RCF.zip"
                   },
                   "activity_id": null,
                   "code": "A01",

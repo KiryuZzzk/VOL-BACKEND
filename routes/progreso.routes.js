@@ -52,7 +52,8 @@ router.get(
   authMiddleware,
   programasCtrl.getMisProgramas
 );
-// Montar las actividades SCORM D:
+
+// Montar las actividades SCORM
 router.post(
   "/scorm/activities/:activityId/mount",
   authMiddleware,
