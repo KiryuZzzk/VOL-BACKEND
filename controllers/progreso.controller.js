@@ -235,68 +235,82 @@ exports.choosePathActividad = async (req, res) => {
   const { firebaseUid, dbUserId } = getUserKeys(req);
   const activityId = normalizeActivityId(req.params.activityId);
 
-  const choice = String(req.body?.choice || "").trim().toUpperCase();
+  // Acepta:
+  // body.choice: "COM"
+  // body.choices: ["COM","VOL"]
+  const rawChoices = Array.isArray(req.body?.choices)
+    ? req.body.choices
+    : req.body?.choice
+    ? [req.body.choice]
+    : [];
+
+  const choices = [...new Set(rawChoices.map((x) => String(x || "").trim().toUpperCase()).filter(Boolean))];
 
   if (!uidProgress) return res.status(401).json({ error: "No autenticado" });
   if (!activityId) return res.status(400).json({ error: "activityId inválido" });
-  if (!choice) return res.status(400).json({ error: "choice requerido" });
+  if (!choices.length) return res.status(400).json({ error: "choice/choices requerido" });
 
-  // Lista blanca opcional (te protege de enrolls raros)
+  // Lista blanca opcional
   const ALLOWED = new Set(["COM", "VOL", "MIG", "RDR", "APS", "TUM", "CAP", "PREV"]);
-  if (!ALLOWED.has(choice)) {
-    return res.status(400).json({ error: "choice inválido" });
+  const invalid = choices.filter((c) => !ALLOWED.has(c));
+  if (invalid.length) {
+    return res.status(400).json({ error: `choice(s) inválido(s): ${invalid.join(", ")}` });
   }
 
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
 
-    // 1) Validar que el programa exista por code (NO hardcodear program_id)
+    // 1) Resolver program_id de TODOS los choices
     const [pRows] = await conn.query(
       `
       SELECT program_id, code, is_active
       FROM program
-      WHERE code = ?
-      LIMIT 1
+      WHERE code IN (${choices.map(() => "?").join(",")})
       `,
-      [choice]
+      choices
     );
 
-    if (!pRows.length) {
+    // validar existencia
+    const found = new Map(pRows.map((p) => [String(p.code).toUpperCase(), p]));
+    const missing = choices.filter((c) => !found.has(c));
+    if (missing.length) {
       await conn.rollback();
-      return res.status(404).json({ error: `Programa no encontrado: ${choice}` });
+      return res.status(404).json({ error: `Programa(s) no encontrado(s): ${missing.join(", ")}` });
     }
 
-    const program = pRows[0];
-    if (program.is_active === 0) {
+    const inactive = choices.filter((c) => Number(found.get(c)?.is_active) === 0);
+    if (inactive.length) {
       await conn.rollback();
-      return res.status(400).json({ error: `Programa inactivo: ${choice}` });
+      return res.status(400).json({ error: `Programa(s) inactivo(s): ${inactive.join(", ")}` });
     }
 
-    // 2) Inscribir al usuario
-    // Preferencia:
-    // - Si tienes dbUserId (users.id), úsalo (porque es lo más "ERP/MySQL").
-    // - Si no, usa firebaseUid.
-    // - Si no hay ninguno (raro), usa uidProgress.
+    // 2) User id para enrollment (misma lógica que ya traes)
     const enrollmentUserId =
       (Number.isFinite(dbUserId) && dbUserId) || firebaseUid || uidProgress;
 
-    await conn.query(
-      `
-      INSERT INTO user_program_enrollment (user_id, program_id, status, enrolled_at)
-      VALUES (?, ?, 'enrolled', NOW())
-      ON DUPLICATE KEY UPDATE
-        status = 'enrolled'
-      `,
-      [enrollmentUserId, program.program_id]
-    );
+    // 3) Enrolar TODOS
+    for (const c of choices) {
+      const program = found.get(c);
+      await conn.query(
+        `
+        INSERT INTO user_program_enrollment (user_id, program_id, status, enrolled_at)
+        VALUES (?, ?, 'enrolled', NOW())
+        ON DUPLICATE KEY UPDATE
+          status = 'enrolled'
+        `,
+        [enrollmentUserId, program.program_id]
+      );
+    }
 
-    // 3) Marcar la actividad PATH como completada y guardar elección en data_json
+    // 4) Marcar actividad PATH como completada con data_json incluyendo choices
     const data_json = normalizeJsonForDb({
       completedBy: "path_choice",
-      choice,
-      enrolledProgramCode: choice,
-      enrolledProgramId: program.program_id,
+      choices,
+      enrolledPrograms: choices.map((c) => ({
+        code: c,
+        programId: found.get(c).program_id,
+      })),
     });
 
     await conn.query(
@@ -318,15 +332,15 @@ exports.choosePathActividad = async (req, res) => {
 
     return res.json({
       ok: true,
-      choice,
-      enrolledProgramCode: choice,
-      enrolledProgramId: program.program_id,
+      choices,
       enrollmentUserId,
+      enrolledPrograms: choices.map((c) => ({
+        code: c,
+        programId: found.get(c).program_id,
+      })),
     });
   } catch (err) {
-    try {
-      await conn.rollback();
-    } catch {}
+    try { await conn.rollback(); } catch {}
     console.error("❌ choosePathActividad error:", err);
     return res.status(500).json({ error: "Error al elegir camino" });
   } finally {
