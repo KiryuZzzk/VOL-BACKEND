@@ -1,4 +1,13 @@
+// progreso.controller.js
 const db = require("../config/db");
+const fs = require("fs");
+const fsp = require("fs/promises");
+const path = require("path");
+const crypto = require("crypto");
+
+// ⚠️ Requiere instalar unzipper si no lo tienes:
+// npm i unzipper
+const unzipper = require("unzipper");
 
 /**
  * Devuelve ambos posibles identificadores del usuario:
@@ -44,6 +53,18 @@ function normalizeJsonForDb(value) {
   }
 }
 
+function safeJsonParse(value, fallback = null) {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "object") return value;
+  const s = String(value).trim();
+  if (!s) return fallback;
+  try {
+    return JSON.parse(s);
+  } catch {
+    return fallback;
+  }
+}
+
 function normalizeScore(value) {
   if (value === undefined || value === null || value === "") return null;
   const n = Number(value);
@@ -54,6 +75,207 @@ function normalizeActivityId(raw) {
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? n : null;
 }
+
+/**
+ * =======================
+ * 🧩 SCORM HELPERS
+ * =======================
+ */
+
+// Root folder donde vamos a “montar” SCORM ya extraído.
+// OJO: esto NO es /public; lo servimos con express.static directo a este folder.
+const SCORM_LAUNCH_ROOT = path.join(process.cwd(), "scorm_launch");
+
+// Busca el ZIP en rutas típicas basadas en tu URL pública:
+// - "/assets/scorm/archivo.zip"
+// Lo intentamos resolver a:
+// - <cwd>/assets/scorm/archivo.zip
+// - <cwd>/public/assets/scorm/archivo.zip
+async function resolveZipAbsolutePath(scormPackageUrl) {
+  const url = String(scormPackageUrl || "").trim();
+  if (!url) return null;
+
+  // soporta "/assets/..." o "assets/..."
+  const rel = url.startsWith("/") ? url.slice(1) : url;
+
+  const candidates = [
+    path.join(process.cwd(), rel),
+    path.join(process.cwd(), "public", rel),
+  ];
+
+  for (const abs of candidates) {
+    try {
+      const st = await fsp.stat(abs);
+      if (st.isFile()) return abs;
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+}
+
+// Crea key estable por zip (path + size + mtime) para cachear extracción
+async function makeZipCacheKey(zipAbsPath) {
+  const st = await fsp.stat(zipAbsPath);
+  const base = `${zipAbsPath}::${st.size}::${st.mtimeMs}`;
+  return crypto.createHash("sha1").update(base).digest("hex");
+}
+
+async function ensureDir(dir) {
+  await fsp.mkdir(dir, { recursive: true });
+}
+
+// Extrae zip a targetDir si targetDir no existe / está vacío
+async function extractZipOnce(zipAbsPath, targetDir) {
+  await ensureDir(targetDir);
+
+  // Heurística rápida: si ya hay archivos, asumimos extraído
+  const existing = await fsp.readdir(targetDir).catch(() => []);
+  if (existing.length > 0) return;
+
+  await new Promise((resolve, reject) => {
+    fs.createReadStream(zipAbsPath)
+      .pipe(unzipper.Extract({ path: targetDir }))
+      .on("close", resolve)
+      .on("error", reject);
+  });
+}
+
+// Recorrido recursivo para encontrar un archivo (prioriza index.html)
+async function findLaunchFile(extractedDir) {
+  // 1) si existe index.html en root o en subcarpetas
+  const foundIndex = await findFileRecursive(extractedDir, (p) =>
+    path.basename(p).toLowerCase() === "index.html"
+  );
+  if (foundIndex) return foundIndex;
+
+  // 2) primer .html que exista
+  const foundHtml = await findFileRecursive(extractedDir, (p) =>
+    p.toLowerCase().endsWith(".html")
+  );
+  return foundHtml;
+}
+
+async function findFileRecursive(root, predicate) {
+  const stack = [root];
+
+  while (stack.length) {
+    const dir = stack.pop();
+    let entries = [];
+    try {
+      entries = await fsp.readdir(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const ent of entries) {
+      const abs = path.join(dir, ent.name);
+
+      if (ent.isDirectory()) {
+        // evita carpetas basura comunes
+        if (ent.name === "__MACOSX") continue;
+        stack.push(abs);
+      } else if (ent.isFile()) {
+        if (predicate(abs)) return abs;
+      }
+    }
+  }
+  return null;
+}
+
+// Convierte absPath dentro de extractedDir a ruta relativa con slashes para URL
+function toRelativeUrlPath(extractedDir, absFile) {
+  const rel = path.relative(extractedDir, absFile);
+  // windows-safe
+  return rel.split(path.sep).join("/");
+}
+
+/**
+ * ✅ POST /scorm/activities/:activityId/mount
+ * - Lee activity.config_json
+ * - Toma config.scormPackageUrl (ZIP)
+ * - Descomprime en cache
+ * - Encuentra launchFile (index.html / primer html)
+ * - Regresa launchUrl = /scorm/launch/<key>/<launchFile>
+ *
+ * Requiere que en tu server (app.js) agregues:
+ *   const path = require("path");
+ *   app.use("/scorm/launch", express.static(path.join(process.cwd(), "scorm_launch")));
+ */
+exports.mountScormActividad = async (req, res) => {
+  const uid = getProgressUserId(req);
+  const activityId = normalizeActivityId(req.params.activityId);
+
+  if (!uid) return res.status(401).json({ error: "No autenticado" });
+  if (!activityId) return res.status(400).json({ error: "activityId inválido" });
+
+  try {
+    // 1) Leer activity + config_json
+    const [rows] = await db.query(
+      `
+      SELECT activity_id, config_json, type, is_active
+      FROM activity
+      WHERE activity_id = ?
+      LIMIT 1
+      `,
+      [activityId]
+    );
+
+    if (!rows.length) return res.status(404).json({ error: "Actividad no encontrada" });
+
+    const activity = rows[0];
+    if (Number(activity.is_active) === 0) {
+      return res.status(400).json({ error: "Actividad inactiva" });
+    }
+
+    const config = safeJsonParse(activity.config_json, {}) || {};
+    const scormPackageUrl = config?.scormPackageUrl || null;
+
+    if (!scormPackageUrl) {
+      return res.status(400).json({
+        error: "Actividad sin config.scormPackageUrl",
+      });
+    }
+
+    // 2) Resolver zip en filesystem
+    const zipAbsPath = await resolveZipAbsolutePath(scormPackageUrl);
+    if (!zipAbsPath) {
+      return res.status(404).json({
+        error: `ZIP no encontrado en filesystem para: ${scormPackageUrl}`,
+      });
+    }
+
+    // 3) Cache key + extraction dir
+    const key = await makeZipCacheKey(zipAbsPath);
+    const extractedDir = path.join(SCORM_LAUNCH_ROOT, key);
+
+    // 4) Extraer (si no existe)
+    await extractZipOnce(zipAbsPath, extractedDir);
+
+    // 5) Encontrar launch file
+    const launchAbs = await findLaunchFile(extractedDir);
+    if (!launchAbs) {
+      return res.status(400).json({
+        error: "No se encontró archivo .html para lanzar (index.html o similar)",
+      });
+    }
+
+    const launchRel = toRelativeUrlPath(extractedDir, launchAbs);
+
+    // 6) Responder URL pública (tu express.static la sirve)
+    return res.json({
+      ok: true,
+      activityId,
+      scormPackageUrl,
+      cacheKey: key,
+      launchFile: launchRel,
+      launchUrl: `/scorm/launch/${key}/${launchRel}`,
+    });
+  } catch (err) {
+    console.error("❌ mountScormActividad:", err);
+    return res.status(500).json({ error: "Error al montar SCORM" });
+  }
+};
 
 /**
  * GET /progreso/me/programas/:code
@@ -224,10 +446,12 @@ exports.heartbeatActividad = async (req, res) => {
  * Para activities type="path":
  * body:
  * { choice: "COM" | "VOL" | ... }
+ * o
+ * { choices: ["COM","VOL"] }
  *
  * Hace:
- * 1) valida choice
- * 2) inscribe al usuario al programa elegido (user_program_enrollment)
+ * 1) valida choice(s)
+ * 2) inscribe al usuario al/los programa(s) elegido(s)
  * 3) marca la activity como completed guardando data_json con la elección
  */
 exports.choosePathActividad = async (req, res) => {
@@ -244,7 +468,13 @@ exports.choosePathActividad = async (req, res) => {
     ? [req.body.choice]
     : [];
 
-  const choices = [...new Set(rawChoices.map((x) => String(x || "").trim().toUpperCase()).filter(Boolean))];
+  const choices = [
+    ...new Set(
+      rawChoices
+        .map((x) => String(x || "").trim().toUpperCase())
+        .filter(Boolean)
+    ),
+  ];
 
   if (!uidProgress) return res.status(401).json({ error: "No autenticado" });
   if (!activityId) return res.status(400).json({ error: "activityId inválido" });
@@ -271,7 +501,6 @@ exports.choosePathActividad = async (req, res) => {
       choices
     );
 
-    // validar existencia
     const found = new Map(pRows.map((p) => [String(p.code).toUpperCase(), p]));
     const missing = choices.filter((c) => !found.has(c));
     if (missing.length) {
@@ -285,7 +514,7 @@ exports.choosePathActividad = async (req, res) => {
       return res.status(400).json({ error: `Programa(s) inactivo(s): ${inactive.join(", ")}` });
     }
 
-    // 2) User id para enrollment (misma lógica que ya traes)
+    // 2) User id para enrollment
     const enrollmentUserId =
       (Number.isFinite(dbUserId) && dbUserId) || firebaseUid || uidProgress;
 
