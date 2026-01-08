@@ -89,29 +89,28 @@ const SCORM_LAUNCH_ROOT = path.join(os.tmpdir(), "scorm_launch");
 // Lo intentamos resolver a:
 // - <cwd>/assets/scorm/archivo.zip
 // - <cwd>/public/assets/scorm/archivo.zip
-async function resolveZipAbsolutePath(scormPackageUrl) {
-  const url = String(scormPackageUrl || "").trim();
-  if (!url) return null;
+function resolveZipAbsolutePath(scormPackageUrl) {
+  if (!scormPackageUrl || typeof scormPackageUrl !== "string") return null;
 
-  // soporta "/assets/..." o "assets/..."
-  const rel = url.startsWith("/") ? url.slice(1) : url;
+  // quita querystring y hashes si algún día llegan
+  const noQuery = scormPackageUrl.split("?")[0].split("#")[0];
+
+  // normaliza: "/data/scorm/RCF.zip" -> "data/scorm/RCF.zip"
+  const clean = noQuery.replace(/^\/+/, "");
 
   const candidates = [
-    path.join(process.cwd(), clean),              // <- NUEVO (data/scorm)
-    path.join(process.cwd(), "assets", clean),
-    path.join(process.cwd(), "public", clean),
+    path.join(process.cwd(), clean), // ✅ permite /data/scorm/... (como tú lo quieres)
+    path.join(process.cwd(), "assets", clean), // legacy
+    path.join(process.cwd(), "public", clean), // legacy
+    path.join(process.cwd(), "public", "assets", "scorm", path.basename(clean)), // legacy extra
   ];
 
-  for (const abs of candidates) {
-    try {
-      const st = await fsp.stat(abs);
-      if (st.isFile()) return abs;
-    } catch {
-      // ignore
-    }
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
   }
   return null;
 }
+
 
 // Crea key estable por zip (path + size + mtime) para cachear extracción
 async function makeZipCacheKey(zipAbsPath) {
