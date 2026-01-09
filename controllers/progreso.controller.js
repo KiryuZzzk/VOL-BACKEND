@@ -5,7 +5,8 @@ const fsp = require("fs/promises");
 const path = require("path");
 const crypto = require("crypto");
 const unzipper = require("unzipper");
-const os = require("os")
+const { parseStringPromise } = require("xml2js");
+const os = require("os");
 
 /**
  * Devuelve ambos posibles identificadores del usuario:
@@ -80,29 +81,19 @@ function normalizeActivityId(raw) {
  * =======================
  */
 
-// Root folder donde vamos a “montar” SCORM ya extraído.
-// OJO: esto NO es /public; lo servimos con express.static directo a este folder.
 const SCORM_LAUNCH_ROOT = path.join(os.tmpdir(), "scorm_launch");
 
-// Busca el ZIP en rutas típicas basadas en tu URL pública:
-// - "/assets/scorm/archivo.zip"
-// Lo intentamos resolver a:
-// - <cwd>/assets/scorm/archivo.zip
-// - <cwd>/public/assets/scorm/archivo.zip
 function resolveZipAbsolutePath(scormPackageUrl) {
   if (!scormPackageUrl || typeof scormPackageUrl !== "string") return null;
 
-  // quita querystring y hashes si algún día llegan
   const noQuery = scormPackageUrl.split("?")[0].split("#")[0];
-
-  // normaliza: "/data/scorm/RCF.zip" -> "data/scorm/RCF.zip"
   const clean = noQuery.replace(/^\/+/, "");
 
   const candidates = [
-    path.join(process.cwd(), clean), // ✅ permite /data/scorm/... (como tú lo quieres)
-    path.join(process.cwd(), "assets", clean), // legacy
-    path.join(process.cwd(), "public", clean), // legacy
-    path.join(process.cwd(), "public", "assets", "scorm", path.basename(clean)), // legacy extra
+    path.join(process.cwd(), clean),
+    path.join(process.cwd(), "assets", clean),
+    path.join(process.cwd(), "public", clean),
+    path.join(process.cwd(), "public", "assets", "scorm", path.basename(clean)),
   ];
 
   for (const p of candidates) {
@@ -111,8 +102,6 @@ function resolveZipAbsolutePath(scormPackageUrl) {
   return null;
 }
 
-
-// Crea key estable por zip (path + size + mtime) para cachear extracción
 async function makeZipCacheKey(zipAbsPath) {
   const st = await fsp.stat(zipAbsPath);
   const base = `${zipAbsPath}::${st.size}::${st.mtimeMs}`;
@@ -123,35 +112,75 @@ async function ensureDir(dir) {
   await fsp.mkdir(dir, { recursive: true });
 }
 
-// Extrae zip a targetDir si targetDir no existe / está vacío
+async function safeJoin(base, target) {
+  const targetPath = path.resolve(base, target);
+  if (!targetPath.startsWith(base)) {
+    throw new Error("ZipSlip detected");
+  }
+  return targetPath;
+}
+
+// Extrae zip a targetDir (con protección ZipSlip) si targetDir no existe / está vacío
 async function extractZipOnce(zipAbsPath, targetDir) {
   await ensureDir(targetDir);
 
-  // Heurística rápida: si ya hay archivos, asumimos extraído
   const existing = await fsp.readdir(targetDir).catch(() => []);
   if (existing.length > 0) return;
 
-  await new Promise((resolve, reject) => {
-    fs.createReadStream(zipAbsPath)
-      .pipe(unzipper.Extract({ path: targetDir }))
-      .on("close", resolve)
-      .on("error", reject);
-  });
+  const directory = await unzipper.Open.file(zipAbsPath);
+
+  for (const entry of directory.files) {
+    if (!entry || !entry.path) continue;
+    if (entry.path.startsWith("__MACOSX")) continue;
+
+    const destPath = await safeJoin(targetDir, entry.path);
+
+    if (entry.type === "Directory") {
+      await ensureDir(destPath);
+      continue;
+    }
+
+    await ensureDir(path.dirname(destPath));
+
+    await new Promise((resolve, reject) => {
+      entry
+        .stream()
+        .pipe(fs.createWriteStream(destPath))
+        .on("finish", resolve)
+        .on("error", reject);
+    });
+  }
 }
 
-// Recorrido recursivo para encontrar un archivo (prioriza index.html)
-async function findLaunchFile(extractedDir) {
-  // 1) si existe index.html en root o en subcarpetas
-  const foundIndex = await findFileRecursive(extractedDir, (p) =>
-    path.basename(p).toLowerCase() === "index.html"
-  );
-  if (foundIndex) return foundIndex;
+async function getLaunchFromManifest(extractedDir) {
+  const manifestPath = path.join(extractedDir, "imsmanifest.xml");
+  if (!fs.existsSync(manifestPath)) return null;
 
-  // 2) primer .html que exista
-  const foundHtml = await findFileRecursive(extractedDir, (p) =>
-    p.toLowerCase().endsWith(".html")
-  );
-  return foundHtml;
+  const xml = await fsp.readFile(manifestPath, "utf8");
+  const parsed = await parseStringPromise(xml);
+
+  const manifest = parsed?.manifest;
+  const orgs = manifest?.organizations?.[0];
+  const defaultOrgId = orgs?.$?.default;
+  const organizations = orgs?.organization || [];
+
+  const org =
+    organizations.find((o) => o?.$?.identifier === defaultOrgId) ||
+    organizations[0];
+
+  const firstItem = org?.item?.[0];
+  const identifierref = firstItem?.$?.identifierref;
+
+  const resources = manifest?.resources?.[0]?.resource || [];
+  const resource =
+    resources.find((r) => r?.$?.identifier === identifierref) ||
+    resources.find((r) => r?.$?.href) ||
+    resources[0];
+
+  const href = resource?.$?.href;
+  if (!href) return null;
+
+  return String(href).replace(/^\/+/, "");
 }
 
 async function findFileRecursive(root, predicate) {
@@ -170,7 +199,6 @@ async function findFileRecursive(root, predicate) {
       const abs = path.join(dir, ent.name);
 
       if (ent.isDirectory()) {
-        // evita carpetas basura comunes
         if (ent.name === "__MACOSX") continue;
         stack.push(abs);
       } else if (ent.isFile()) {
@@ -181,24 +209,35 @@ async function findFileRecursive(root, predicate) {
   return null;
 }
 
-// Convierte absPath dentro de extractedDir a ruta relativa con slashes para URL
+async function findLaunchFile(extractedDir) {
+  // 0) Prefer manifest (SCORM 2004/1.2)
+  const fromManifest = await getLaunchFromManifest(extractedDir);
+  if (fromManifest) {
+    const abs = path.join(extractedDir, fromManifest);
+    if (fs.existsSync(abs)) return abs;
+  }
+
+  // 1) index.html
+  const foundIndex = await findFileRecursive(extractedDir, (p) =>
+    path.basename(p).toLowerCase() === "index.html"
+  );
+  if (foundIndex) return foundIndex;
+
+  // 2) primer .html
+  const foundHtml = await findFileRecursive(extractedDir, (p) =>
+    p.toLowerCase().endsWith(".html")
+  );
+  return foundHtml;
+}
+
 function toRelativeUrlPath(extractedDir, absFile) {
   const rel = path.relative(extractedDir, absFile);
-  // windows-safe
   return rel.split(path.sep).join("/");
 }
 
 /**
  * ✅ POST /scorm/activities/:activityId/mount
- * - Lee activity.config_json
- * - Toma config.scormPackageUrl (ZIP)
- * - Descomprime en cache
- * - Encuentra launchFile (index.html / primer html)
- * - Regresa launchUrl = /scorm/launch/<key>/<launchFile>
- *
- * Requiere que en tu server (app.js) agregues:
- *   const path = require("path");
- *   app.use("/scorm/launch", express.static(path.join(process.cwd(), "scorm_launch")));
+ * Devuelve launchUrl apuntando a /scorm/player (wrapper mismo-origen del SCO)
  */
 exports.mountScormActividad = async (req, res) => {
   const uid = getProgressUserId(req);
@@ -208,7 +247,6 @@ exports.mountScormActividad = async (req, res) => {
   if (!activityId) return res.status(400).json({ error: "activityId inválido" });
 
   try {
-    // 1) Leer activity + config_json
     const [rows] = await db.query(
       `
       SELECT activity_id, config_json, type, is_active
@@ -230,12 +268,9 @@ exports.mountScormActividad = async (req, res) => {
     const scormPackageUrl = config?.scormPackageUrl || null;
 
     if (!scormPackageUrl) {
-      return res.status(400).json({
-        error: "Actividad sin config.scormPackageUrl",
-      });
+      return res.status(400).json({ error: "Actividad sin config.scormPackageUrl" });
     }
 
-    // 2) Resolver zip en filesystem
     const zipAbsPath = await resolveZipAbsolutePath(scormPackageUrl);
     if (!zipAbsPath) {
       return res.status(404).json({
@@ -243,35 +278,78 @@ exports.mountScormActividad = async (req, res) => {
       });
     }
 
-    // 3) Cache key + extraction dir
     const key = await makeZipCacheKey(zipAbsPath);
     const extractedDir = path.join(SCORM_LAUNCH_ROOT, key);
 
-    // 4) Extraer (si no existe)
     await extractZipOnce(zipAbsPath, extractedDir);
 
-    // 5) Encontrar launch file
     const launchAbs = await findLaunchFile(extractedDir);
     if (!launchAbs) {
       return res.status(400).json({
-        error: "No se encontró archivo .html para lanzar (index.html o similar)",
+        error: "No se encontró archivo .html para lanzar (manifest/index.html)",
       });
     }
 
     const launchRel = toRelativeUrlPath(extractedDir, launchAbs);
 
-    // 6) Responder URL pública (tu express.static la sirve)
     return res.json({
       ok: true,
       activityId,
       scormPackageUrl,
       cacheKey: key,
       launchFile: launchRel,
-      launchUrl: `/scorm/launch/${key}/${launchRel}`,
+      // ⚠️ wrapper mismo-origen (backend) para exponer API_1484_11 al SCO
+      launchUrl: `/scorm/player?activityId=${activityId}&key=${key}&launch=${encodeURIComponent(launchRel)}`,
     });
   } catch (err) {
     console.error("❌ mountScormActividad:", err);
     return res.status(500).json({ error: "Error al montar SCORM" });
+  }
+};
+
+/**
+ * ✅ POST /progreso/scorm/activities/:activityId/commit
+ * body: { cmi: object, raw?: any }
+ * Guarda snapshot del runtime en user_activity_progress.data_json.
+ */
+exports.scormCommitActividad = async (req, res) => {
+  const uid = getProgressUserId(req);
+  const activityId = normalizeActivityId(req.params.activityId);
+
+  const cmi = req.body?.cmi && typeof req.body.cmi === "object" ? req.body.cmi : null;
+  const raw = req.body?.raw ?? null;
+
+  if (!uid) return res.status(401).json({ error: "No autenticado" });
+  if (!activityId) return res.status(400).json({ error: "activityId inválido" });
+  if (!cmi) return res.status(400).json({ error: "cmi requerido" });
+
+  try {
+    const snapshot = {
+      scorm: {
+        ts: new Date().toISOString(),
+        cmi,
+        raw,
+      },
+    };
+
+    const data_json = normalizeJsonForDb(snapshot);
+
+    await db.query(
+      `
+      INSERT INTO user_activity_progress
+        (user_id, activity_id, status, attempts, score, data_json, started_at, last_seen_at)
+      VALUES (?, ?, 'in_progress', 1, NULL, ?, NOW(), NOW())
+      ON DUPLICATE KEY UPDATE
+        data_json = VALUES(data_json),
+        last_seen_at = NOW()
+      `,
+      [uid, activityId, data_json]
+    );
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("❌ scormCommitActividad error:", err);
+    return res.status(500).json({ error: "Error al guardar SCORM commit" });
   }
 };
 
@@ -332,10 +410,6 @@ exports.getMiProgresoPrograma = async (req, res) => {
   }
 };
 
-/**
- * POST /progreso/actividades/:activityId/iniciar
- * Marca actividad como in_progress
- */
 exports.iniciarActividad = async (req, res) => {
   const uid = getProgressUserId(req);
   const activityId = normalizeActivityId(req.params.activityId);
@@ -364,15 +438,6 @@ exports.iniciarActividad = async (req, res) => {
   }
 };
 
-/**
- * POST /progreso/actividades/:activityId/completar
- * body opcional:
- * {
- *   score?: number,
- *   passed?: boolean,     // default true
- *   data_json?: any
- * }
- */
 exports.completarActividad = async (req, res) => {
   const uid = getProgressUserId(req);
   const activityId = normalizeActivityId(req.params.activityId);
@@ -409,10 +474,6 @@ exports.completarActividad = async (req, res) => {
   }
 };
 
-/**
- * POST /progreso/actividades/:activityId/heartbeat
- * Solo actualiza last_seen_at
- */
 exports.heartbeatActividad = async (req, res) => {
   const uid = getProgressUserId(req);
   const activityId = normalizeActivityId(req.params.activityId);
@@ -439,27 +500,11 @@ exports.heartbeatActividad = async (req, res) => {
   }
 };
 
-/**
- * ✅ POST /progreso/actividades/:activityId/choose
- * Para activities type="path":
- * body:
- * { choice: "COM" | "VOL" | ... }
- * o
- * { choices: ["COM","VOL"] }
- *
- * Hace:
- * 1) valida choice(s)
- * 2) inscribe al usuario al/los programa(s) elegido(s)
- * 3) marca la activity como completed guardando data_json con la elección
- */
 exports.choosePathActividad = async (req, res) => {
   const uidProgress = getProgressUserId(req);
   const { firebaseUid, dbUserId } = getUserKeys(req);
   const activityId = normalizeActivityId(req.params.activityId);
 
-  // Acepta:
-  // body.choice: "COM"
-  // body.choices: ["COM","VOL"]
   const rawChoices = Array.isArray(req.body?.choices)
     ? req.body.choices
     : req.body?.choice
@@ -478,7 +523,6 @@ exports.choosePathActividad = async (req, res) => {
   if (!activityId) return res.status(400).json({ error: "activityId inválido" });
   if (!choices.length) return res.status(400).json({ error: "choice/choices requerido" });
 
-  // Lista blanca opcional
   const ALLOWED = new Set(["COM", "VOL", "MIG", "RDR", "APS", "TUM", "CAP", "PREV"]);
   const invalid = choices.filter((c) => !ALLOWED.has(c));
   if (invalid.length) {
@@ -489,7 +533,6 @@ exports.choosePathActividad = async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    // 1) Resolver program_id de TODOS los choices
     const [pRows] = await conn.query(
       `
       SELECT program_id, code, is_active
@@ -512,11 +555,9 @@ exports.choosePathActividad = async (req, res) => {
       return res.status(400).json({ error: `Programa(s) inactivo(s): ${inactive.join(", ")}` });
     }
 
-    // 2) User id para enrollment
     const enrollmentUserId =
       (Number.isFinite(dbUserId) && dbUserId) || firebaseUid || uidProgress;
 
-    // 3) Enrolar TODOS
     for (const c of choices) {
       const program = found.get(c);
       await conn.query(
@@ -530,7 +571,6 @@ exports.choosePathActividad = async (req, res) => {
       );
     }
 
-    // 4) Marcar actividad PATH como completada con data_json incluyendo choices
     const data_json = normalizeJsonForDb({
       completedBy: "path_choice",
       choices,
