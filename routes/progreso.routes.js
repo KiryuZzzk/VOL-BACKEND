@@ -1,616 +1,70 @@
-// progreso.controller.js
-const db = require("../config/db");
-const fs = require("fs");
-const fsp = require("fs/promises");
-const path = require("path");
-const crypto = require("crypto");
-const unzipper = require("unzipper");
-const { parseStringPromise } = require("xml2js");
-const os = require("os");
-
-/**
- * Devuelve ambos posibles identificadores del usuario:
- * - firebaseUid: string (Firebase Auth)
- * - dbUserId: number (users.id en MySQL)
- */
-function getUserKeys(req) {
-  const firebaseUid = String(req.firebaseUser?.uid || "").trim() || null;
-
-  const dbUserIdRaw =
-    req.user?.id ?? req.dbUser?.id ?? req.user?.user_id ?? null;
-
-  const dbUserId =
-    dbUserIdRaw === null || dbUserIdRaw === undefined || dbUserIdRaw === ""
-      ? null
-      : Number(dbUserIdRaw);
-
-  return {
-    firebaseUid,
-    dbUserId: Number.isFinite(dbUserId) ? dbUserId : null,
-  };
-}
-
-/**
- * 🔥 CLAVE: para progreso usamos UN SOLO user_id consistente.
- * Preferimos firebaseUid (porque tu plataforma ya vive en Firebase Auth),
- * y si no existe, caemos a dbUserId como string.
- */
-function getProgressUserId(req) {
-  const { firebaseUid, dbUserId } = getUserKeys(req);
-  if (firebaseUid) return firebaseUid;
-  if (dbUserId) return String(dbUserId);
-  return null;
-}
-
-function normalizeJsonForDb(value) {
-  if (value === undefined || value === null) return null;
-  if (typeof value === "string") return value.trim() ? value : null;
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return null;
-  }
-}
-
-function safeJsonParse(value, fallback = null) {
-  if (value === null || value === undefined) return fallback;
-  if (typeof value === "object") return value;
-  const s = String(value).trim();
-  if (!s) return fallback;
-  try {
-    return JSON.parse(s);
-  } catch {
-    return fallback;
-  }
-}
-
-function normalizeScore(value) {
-  if (value === undefined || value === null || value === "") return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
-function normalizeActivityId(raw) {
-  const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : null;
-}
-
-/**
- * =======================
- * 🧩 SCORM HELPERS
- * =======================
- */
-
-const SCORM_LAUNCH_ROOT = path.join(os.tmpdir(), "scorm_launch");
-
-function resolveZipAbsolutePath(scormPackageUrl) {
-  if (!scormPackageUrl || typeof scormPackageUrl !== "string") return null;
-
-  const noQuery = scormPackageUrl.split("?")[0].split("#")[0];
-  const clean = noQuery.replace(/^\/+/, "");
-
-  const candidates = [
-    path.join(process.cwd(), clean),
-    path.join(process.cwd(), "assets", clean),
-    path.join(process.cwd(), "public", clean),
-    path.join(process.cwd(), "public", "assets", "scorm", path.basename(clean)),
-  ];
-
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
-  }
-  return null;
-}
-
-async function makeZipCacheKey(zipAbsPath) {
-  const st = await fsp.stat(zipAbsPath);
-  const base = `${zipAbsPath}::${st.size}::${st.mtimeMs}`;
-  return crypto.createHash("sha1").update(base).digest("hex");
-}
-
-async function ensureDir(dir) {
-  await fsp.mkdir(dir, { recursive: true });
-}
-
-async function safeJoin(base, target) {
-  const targetPath = path.resolve(base, target);
-  if (!targetPath.startsWith(base)) {
-    throw new Error("ZipSlip detected");
-  }
-  return targetPath;
-}
-
-// Extrae zip a targetDir (con protección ZipSlip) si targetDir no existe / está vacío
-async function extractZipOnce(zipAbsPath, targetDir) {
-  await ensureDir(targetDir);
-
-  const existing = await fsp.readdir(targetDir).catch(() => []);
-  if (existing.length > 0) return;
-
-  const directory = await unzipper.Open.file(zipAbsPath);
-
-  for (const entry of directory.files) {
-    if (!entry || !entry.path) continue;
-    if (entry.path.startsWith("__MACOSX")) continue;
-
-    const destPath = await safeJoin(targetDir, entry.path);
-
-    if (entry.type === "Directory") {
-      await ensureDir(destPath);
-      continue;
-    }
-
-    await ensureDir(path.dirname(destPath));
-
-    await new Promise((resolve, reject) => {
-      entry
-        .stream()
-        .pipe(fs.createWriteStream(destPath))
-        .on("finish", resolve)
-        .on("error", reject);
-    });
-  }
-}
-
-async function getLaunchFromManifest(extractedDir) {
-  const manifestPath = path.join(extractedDir, "imsmanifest.xml");
-  if (!fs.existsSync(manifestPath)) return null;
-
-  const xml = await fsp.readFile(manifestPath, "utf8");
-  const parsed = await parseStringPromise(xml);
-
-  const manifest = parsed?.manifest;
-  const orgs = manifest?.organizations?.[0];
-  const defaultOrgId = orgs?.$?.default;
-  const organizations = orgs?.organization || [];
-
-  const org =
-    organizations.find((o) => o?.$?.identifier === defaultOrgId) ||
-    organizations[0];
-
-  const firstItem = org?.item?.[0];
-  const identifierref = firstItem?.$?.identifierref;
-
-  const resources = manifest?.resources?.[0]?.resource || [];
-  const resource =
-    resources.find((r) => r?.$?.identifier === identifierref) ||
-    resources.find((r) => r?.$?.href) ||
-    resources[0];
-
-  const href = resource?.$?.href;
-  if (!href) return null;
-
-  return String(href).replace(/^\/+/, "");
-}
-
-async function findFileRecursive(root, predicate) {
-  const stack = [root];
-
-  while (stack.length) {
-    const dir = stack.pop();
-    let entries = [];
-    try {
-      entries = await fsp.readdir(dir, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-
-    for (const ent of entries) {
-      const abs = path.join(dir, ent.name);
-
-      if (ent.isDirectory()) {
-        if (ent.name === "__MACOSX") continue;
-        stack.push(abs);
-      } else if (ent.isFile()) {
-        if (predicate(abs)) return abs;
-      }
-    }
-  }
-  return null;
-}
-
-async function findLaunchFile(extractedDir) {
-  // 0) Prefer manifest (SCORM 2004/1.2)
-  const fromManifest = await getLaunchFromManifest(extractedDir);
-  if (fromManifest) {
-    const abs = path.join(extractedDir, fromManifest);
-    if (fs.existsSync(abs)) return abs;
-  }
-
-  // 1) index.html
-  const foundIndex = await findFileRecursive(extractedDir, (p) =>
-    path.basename(p).toLowerCase() === "index.html"
-  );
-  if (foundIndex) return foundIndex;
-
-  // 2) primer .html
-  const foundHtml = await findFileRecursive(extractedDir, (p) =>
-    p.toLowerCase().endsWith(".html")
-  );
-  return foundHtml;
-}
-
-function toRelativeUrlPath(extractedDir, absFile) {
-  const rel = path.relative(extractedDir, absFile);
-  return rel.split(path.sep).join("/");
-}
-
-/**
- * ✅ POST /scorm/activities/:activityId/mount
- * Devuelve launchUrl apuntando a /scorm/player (wrapper mismo-origen del SCO)
- */
-exports.mountScormActividad = async (req, res) => {
-  const uid = getProgressUserId(req);
-  const activityId = normalizeActivityId(req.params.activityId);
-
-  if (!uid) return res.status(401).json({ error: "No autenticado" });
-  if (!activityId) return res.status(400).json({ error: "activityId inválido" });
-
-  try {
-    const [rows] = await db.query(
-      `
-      SELECT activity_id, config_json, type, is_active
-      FROM activity
-      WHERE activity_id = ?
-      LIMIT 1
-      `,
-      [activityId]
-    );
-
-    if (!rows.length) return res.status(404).json({ error: "Actividad no encontrada" });
-
-    const activity = rows[0];
-    if (Number(activity.is_active) === 0) {
-      return res.status(400).json({ error: "Actividad inactiva" });
-    }
-
-    const config = safeJsonParse(activity.config_json, {}) || {};
-    const scormPackageUrl = config?.scormPackageUrl || null;
-
-    if (!scormPackageUrl) {
-      return res.status(400).json({ error: "Actividad sin config.scormPackageUrl" });
-    }
-
-    const zipAbsPath = await resolveZipAbsolutePath(scormPackageUrl);
-    if (!zipAbsPath) {
-      return res.status(404).json({
-        error: `ZIP no encontrado en filesystem para: ${scormPackageUrl}`,
-      });
-    }
-
-    const key = await makeZipCacheKey(zipAbsPath);
-    const extractedDir = path.join(SCORM_LAUNCH_ROOT, key);
-
-    await extractZipOnce(zipAbsPath, extractedDir);
-
-    const launchAbs = await findLaunchFile(extractedDir);
-    if (!launchAbs) {
-      return res.status(400).json({
-        error: "No se encontró archivo .html para lanzar (manifest/index.html)",
-      });
-    }
-
-    const launchRel = toRelativeUrlPath(extractedDir, launchAbs);
-
-    return res.json({
-      ok: true,
-      activityId,
-      scormPackageUrl,
-      cacheKey: key,
-      launchFile: launchRel,
-      // ⚠️ wrapper mismo-origen (backend) para exponer API_1484_11 al SCO
-      launchUrl: `/scorm/player?activityId=${activityId}&key=${key}&launch=${encodeURIComponent(launchRel)}`,
-    });
-  } catch (err) {
-    console.error("❌ mountScormActividad:", err);
-    return res.status(500).json({ error: "Error al montar SCORM" });
-  }
-};
-
-/**
- * ✅ POST /progreso/scorm/activities/:activityId/commit
- * body: { cmi: object, raw?: any }
- * Guarda snapshot del runtime en user_activity_progress.data_json.
- */
-exports.scormCommitActividad = async (req, res) => {
-  const uid = getProgressUserId(req);
-  const activityId = normalizeActivityId(req.params.activityId);
-
-  const cmi = req.body?.cmi && typeof req.body.cmi === "object" ? req.body.cmi : null;
-  const raw = req.body?.raw ?? null;
-
-  if (!uid) return res.status(401).json({ error: "No autenticado" });
-  if (!activityId) return res.status(400).json({ error: "activityId inválido" });
-  if (!cmi) return res.status(400).json({ error: "cmi requerido" });
-
-  try {
-    const snapshot = {
-      scorm: {
-        ts: new Date().toISOString(),
-        cmi,
-        raw,
-      },
-    };
-
-    const data_json = normalizeJsonForDb(snapshot);
-
-    await db.query(
-      `
-      INSERT INTO user_activity_progress
-        (user_id, activity_id, status, attempts, score, data_json, started_at, last_seen_at)
-      VALUES (?, ?, 'in_progress', 1, NULL, ?, NOW(), NOW())
-      ON DUPLICATE KEY UPDATE
-        data_json = VALUES(data_json),
-        last_seen_at = NOW()
-      `,
-      [uid, activityId, data_json]
-    );
-
-    return res.json({ ok: true });
-  } catch (err) {
-    console.error("❌ scormCommitActividad error:", err);
-    return res.status(500).json({ error: "Error al guardar SCORM commit" });
-  }
-};
-
-/**
- * GET /progreso/me/programas/:code
- * Devuelve el progreso del usuario para un programa
- */
-exports.getMiProgresoPrograma = async (req, res) => {
-  const uid = getProgressUserId(req);
-  const programCode = String(req.params.code || "").trim().toUpperCase();
-
-  if (!uid) return res.status(401).json({ error: "No autenticado" });
-  if (!programCode) return res.status(400).json({ error: "code requerido" });
-
-  try {
-    const [rows] = await db.query(
-      `
-      SELECT
-        a.activity_id,
-        a.code AS activity_code,
-        a.name AS activity_name,
-        a.required,
-        a.min_score,
-        a.is_final_exam,
-
-        COALESCE(uap.status, 'not_started') AS status,
-        COALESCE(uap.attempts, 0) AS attempts,
-        uap.score,
-        uap.data_json,
-        uap.started_at,
-        uap.completed_at,
-        uap.last_seen_at
-      FROM program p
-      JOIN block b ON b.program_id = p.program_id AND b.is_active = 1
-      JOIN module m ON m.block_id = b.block_id AND m.is_active = 1
-      JOIN activity a ON a.module_id = m.module_id AND a.is_active = 1
-      LEFT JOIN user_activity_progress uap
-        ON uap.activity_id = a.activity_id
-       AND uap.user_id = ?
-      WHERE p.code = ?
-        AND p.is_active = 1
-      ORDER BY
-        b.order_index ASC,
-        m.order_index ASC,
-        a.order_index ASC
-      `,
-      [uid, programCode]
-    );
-
-    return res.json({
-      user_id: uid,
-      programCode,
-      activities: rows,
-    });
-  } catch (err) {
-    console.error("❌ getMiProgresoPrograma error:", err);
-    return res.status(500).json({ error: "Error al obtener progreso" });
-  }
-};
-
-exports.iniciarActividad = async (req, res) => {
-  const uid = getProgressUserId(req);
-  const activityId = normalizeActivityId(req.params.activityId);
-
-  if (!uid) return res.status(401).json({ error: "No autenticado" });
-  if (!activityId) return res.status(400).json({ error: "activityId inválido" });
-
-  try {
-    await db.query(
-      `
-      INSERT INTO user_activity_progress
-        (user_id, activity_id, status, started_at, last_seen_at)
-      VALUES (?, ?, 'in_progress', NOW(), NOW())
-      ON DUPLICATE KEY UPDATE
-        status = IF(status='completed', status, 'in_progress'),
-        started_at = COALESCE(started_at, NOW()),
-        last_seen_at = NOW()
-      `,
-      [uid, activityId]
-    );
-
-    return res.json({ ok: true });
-  } catch (err) {
-    console.error("❌ iniciarActividad error:", err);
-    return res.status(500).json({ error: "Error al iniciar actividad" });
-  }
-};
-
-exports.completarActividad = async (req, res) => {
-  const uid = getProgressUserId(req);
-  const activityId = normalizeActivityId(req.params.activityId);
-
-  const score = normalizeScore(req.body?.score);
-  const passed = req.body?.passed ?? true;
-  const status = passed ? "completed" : "failed";
-  const data_json = normalizeJsonForDb(req.body?.data_json);
-
-  if (!uid) return res.status(401).json({ error: "No autenticado" });
-  if (!activityId) return res.status(400).json({ error: "activityId inválido" });
-
-  try {
-    await db.query(
-      `
-      INSERT INTO user_activity_progress
-        (user_id, activity_id, status, attempts, score, data_json, started_at, completed_at, last_seen_at)
-      VALUES (?, ?, ?, 1, ?, ?, NOW(), NOW(), NOW())
-      ON DUPLICATE KEY UPDATE
-        status = VALUES(status),
-        attempts = COALESCE(attempts,0) + 1,
-        score = COALESCE(VALUES(score), score),
-        data_json = COALESCE(VALUES(data_json), data_json),
-        completed_at = NOW(),
-        last_seen_at = NOW()
-      `,
-      [uid, activityId, status, score, data_json]
-    );
-
-    return res.json({ ok: true, status });
-  } catch (err) {
-    console.error("❌ completarActividad error:", err);
-    return res.status(500).json({ error: "Error al completar actividad" });
-  }
-};
-
-exports.heartbeatActividad = async (req, res) => {
-  const uid = getProgressUserId(req);
-  const activityId = normalizeActivityId(req.params.activityId);
-
-  if (!uid) return res.status(401).json({ error: "No autenticado" });
-  if (!activityId) return res.status(400).json({ error: "activityId inválido" });
-
-  try {
-    await db.query(
-      `
-      INSERT INTO user_activity_progress
-        (user_id, activity_id, status, started_at, last_seen_at)
-      VALUES (?, ?, 'in_progress', NOW(), NOW())
-      ON DUPLICATE KEY UPDATE
-        last_seen_at = NOW()
-      `,
-      [uid, activityId]
-    );
-
-    return res.json({ ok: true });
-  } catch (err) {
-    console.error("❌ heartbeatActividad error:", err);
-    return res.status(500).json({ error: "Error heartbeat" });
-  }
-};
-
-exports.choosePathActividad = async (req, res) => {
-  const uidProgress = getProgressUserId(req);
-  const { firebaseUid, dbUserId } = getUserKeys(req);
-  const activityId = normalizeActivityId(req.params.activityId);
-
-  const rawChoices = Array.isArray(req.body?.choices)
-    ? req.body.choices
-    : req.body?.choice
-    ? [req.body.choice]
-    : [];
-
-  const choices = [
-    ...new Set(
-      rawChoices
-        .map((x) => String(x || "").trim().toUpperCase())
-        .filter(Boolean)
-    ),
-  ];
-
-  if (!uidProgress) return res.status(401).json({ error: "No autenticado" });
-  if (!activityId) return res.status(400).json({ error: "activityId inválido" });
-  if (!choices.length) return res.status(400).json({ error: "choice/choices requerido" });
-
-  const ALLOWED = new Set(["COM", "VOL", "MIG", "RDR", "APS", "TUM", "CAP", "PREV"]);
-  const invalid = choices.filter((c) => !ALLOWED.has(c));
-  if (invalid.length) {
-    return res.status(400).json({ error: `choice(s) inválido(s): ${invalid.join(", ")}` });
-  }
-
-  const conn = await db.getConnection();
-  try {
-    await conn.beginTransaction();
-
-    const [pRows] = await conn.query(
-      `
-      SELECT program_id, code, is_active
-      FROM program
-      WHERE code IN (${choices.map(() => "?").join(",")})
-      `,
-      choices
-    );
-
-    const found = new Map(pRows.map((p) => [String(p.code).toUpperCase(), p]));
-    const missing = choices.filter((c) => !found.has(c));
-    if (missing.length) {
-      await conn.rollback();
-      return res.status(404).json({ error: `Programa(s) no encontrado(s): ${missing.join(", ")}` });
-    }
-
-    const inactive = choices.filter((c) => Number(found.get(c)?.is_active) === 0);
-    if (inactive.length) {
-      await conn.rollback();
-      return res.status(400).json({ error: `Programa(s) inactivo(s): ${inactive.join(", ")}` });
-    }
-
-    const enrollmentUserId =
-      (Number.isFinite(dbUserId) && dbUserId) || firebaseUid || uidProgress;
-
-    for (const c of choices) {
-      const program = found.get(c);
-      await conn.query(
-        `
-        INSERT INTO user_program_enrollment (user_id, program_id, status, enrolled_at)
-        VALUES (?, ?, 'enrolled', NOW())
-        ON DUPLICATE KEY UPDATE
-          status = 'enrolled'
-        `,
-        [enrollmentUserId, program.program_id]
-      );
-    }
-
-    const data_json = normalizeJsonForDb({
-      completedBy: "path_choice",
-      choices,
-      enrolledPrograms: choices.map((c) => ({
-        code: c,
-        programId: found.get(c).program_id,
-      })),
-    });
-
-    await conn.query(
-      `
-      INSERT INTO user_activity_progress
-        (user_id, activity_id, status, attempts, score, data_json, started_at, completed_at, last_seen_at)
-      VALUES (?, ?, 'completed', 1, NULL, ?, NOW(), NOW(), NOW())
-      ON DUPLICATE KEY UPDATE
-        status = 'completed',
-        attempts = COALESCE(attempts,0) + 1,
-        data_json = COALESCE(VALUES(data_json), data_json),
-        completed_at = NOW(),
-        last_seen_at = NOW()
-      `,
-      [uidProgress, activityId, data_json]
-    );
-
-    await conn.commit();
-
-    return res.json({
-      ok: true,
-      choices,
-      enrollmentUserId,
-      enrolledPrograms: choices.map((c) => ({
-        code: c,
-        programId: found.get(c).program_id,
-      })),
-    });
-  } catch (err) {
-    try { await conn.rollback(); } catch {}
-    console.error("❌ choosePathActividad error:", err);
-    return res.status(500).json({ error: "Error al elegir camino" });
-  } finally {
-    conn.release();
-  }
-};
+const express = require("express");
+const router = express.Router();
+
+const catalogoCtrl = require("../controllers/progreso.catalogo.controller");
+const progresoCtrl = require("../controllers/progreso.controller");
+const programasCtrl = require("../controllers/progreso.programas.controller");
+
+const { authMiddleware } = require("../middlewares/auth");
+
+// 📚 CATÁLOGO (estructura)
+router.get(
+  "/catalogo/programas/:code/arbol",
+  authMiddleware,
+  catalogoCtrl.getProgramaArbol
+);
+
+// 📈 PROGRESO DEL USUARIO
+router.get(
+  "/me/programas/:code",
+  authMiddleware,
+  progresoCtrl.getMiProgresoPrograma
+);
+
+router.post(
+  "/actividades/:activityId/iniciar",
+  authMiddleware,
+  progresoCtrl.iniciarActividad
+);
+
+router.post(
+  "/actividades/:activityId/completar",
+  authMiddleware,
+  progresoCtrl.completarActividad
+);
+
+router.post(
+  "/actividades/:activityId/heartbeat",
+  authMiddleware,
+  progresoCtrl.heartbeatActividad
+);
+
+// ✅ elegir camino (PATH)
+router.post(
+  "/actividades/:activityId/choose",
+  authMiddleware,
+  progresoCtrl.choosePathActividad
+);
+
+// Obtener el catálogo de programas inscritos
+router.get(
+  "/me/programas",
+  authMiddleware,
+  programasCtrl.getMisProgramas
+);
+
+// Montar las actividades SCORM
+router.post(
+  "/scorm/activities/:activityId/mount",
+  authMiddleware,
+  progresoCtrl.mountScormActividad
+);
+
+// Guardar commits runtime SCORM (cmi.*)
+router.post(
+  "/scorm/activities/:activityId/commit",
+  authMiddleware,
+  progresoCtrl.scormCommitActividad
+);
+
+module.exports = router;
