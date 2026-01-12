@@ -1,8 +1,8 @@
-// server.js
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const crypto = require("crypto");
 const app = express();
 const os = require("os");
 
@@ -10,17 +10,37 @@ const os = require("os");
 const corsOptions = {
   origin: [
     "http://localhost:3000",
-    "https://soyvoluntario.cruzrojamexicana.org.mx"
+    "https://soyvoluntario.cruzrojamexicana.org.mx",
   ],
   methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "x-firebase-uid",
-    "x-api-key"
-  ],
-  credentials: true
+  allowedHeaders: ["Content-Type", "Authorization", "x-firebase-uid", "x-api-key"],
+  credentials: true,
 };
+
+// 🌐 Orígenes permitidos (CORS + embebido en iframe)
+const FRONTEND_ORIGINS = [
+  "http://localhost:3000",
+  "https://soyvoluntario.cruzrojamexicana.org.mx",
+];
+
+// 🔐 Secreto para firmar URLs del SCORM Player (ponlo en Render como env var)
+const SCORM_PLAYER_SECRET =
+  process.env.SCORM_PLAYER_SECRET || process.env.API_KEY || "CHANGE_ME_IN_RENDER";
+
+function hmacSha256Hex(payload) {
+  return crypto.createHmac("sha256", SCORM_PLAYER_SECRET).update(payload).digest("hex");
+}
+
+function safeEqualHex(a, b) {
+  try {
+    const ba = Buffer.from(String(a || ""), "hex");
+    const bb = Buffer.from(String(b || ""), "hex");
+    if (ba.length !== bb.length) return false;
+    return crypto.timingSafeEqual(ba, bb);
+  } catch {
+    return false;
+  }
+}
 
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -55,8 +75,16 @@ app.use("/documentos", documentosRoutes);
 app.use("/inscripciones", inscripcionesRoutes);
 app.use("/progreso", progresoRoutes);
 
-// ✅ Servir SCORM montado
-app.use("/scorm/launch", express.static(path.join(os.tmpdir(), "scorm_launch")));
+// ✅ Servir SCORM montado (assets extraídos)
+app.use(
+  "/scorm/launch",
+  express.static(path.join(os.tmpdir(), "scorm_launch"), {
+    setHeaders: (res) => {
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Referrer-Policy", "no-referrer");
+    },
+  })
+);
 
 // ✅ Wrapper SCORM (mismo origen) — expone API_1484_11 / API y embebe el SCO
 app.get("/scorm/player", (req, res) => {
@@ -64,14 +92,53 @@ app.get("/scorm/player", (req, res) => {
   const key = String(req.query.key || "").trim();
   const launch = String(req.query.launch || "").trim();
 
-  if (!key || !launch) {
-    return res.status(400).send("Missing key/launch");
+  // 🔒 URL firmada y con expiración corta (reduce link-sharing / enumeración)
+  const expRaw = String(req.query.exp || "").trim();
+  const sig = String(req.query.sig || "").trim();
+  const exp = Number(expRaw);
+
+  if (!activityId || !key || !launch || !expRaw || !sig) {
+    return res.status(400).send("Missing activityId/key/launch/exp/sig");
+  }
+  if (!Number.isFinite(exp)) {
+    return res.status(400).send("Invalid exp");
+  }
+  if (Date.now() > exp) {
+    return res.status(403).send("Expired");
+  }
+
+  const payload = `${activityId}|${key}|${launch}|${exp}`;
+  const expected = hmacSha256Hex(payload);
+  if (!safeEqualHex(sig, expected)) {
+    return res.status(403).send("Bad signature");
   }
 
   const scoSrc = `/scorm/launch/${key}/${launch}`;
 
+  // ✅ Headers de seguridad (iframe SOLO desde tu front)
+  const frameAncestors = ["'self'", ...FRONTEND_ORIGINS].join(" ");
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader(
+    "Content-Security-Policy",
+    [
+      "default-src 'none'",
+      `frame-ancestors ${frameAncestors}`,
+      "base-uri 'none'",
+      "object-src 'none'",
+      // Inline script/style solo para este wrapper (si quieres endurecer más: usa nonce)
+      "script-src 'unsafe-inline'",
+      "style-src 'unsafe-inline'",
+      "img-src 'self' data: blob:",
+      // El iframe carga SCO mismo-origen (/scorm/launch/*)
+      "frame-src 'self'",
+      "connect-src 'self'",
+    ].join("; ")
+  );
+  // ❌ NO usar X-Frame-Options aquí (lo reemplaza CSP frame-ancestors)
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader("Cache-Control", "no-store, max-age=0");
 
   return res.send(`<!doctype html>
 <html lang="es">
@@ -89,14 +156,15 @@ app.get("/scorm/player", (req, res) => {
 (function(){
   var activityId = ${JSON.stringify(activityId)};
   var cmi = {};
+  var ALLOWED = ${JSON.stringify(FRONTEND_ORIGINS)};
 
   function post(type, payload){
     try {
       if (window.parent && window.parent !== window) {
-        // Intento estricto (prod)
-        window.parent.postMessage(Object.assign({ type: type, activityId: activityId }, payload || {}), "https://soyvoluntario.cruzrojamexicana.org.mx");
-        // Fallback dev / ambientes alternos
-        window.parent.postMessage(Object.assign({ type: type, activityId: activityId }, payload || {}), "*");
+        var msg = Object.assign({ type: type, activityId: activityId }, payload || {});
+        for (var i=0; i<ALLOWED.length; i++){
+          window.parent.postMessage(msg, ALLOWED[i]);
+        }
       }
     } catch(e){}
   }
@@ -127,7 +195,12 @@ app.get("/scorm/player", (req, res) => {
 })();
 </script>
 
-<iframe id="frame" src="${scoSrc}" allow="fullscreen" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"></iframe>
+<iframe
+  id="frame"
+  src="${scoSrc}"
+  allow="fullscreen"
+  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+></iframe>
 </body>
 </html>`);
 });

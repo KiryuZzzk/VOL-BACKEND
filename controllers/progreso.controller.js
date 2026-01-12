@@ -1,4 +1,3 @@
-// progreso.controller.js
 const db = require("../config/db");
 const fs = require("fs");
 const fsp = require("fs/promises");
@@ -16,8 +15,7 @@ const os = require("os");
 function getUserKeys(req) {
   const firebaseUid = String(req.firebaseUser?.uid || "").trim() || null;
 
-  const dbUserIdRaw =
-    req.user?.id ?? req.dbUser?.id ?? req.user?.user_id ?? null;
+  const dbUserIdRaw = req.user?.id ?? req.dbUser?.id ?? req.user?.user_id ?? null;
 
   const dbUserId =
     dbUserIdRaw === null || dbUserIdRaw === undefined || dbUserIdRaw === ""
@@ -82,6 +80,15 @@ function normalizeActivityId(raw) {
  */
 
 const SCORM_LAUNCH_ROOT = path.join(os.tmpdir(), "scorm_launch");
+
+// 🔐 Secreto para firmar URLs del SCORM Player (misma env var que en server.js)
+const SCORM_PLAYER_SECRET =
+  process.env.SCORM_PLAYER_SECRET || process.env.API_KEY || "CHANGE_ME_IN_RENDER";
+
+function signScormPlayerUrl({ activityId, key, launchRel, exp }) {
+  const payload = `${activityId}|${key}|${launchRel}|${exp}`;
+  return crypto.createHmac("sha256", SCORM_PLAYER_SECRET).update(payload).digest("hex");
+}
 
 function resolveZipAbsolutePath(scormPackageUrl) {
   if (!scormPackageUrl || typeof scormPackageUrl !== "string") return null;
@@ -165,8 +172,7 @@ async function getLaunchFromManifest(extractedDir) {
   const organizations = orgs?.organization || [];
 
   const org =
-    organizations.find((o) => o?.$?.identifier === defaultOrgId) ||
-    organizations[0];
+    organizations.find((o) => o?.$?.identifier === defaultOrgId) || organizations[0];
 
   const firstItem = org?.item?.[0];
   const identifierref = firstItem?.$?.identifierref;
@@ -298,8 +304,14 @@ exports.mountScormActividad = async (req, res) => {
       scormPackageUrl,
       cacheKey: key,
       launchFile: launchRel,
-      // ⚠️ wrapper mismo-origen (backend) para exponer API_1484_11 al SCO
-      launchUrl: `/scorm/player?activityId=${activityId}&key=${key}&launch=${encodeURIComponent(launchRel)}`,
+      // ✅ wrapper mismo-origen (backend) + URL firmada (expira)
+      launchUrl: (() => {
+        const exp = Date.now() + 15 * 60 * 1000; // 15 min
+        const sig = signScormPlayerUrl({ activityId, key, launchRel, exp });
+        return `/scorm/player?activityId=${activityId}&key=${key}&launch=${encodeURIComponent(
+          launchRel
+        )}&exp=${exp}&sig=${sig}`;
+      })(),
     });
   } catch (err) {
     console.error("❌ mountScormActividad:", err);
