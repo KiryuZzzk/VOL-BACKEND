@@ -1966,7 +1966,7 @@
           "slug": "APS_b01_apo_5a6c0877",
           "modules": [
             {
-              "title": "Módulo 1: Introducción al apoyo psicosocial",
+              "title": "Introducción al Apoyo Psicosocial",
               "description": "",
               "order": 1,
               "estimatedMinutes": null,
@@ -1985,7 +1985,7 @@
                   "config": {
                     "provider": "youtube",
                     "videoIds": [
-                      "VIDEO_ID_1"
+                      "jgj4v9R0-HI"
                     ]
                   },
                   "activity_id": null,
@@ -2002,7 +2002,7 @@
                   "config": {
                     "provider": "youtube",
                     "videoIds": [
-                      "VIDEO_ID_2"
+                      "1aqjlPAtTes"
                     ]
                   },
                   "activity_id": null,
@@ -2019,7 +2019,7 @@
                   "config": {
                     "provider": "youtube",
                     "videoIds": [
-                      "VIDEO_ID_3"
+                      "g-g9MjracZs"
                     ]
                   },
                   "activity_id": null,
@@ -2036,7 +2036,7 @@
                   "config": {
                     "provider": "youtube",
                     "videoIds": [
-                      "VIDEO_ID_4"
+                      "dIqYIPLdOHY"
                     ]
                   },
                   "activity_id": null,
@@ -2053,7 +2053,7 @@
                   "config": {
                     "provider": "youtube",
                     "videoIds": [
-                      "VIDEO_ID_5"
+                      "eTx9bXIc-FM"
                     ]
                   },
                   "activity_id": null,
@@ -2070,55 +2070,271 @@
                   "config": {
                     "provider": "youtube",
                     "videoIds": [
-                      "VIDEO_ID_6"
+                      "WsizY4_Rgd0"
                     ]
                   },
                   "activity_id": null,
                   "code": "A06",
                   "slug": "APS_b01_m01_a06_video_6",
                   "shortId": "APS-B01-M01-A06"
-                }
-              ],
-              "shortId": "APS-B01-M01"
-            },
-            {
-              "title": "Módulo 2: Examen diagnóstico",
-              "description": "",
-              "order": 2,
-              "estimatedMinutes": null,
-              "prerequisites": [],
-              "isFinalExam": false,
-              "module_id": null,
-              "code": "M02",
-              "slug": "APS_b01_m02_m_d_9f37ee40",
-              "activities": [
+                },
                 {
-                  "title": "Examen diagnóstico de apoyo psicosocial",
-                  "type": "examen",
-                  "order": 1,
+                  "title": "Video 7",
+                  "type": "video",
+                  "order": 7,
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {
-                    "isFinalExam": false,
-                    "isDiagnostic": true,
-                    "maxAttempts": 1,
-                    "lockOnOpen": true,
-                    "questions": []
+                    "provider": "youtube",
+                    "videoIds": [
+                      "s-gLMsTeZOs"
+                    ]
                   },
                   "activity_id": null,
-                  "code": "A01",
-                  "slug": "APS_b01_m02_a01_exa_dc5705df",
-                  "shortId": "APS-B01-M02-A01"
-                }
-              ],
-              "shortId": "APS-B01-M02"
-            }
-          ],
-          "shortId": "APS-B01"
-        }
-      ],
-      "shortId": "APS"
-    },
+                  "code": "A07",
+                  "slug": "APS_b01_m01_a05_video_7",
+                  "shortId": "APS-B01-M01-A07"
+                },
+                {
+                                  "title": "Examen diagnóstico",
+                                  "type": "final_quiz",
+                                  "order": 8,
+                                  "required": true,
+                                  "estimatedMinutes": null,
+                                  "config": {
+                                    "pickCount": 10,
+                                    "maxAttempts": 1,
+                                    "shuffleQuestions": true,
+                                    "shuffleOptions": true,
+                                    "questionsBank": [
+                                      {
+                                        "texto": "El principal objetivo del área Apoyo Psicosocial (APS) es:",
+                                        "opciones": [
+                                          "Brindar terapia psicológica al público.",
+                                          "Atender emocionalmente al personal interno.",
+                                          "Diagnosticar a los voluntarios.",
+                                          "Realizar evaluaciones clínicas."
+                                        ],
+                                        "respuestaCorrecta": "Atender emocionalmente al personal interno.",
+                                        "categoria": "Rol del APS"
+                                      },
+                                      {
+                                        "texto": "Una función del psicólogo APS es:",
+                                        "opciones": [
+                                          "Derivar cuando el caso excede su rol.",
+                                          "Emitir diagnósticos.",
+                                          "Realizar sesiones terapéuticas largas.",
+                                          "Dar informes médicos."
+                                        ],
+                                        "respuestaCorrecta": "Derivar cuando el caso excede su rol.",
+                                        "categoria": "Rol del APS"
+                                      },
+                                      {
+                                        "texto": "Los Primeros Auxilios Psicológicos (PAP) sustituyen la atención clínica.",
+                                        "opciones": [
+                                          "Verdadero",
+                                          "Falso"
+                                        ],
+                                        "respuestaCorrecta": "Falso",
+                                        "categoria": "PAP"
+                                      },
+                                      {
+                                        "texto": "El autocuidado es una responsabilidad personal y profesional.",
+                                        "opciones": [
+                                          "Verdadero",
+                                          "Falso"
+                                        ],
+                                        "respuestaCorrecta": "Verdadero",
+                                        "categoria": "PAP"
+                                      },
+                                      {
+                                        "texto": "En los PAP, el primer paso consiste en observar el entorno y las señales de malestar antes de intervenir.",
+                                        "opciones": [
+                                          "Verdadero",
+                                          "Falso"
+                                        ],
+                                        "respuestaCorrecta": "Verdadero",
+                                        "categoria": "PAP"
+                                      },
+                                      {
+                                        "texto": "En los PAP, después de observar, el siguiente paso es aconsejar y resolver la situación rápidamente.",
+                                        "opciones": [
+                                          "Verdadero",
+                                          "Falso"
+                                        ],
+                                        "respuestaCorrecta": "Falso",
+                                        "categoria": "PAP"
+                                      },
+                                      {
+                                        "texto": "La comunicación asertiva busca expresar ideas con respeto y empatía.",
+                                        "opciones": [
+                                          "Verdadero",
+                                          "Falso"
+                                        ],
+                                        "respuestaCorrecta": "Verdadero",
+                                        "categoria": "PAP"
+                                      },
+                                      {
+                                        "texto": "La confidencialidad tiene excepciones en casos de riesgo vital o violencia.",
+                                        "opciones": [
+                                          "Verdadero",
+                                          "Falso"
+                                        ],
+                                        "respuestaCorrecta": "Verdadero",
+                                        "categoria": "Ética"
+                                      },
+                                      {
+                                        "texto": "El síndrome de burnout puede afectar la empatía y el rendimiento.",
+                                        "opciones": [
+                                          "Verdadero",
+                                          "Falso"
+                                        ],
+                                        "respuestaCorrecta": "Verdadero",
+                                        "categoria": "Autocuidado"
+                                      },
+                                      {
+                                        "texto": "Canalizar significa derivar a la persona a una instancia adecuada cuando excede nuestras funciones.",
+                                        "opciones": [
+                                          "Verdadero",
+                                          "Falso"
+                                        ],
+                                        "respuestaCorrecta": "Verdadero",
+                                        "categoria": "PAP"
+                                      },
+                                      {
+                                        "texto": "El APS busca promover el bienestar emocional y la resiliencia del personal.",
+                                        "opciones": [
+                                          "Verdadero",
+                                          "Falso"
+                                        ],
+                                        "respuestaCorrecta": "Verdadero",
+                                        "categoria": "Rol del APS"
+                                      },
+                                      {
+                                        "texto": "El ejercicio del APS debe regirse por principios éticos y humanitarios.",
+                                        "opciones": [
+                                          "Verdadero",
+                                          "Falso"
+                                        ],
+                                        "respuestaCorrecta": "Verdadero",
+                                        "categoria": "Ética"
+                                      },
+                                      {
+                                        "texto": "Los tres pasos fundamentales de los Primeros Auxilios Psicológicos (PAP) son:",
+                                        "opciones": [
+                                          "Escuchar, hablar y aconsejar",
+                                          "Observar, escuchar y conectar",
+                                          "Detectar, analizar y resolver",
+                                          "Hablar, consolar y derivar"
+                                        ],
+                                        "respuestaCorrecta": "Observar, escuchar y conectar",
+                                        "categoria": "PAP"
+                                      },
+                                      {
+                                        "texto": "Una crisis se define como:",
+                                        "opciones": [
+                                          "Un trastorno mental.",
+                                          "Un momento de desorganización emocional.",
+                                          "Un problema médico.",
+                                          "Una emergencia física."
+                                        ],
+                                        "respuestaCorrecta": "Un momento de desorganización emocional.",
+                                        "categoria": "Crisis"
+                                      },
+                                      {
+                                        "texto": "Una de las primeras acciones en una crisis es:",
+                                        "opciones": [
+                                          "Juzgar la conducta.",
+                                          "Brindar contención y seguridad.",
+                                          "Interrogar sobre el pasado.",
+                                          "Dar consejos personales."
+                                        ],
+                                        "respuestaCorrecta": "Brindar contención y seguridad.",
+                                        "categoria": "Crisis"
+                                      },
+                                      {
+                                        "texto": "La confidencialidad puede romperse cuando:",
+                                        "opciones": [
+                                          "El psicólogo quiere compartirlo.",
+                                          "Existe riesgo inminente para la persona o terceros.",
+                                          "Lo pide un compañero.",
+                                          "Se trata de información emocional."
+                                        ],
+                                        "respuestaCorrecta": "Existe riesgo inminente para la persona o terceros.",
+                                        "categoria": "Ética"
+                                      },
+                                      {
+                                        "texto": "La ética institucional implica:",
+                                        "opciones": [
+                                          "Mantener autonomía individual.",
+                                          "Actuar alineado a los valores y lineamientos de Cruz Roja.",
+                                          "Priorizar opiniones personales.",
+                                          "Evitar seguir protocolos."
+                                        ],
+                                        "respuestaCorrecta": "Actuar alineado a los valores y lineamientos de Cruz Roja.",
+                                        "categoria": "Ética"
+                                      },
+                                      {
+                                        "texto": "La fatiga por compasión se caracteriza por:",
+                                        "opciones": [
+                                          "Alegría y motivación.",
+                                          "Desgaste emocional por ayudar constantemente.",
+                                          "Falta de empatía.",
+                                          "Cansancio físico solamente."
+                                        ],
+                                        "respuestaCorrecta": "Desgaste emocional por ayudar constantemente.",
+                                        "categoria": "Autocuidado"
+                                      },
+                                      {
+                                        "texto": "Una estrategia de autocuidado es:",
+                                        "opciones": [
+                                          "Evadir emociones.",
+                                          "Dormir menos.",
+                                          "Establecer límites y buscar apoyo.",
+                                          "Trabajar más horas."
+                                        ],
+                                        "respuestaCorrecta": "Establecer límites y buscar apoyo.",
+                                        "categoria": "Autocuidado"
+                                      },
+                                      {
+                                        "texto": "La escucha activa implica:",
+                                        "opciones": [
+                                          "Pensar en la respuesta mientras la persona habla.",
+                                          "Escuchar con atención, validar y no interrumpir.",
+                                          "Evitar el contacto visual.",
+                                          "Cambiar de tema si es incómodo."
+                                        ],
+                                        "respuestaCorrecta": "Escuchar con atención, validar y no interrumpir.",
+                                        "categoria": "Comunicación"
+                                      },
+                                      {
+                                        "texto": "En un equipo humanitario, la comunicación efectiva se logra cuando:",
+                                        "opciones": [
+                                          "Todos hablan al mismo tiempo.",
+                                          "Se respetan los roles y se comparten objetivos comunes.",
+                                          "Cada uno actúa por su cuenta.",
+                                          "Solo el líder toma decisiones."
+                                        ],
+                                        "respuestaCorrecta": "Se respetan los roles y se comparten objetivos comunes.",
+                                        "categoria": "Comunicación"
+                                      }
+                                    ],
+                                    "minScore": 0
+                                  },
+                                  "activity_id": null,
+                                  "code": "A08",
+                                  "slug": "APS_b01_m01_a08_examen_final",
+                                  "shortId": "APS-B01-M01-A08"
+                                }
+                              ],
+                              "shortId": "APS-B01-M01"
+                            }
+                          ],
+                          "shortId": "APS-B01"
+                        }
+                      ],
+                      "shortId": "APS"
+                    },
     {
       "title": "Técnico en Urgencias Médicas",
       "description": "Ayuda a la población en materia de atención prehospitalaria",
@@ -2169,7 +2385,21 @@
                   "code": "A01",
                   "slug": "TUM_b01_m01_a01_lec_05f3144b",
                   "shortId": "TUM-B01-M01-A01"
-                }
+                },
+                {
+        "title": "Elige tu modalidad y ubicación",
+        "type": "text",
+        "order": 1,
+        "required": true,
+        "estimatedMinutes": null,
+        "config": {
+          "text": "Si te interesa capacitarte presencialmente, consulta las convocatorias de tu estado en:\nhttps://capacitacion.cruzrojamexicana.org.mx/Sedes\n\nSi deseas la modalidad híbrida y cumples con los requisitos del documento anterior, los cuales son:\n\n• No contar con un Centro de Capacitación en tu municipio.\n• Comprometerte a servir horas voluntarias.\n\nEscoge la modalidad en la siguiente actividad."
+        },
+        "activity_id": null,
+        "code": "A02",
+        "slug": "TUM_b01_m01_a01_text_05f3144b",
+        "shortId": "TUM-B01-M01-A02"
+      }
               ],
               "shortId": "TUM-B01-M01"
             }
@@ -2298,6 +2528,136 @@
         }
       ],
       "shortId": "P09"
+    },
+        {
+      "title": "Voluntariado de Damas",
+      "description": "Ayuda a las comunidades.",
+      "estimatedMinutes": null,
+      "level": null,
+      "formacion": "formacionEspecializada",
+      "image": "/assets/Damas.png",
+      "tags": [
+        "damas",
+        "habilidades_blandas"
+      ],
+      "program_id": null,
+      "code": "DAM",
+      "slug": "damas",
+      "blocks": [
+        {
+          "title": "Armado de despensas",
+          "description": "",
+          "order": 1,
+          "estimatedMinutes": null,
+          "optional": false,
+          "block_id": null,
+          "code": "B01",
+          "slug": "DAM_b01_arm_591ba85a",
+          "modules": [
+            {
+              "title": "Armado de kits",
+              "description": "",
+              "order": 1,
+              "estimatedMinutes": null,
+              "prerequisites": [],
+              "isFinalExam": false,
+              "module_id": null,
+              "code": "M01",
+              "slug": "DAM_b01_m01_arm_3bf457ba",
+              "activities": [
+                {
+                  "title": "Video: Introducción",
+                  "type": "video",
+                  "order": 1,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "ITFGtBIComg"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A01",
+                  "slug": "DAM_b01_m01_a01_vid_75adc619",
+                  "shortId": "DAM-B01-M01-A01"
+                },
+                {
+                  "title": "Video 1: Armado de kits 1",
+                  "type": "video",
+                  "order": 2,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "BoYVlTR-LO4"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A02",
+                  "slug": "DAM_b01_m01_a02_vid_e54ba96f",
+                  "shortId": "DAM-B01-M01-A02"
+                },
+                {
+                  "title": "Video 2: Armado de kits 2",
+                  "type": "video",
+                  "order": 3,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "HQhlhSOTUqc"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A03",
+                  "slug": "DAM_b01_m01_a03_vid_9ad4f02c",
+                  "shortId": "DAM-B01-M01-A03"
+                },
+                {
+                  "title": "Video 3: Armado de kits 3",
+                  "type": "video",
+                  "order": 4,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "H9KHqYIjuUU"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A04",
+                  "slug": "DAM_b01_m01_a04_vid_5f2fba5b",
+                  "shortId": "DAM-B01-M01-A04"
+                },
+                {
+                  "title": "Video 4: Armado de kits 4",
+                  "type": "video",
+                  "order": 5,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "tvri4G-G7_g"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A05",
+                  "slug": "DAM_b01_m01_a05_vid_cdfaa298",
+                  "shortId": "DAM-B01-M01-A05"
+                }
+              ],
+              "shortId": "DAM-B01-M01"
+            }
+          ],
+          "shortId": "DAM-B01"
+        }
+      ],
+      "shortId": "DAM"
     }
   ]
 }

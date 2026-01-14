@@ -75,6 +75,62 @@ function normalizeActivityId(raw) {
 
 /**
  * =======================
+ * 🧪 FINAL QUIZ HELPERS
+ * =======================
+ * Regla: en final_quiz, el intento se "consume" al iniciar (no al enviar).
+ * Esto permite el UX de "una vez que entras, ya cuenta como intento".
+ */
+
+async function getActivityMeta(activityId) {
+  const [rows] = await db.query(
+    `
+    SELECT activity_id, type, config_json, min_score, is_active
+    FROM activity
+    WHERE activity_id = ?
+    LIMIT 1
+    `,
+    [activityId]
+  );
+  if (!rows.length) return null;
+
+  const a = rows[0];
+  const config = safeJsonParse(a.config_json, {}) || {};
+  return {
+    activityId: a.activity_id,
+    type: String(a.type || "").trim().toLowerCase(),
+    minScore: normalizeScore(a.min_score),
+    isActive: Number(a.is_active) !== 0,
+    config,
+  };
+}
+
+function normalizeMaxAttempts(raw, fallback = 1) {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return fallback;
+  // sane limits
+  if (n < 1) return 1;
+  if (n > 10) return 10;
+  return Math.floor(n);
+}
+
+function pickRandomIndices(total, count) {
+  const n = Math.max(0, Math.min(Number(total) || 0, 10000));
+  const k = Math.max(0, Math.min(Number(count) || 0, n));
+  const arr = Array.from({ length: n }, (_, i) => i);
+
+  // Fisher–Yates shuffle partially
+  for (let i = 0; i < k; i++) {
+    const j = i + Math.floor(Math.random() * (n - i));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr.slice(0, k);
+}
+
+
+/**
+ * =======================
  * 🧩 SCORM HELPERS
  * =======================
  */
@@ -430,6 +486,97 @@ exports.iniciarActividad = async (req, res) => {
   if (!activityId) return res.status(400).json({ error: "activityId inválido" });
 
   try {
+    const meta = await getActivityMeta(activityId);
+    if (!meta) return res.status(404).json({ error: "Actividad no encontrada" });
+    if (!meta.isActive) return res.status(400).json({ error: "Actividad inactiva" });
+
+    // ─────────────────────────────────────────
+    // FINAL QUIZ: consumir intento al INICIAR
+    // ─────────────────────────────────────────
+    if (meta.type === "final_quiz") {
+      const maxAttempts = normalizeMaxAttempts(meta.config?.maxAttempts, 1);
+
+      const [pRows] = await db.query(
+        `
+        SELECT status, attempts, data_json
+        FROM user_activity_progress
+        WHERE user_id = ? AND activity_id = ?
+        LIMIT 1
+        `,
+        [uid, activityId]
+      );
+
+      const current = pRows[0] || null;
+      const status = String(current?.status || "not_started");
+      const attemptsUsed = Number(current?.attempts || 0);
+
+      if (status === "completed") {
+        return res.status(400).json({ error: "Examen ya completado" });
+      }
+      if (attemptsUsed >= maxAttempts) {
+        return res.status(403).json({
+          error: "Sin intentos disponibles",
+          attemptsUsed,
+          maxAttempts,
+        });
+      }
+
+      // Consumimos intento ahora
+      const nextAttempts = attemptsUsed + 1;
+
+      // Persistimos selección fija (para que refresh no cambie el examen)
+      const prevData = safeJsonParse(current?.data_json, {}) || {};
+      const prevFinal = prevData?.final_quiz && typeof prevData.final_quiz === "object"
+        ? prevData.final_quiz
+        : {};
+
+      const bank = Array.isArray(meta.config?.questionsBank) ? meta.config.questionsBank : [];
+      const pickCount = Number(meta.config?.pickCount || 0) || 0;
+
+      const pickedIndices =
+        Array.isArray(prevFinal?.pickedIndices) && Number(prevFinal?.attemptNumber) === nextAttempts
+          ? prevFinal.pickedIndices
+          : pickRandomIndices(bank.length, pickCount);
+
+      const dataToSave = {
+        ...prevData,
+        final_quiz: {
+          ...prevFinal,
+          attemptNumber: nextAttempts,
+          maxAttempts,
+          pickCount,
+          pickedIndices,
+          startedAt: new Date().toISOString(),
+        },
+      };
+
+      await db.query(
+        `
+        INSERT INTO user_activity_progress
+          (user_id, activity_id, status, attempts, data_json, started_at, last_seen_at)
+        VALUES (?, ?, 'in_progress', ?, ?, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+          status = IF(status='completed', status, 'in_progress'),
+          attempts = VALUES(attempts),
+          data_json = COALESCE(VALUES(data_json), data_json),
+          started_at = COALESCE(started_at, NOW()),
+          last_seen_at = NOW()
+        `,
+        [uid, activityId, nextAttempts, normalizeJsonForDb(dataToSave)]
+      );
+
+      return res.json({
+        ok: true,
+        type: "final_quiz",
+        attemptsUsed: nextAttempts,
+        maxAttempts,
+        pickedCount: pickedIndices.length,
+      });
+    }
+
+    // ─────────────────────────────────────────
+    // Default (otros tipos): comportamiento original
+    // ─────────────────────────────────────────
     await db.query(
       `
       INSERT INTO user_activity_progress
@@ -457,12 +604,77 @@ exports.completarActividad = async (req, res) => {
   const score = normalizeScore(req.body?.score);
   const passed = req.body?.passed ?? true;
   const status = passed ? "completed" : "failed";
-  const data_json = normalizeJsonForDb(req.body?.data_json);
+  const incomingData = req.body?.data_json;
 
   if (!uid) return res.status(401).json({ error: "No autenticado" });
   if (!activityId) return res.status(400).json({ error: "activityId inválido" });
 
   try {
+    const meta = await getActivityMeta(activityId);
+    if (!meta) return res.status(404).json({ error: "Actividad no encontrada" });
+    if (!meta.isActive) return res.status(400).json({ error: "Actividad inactiva" });
+
+    // ─────────────────────────────────────────
+    // FINAL QUIZ: NO incrementa intentos aquí.
+    // Intentos se consumen al iniciar.
+    // ─────────────────────────────────────────
+    if (meta.type === "final_quiz") {
+      const maxAttempts = normalizeMaxAttempts(meta.config?.maxAttempts, 1);
+
+      const [pRows] = await db.query(
+        `
+        SELECT status, attempts, data_json
+        FROM user_activity_progress
+        WHERE user_id = ? AND activity_id = ?
+        LIMIT 1
+        `,
+        [uid, activityId]
+      );
+
+      const current = pRows[0] || null;
+      const attemptsUsed = Number(current?.attempts || 0);
+
+      // Si alguien intenta completar sin iniciar, consumimos 1 intento aquí (fallback)
+      if (attemptsUsed <= 0) {
+        if (maxAttempts < 1) {
+          return res.status(403).json({ error: "Sin intentos disponibles", attemptsUsed, maxAttempts });
+        }
+      } else if (attemptsUsed > maxAttempts) {
+        return res.status(403).json({ error: "Sin intentos disponibles", attemptsUsed, maxAttempts });
+      }
+
+      const prevData = safeJsonParse(current?.data_json, {}) || {};
+      const mergedData = {
+        ...prevData,
+        ...(typeof incomingData === "object" && incomingData ? incomingData : {}),
+      };
+
+      const data_json = normalizeJsonForDb(mergedData);
+
+      await db.query(
+        `
+        INSERT INTO user_activity_progress
+          (user_id, activity_id, status, attempts, score, data_json, started_at, completed_at, last_seen_at)
+        VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+          status = VALUES(status),
+          attempts = GREATEST(COALESCE(attempts,0), VALUES(attempts)),
+          score = COALESCE(VALUES(score), score),
+          data_json = COALESCE(VALUES(data_json), data_json),
+          completed_at = NOW(),
+          last_seen_at = NOW()
+        `,
+        [uid, activityId, status, Math.max(1, attemptsUsed || 1), score, data_json]
+      );
+
+      return res.json({ ok: true, status, type: "final_quiz", attemptsUsed: Math.max(1, attemptsUsed || 1), maxAttempts });
+    }
+
+    // ─────────────────────────────────────────
+    // Default (otros tipos): comportamiento original (+1 intento por completion)
+    // ─────────────────────────────────────────
+    const data_json = normalizeJsonForDb(incomingData);
+
     await db.query(
       `
       INSERT INTO user_activity_progress
