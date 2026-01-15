@@ -34,7 +34,6 @@ async function resolveCodesByActivityId(activityId) {
   return rows?.[0] || null;
 }
 
-
 function toInt(v) {
   const n = Number(v);
   return Number.isFinite(n) ? Math.trunc(n) : NaN;
@@ -42,19 +41,18 @@ function toInt(v) {
 
 exports.upsertActividadDoc = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    // ✅ IMPORTANTE: usar Firebase UID canónico
+    const userUid = req.user?.uid;
     const activityId = toInt(req.params.activityId);
 
-    const codes = await resolveCodesByActivityId(activityId);
-
-    if (!codes) {
-      return res.status(404).json({ ok: false, message: "Actividad no encontrada" });
-    }
-
-
-    if (!userId) return res.status(401).json({ ok: false, message: "No autenticado" });
+    if (!userUid) return res.status(401).json({ ok: false, message: "No autenticado" });
     if (!Number.isFinite(activityId) || activityId <= 0) {
       return res.status(400).json({ ok: false, message: "activityId inválido" });
+    }
+
+    const codes = await resolveCodesByActivityId(activityId);
+    if (!codes) {
+      return res.status(404).json({ ok: false, message: "Actividad no encontrada" });
     }
 
     const {
@@ -72,14 +70,15 @@ exports.upsertActividadDoc = async (req, res) => {
       return res.status(400).json({ ok: false, message: "fileUrl y fileName son requeridos" });
     }
 
-    // ¿Ya existe evidencia para (userId, activityId)?
+    // ¿Ya existe evidencia para (userUid, activityId)?
     const [rows] = await db.query(
       "SELECT id FROM user_activity_docs WHERE user_id = ? AND activity_id = ? LIMIT 1",
-      [userId, activityId]
+      [userUid, activityId]
     );
 
     if (rows?.length) {
       const id = rows[0].id;
+
       await db.query(
         `UPDATE user_activity_docs
         SET
@@ -113,12 +112,10 @@ exports.upsertActividadDoc = async (req, res) => {
         ]
       );
 
-
       const [after] = await db.query("SELECT * FROM user_activity_docs WHERE id = ? LIMIT 1", [id]);
       return res.json({ ok: true, doc: after?.[0] || null, updated: true });
     }
 
-    
     const [ins] = await db.query(
       `INSERT INTO user_activity_docs
         (
@@ -132,7 +129,7 @@ exports.upsertActividadDoc = async (req, res) => {
       VALUES
         (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'submitted', NOW(), NOW())`,
       [
-        userId,
+        userUid,
         activityId,
         codes.program_code,
         codes.block_code,
@@ -148,7 +145,6 @@ exports.upsertActividadDoc = async (req, res) => {
       ]
     );
 
-
     const newId = ins?.insertId;
     const [created] = await db.query("SELECT * FROM user_activity_docs WHERE id = ? LIMIT 1", [newId]);
 
@@ -161,17 +157,17 @@ exports.upsertActividadDoc = async (req, res) => {
 
 exports.obtenerDocActividadMio = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userUid = req.user?.uid;
     const activityId = toInt(req.params.activityId);
 
-    if (!userId) return res.status(401).json({ ok: false, message: "No autenticado" });
+    if (!userUid) return res.status(401).json({ ok: false, message: "No autenticado" });
     if (!Number.isFinite(activityId) || activityId <= 0) {
       return res.status(400).json({ ok: false, message: "activityId inválido" });
     }
 
     const [rows] = await db.query(
       "SELECT * FROM user_activity_docs WHERE user_id = ? AND activity_id = ? ORDER BY id DESC LIMIT 1",
-      [userId, activityId]
+      [userUid, activityId]
     );
 
     return res.json({ ok: true, doc: rows?.[0] || null });
@@ -183,16 +179,16 @@ exports.obtenerDocActividadMio = async (req, res) => {
 
 exports.eliminarDocActividadMio = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userUid = req.user?.uid;
     const activityId = toInt(req.params.activityId);
 
-    if (!userId) return res.status(401).json({ ok: false, message: "No autenticado" });
+    if (!userUid) return res.status(401).json({ ok: false, message: "No autenticado" });
     if (!Number.isFinite(activityId) || activityId <= 0) {
       return res.status(400).json({ ok: false, message: "activityId inválido" });
     }
 
     await db.query("DELETE FROM user_activity_docs WHERE user_id = ? AND activity_id = ?", [
-      userId,
+      userUid,
       activityId,
     ]);
 

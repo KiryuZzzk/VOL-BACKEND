@@ -2658,6 +2658,86 @@
         }
       ],
       "shortId": "DAM"
+    },
+
+        {
+      "title": "Programa Nacional de Actualización",
+      "description": "Actualiza tus conocimientos en atención prehospitalara",
+      "estimatedMinutes": null,
+      "level": null,
+      "formacion": "formacionEspecializada",
+      "image": "/assets/PNA.png",
+      "tags": [
+        "urgencias_medicas",
+        "capacitacion",
+        "tum",
+        "@req:coord:SOC"
+      ],
+      "program_id": null,
+      "code": "INSC_PNA",
+      "slug": "capacitacion_INSC_PN",
+      "blocks": [
+        {
+          "title": "Inscripción al PNA",
+          "description": "",
+          "order": 1,
+          "estimatedMinutes": null,
+          "optional": false,
+          "block_id": null,
+          "code": "B01",
+          "slug": "INSC_PN_b01_for_0c202c81",
+          "modules": [
+            {
+              "title": "Inscríbete al PNA",
+              "description": "",
+              "order": 1,
+              "estimatedMinutes": null,
+              "prerequisites": [],
+              "isFinalExam": false,
+              "module_id": null,
+              "code": "M01",
+              "slug": "INSC_PN_b01_m01_int_ea77498f",
+              "activities": [
+                {
+                  "title": "Lectura: ¿Cómo inscribirme?",
+                  "type": "reading",
+                  "order": 1,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "manual_tum_introduccion"
+                  },
+                  "activity_id": null,
+                  "code": "A01",
+                  "slug": "INSC_PN_b01_m01_a01_lec_05f3144b",
+                  "shortId": "INSC_PN-B01-M01-A01"
+                },
+
+                {
+                  "title": "Lectura: ¿Cómo inscribirme?",
+                  "type": "reading",
+                  "order": 1,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "manual_tum_introduccion"
+                  },
+                  "activity_id": null,
+                  "code": "A01",
+                  "slug": "INSC_PN_b01_m01_a01_lec_05f3144b",
+                  "shortId": "INSC_PN-B01-M01-A01"
+                }
+              ],
+              "shortId": "INSC_PNA-B01-M01"
+            }
+          ],
+          "shortId": "INSC_PN-B01"
+        }
+      ],
+      "shortId": "INSC_PNA"
     }
+
+
+    
   ]
 }
