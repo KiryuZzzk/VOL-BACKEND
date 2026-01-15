@@ -5,8 +5,6 @@ const db = require("../config/db");
  */
 function normalizeStatus(s) {
   const v = String(s || "").trim().toLowerCase();
-  // Abierto, pero controlamos valores típicos para workflow
-  // Si quieres permitir cualquier string, quita esta lista y solo valida length.
   const allowed = ["pending", "validated", "rejected"];
   if (!v) return null;
   if (!allowed.includes(v)) return null;
@@ -17,6 +15,67 @@ function safeLike(str) {
   return `%${String(str || "").trim()}%`;
 }
 
+// Normaliza categorías (case/acentos/espacios)
+function normCategory(s) {
+  return String(s || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+// Categorías que disparan auto-inscripción a SOC
+const TUM_CATEGORIES = new Set([
+  normCategory("TUM Cruz Roja Mexicana"),
+  normCategory("TUM externo"),
+]);
+
+/**
+ * Asegura que el usuario quede inscrito a SOC (coordinación code=SOC)
+ * - Inserta si no existe
+ * - Si ya existe, no pisa estados finales (ACTIVO/PENDIENTE_VALIDACION/RECHAZADO/BAJA)
+ * - En otros casos lo deja/manda a EN_PROCESO
+ */
+async function ensureSocEnrollment(firebaseUid) {
+  // 1) Obtener coordinacion_id de SOC
+  const [socRows] = await db.query(
+    `
+      SELECT coordinacion_id
+      FROM coordinaciones
+      WHERE code = 'SOC' AND is_active = 1
+      LIMIT 1
+    `
+  );
+
+  const soc = socRows?.[0];
+  if (!soc?.coordinacion_id) {
+    // Esto es un error de datos (catálogo), pero no debería tumbar el alta de trayectoria.
+    console.warn("⚠️ SOC no existe o no está activo en coordinaciones");
+    return { ok: false, reason: "SOC_NOT_FOUND" };
+  }
+
+  // 2) Upsert
+  await db.query(
+    `
+    INSERT INTO user_coordinaciones
+      (user_id, coordinacion_id, status, requested_at, status_updated_at, is_active)
+    VALUES
+      (?,       ?,              'EN_PROCESO', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1)
+    ON DUPLICATE KEY UPDATE
+      is_active = 1,
+      status_updated_at = CURRENT_TIMESTAMP,
+      status = CASE
+        WHEN status IN ('ACTIVO','PENDIENTE_VALIDACION','RECHAZADO','BAJA')
+          THEN status
+        ELSE 'EN_PROCESO'
+      END
+    `,
+    [firebaseUid, soc.coordinacion_id]
+  );
+
+  return { ok: true, coordinacion_id: soc.coordinacion_id };
+}
+
 /**
  * ─────────────────────────────────────────────────────────────
  *  POST /trayectoria
@@ -25,6 +84,7 @@ function safeLike(str) {
  *  - file_url puede ser null
  *  - status por defecto 'pending'
  *  - submitted_at se setea al crear
+ *  - SI category es TUM => auto-inscribe a SOC (EN_PROCESO)
  * ─────────────────────────────────────────────────────────────
  */
 const crearTrayectoria = async (req, res) => {
@@ -82,9 +142,24 @@ const crearTrayectoria = async (req, res) => {
 
     const [result] = await db.query(sql, params);
 
+    // ✅ Auto-inscripción a SOC si la categoría es TUM
+    let autoEnrollSoc = null;
+    const isTum = TUM_CATEGORIES.has(normCategory(category));
+    if (isTum) {
+      try {
+        autoEnrollSoc = await ensureSocEnrollment(uid);
+        console.log("✅ Auto-enroll SOC:", { uid, ...autoEnrollSoc });
+      } catch (e) {
+        // No tumbes el alta de trayectoria por un tema de coordinación
+        console.error("⚠️ Error auto-enroll SOC (no bloquea trayectoria):", e);
+        autoEnrollSoc = { ok: false, reason: "ERROR" };
+      }
+    }
+
     return res.status(201).json({
       mensaje: "Trayectoria creada",
       trajectory_id: result.insertId,
+      auto_enroll_soc: isTum ? autoEnrollSoc : null,
     });
   } catch (err) {
     console.error("❌ crearTrayectoria:", err);
@@ -274,17 +349,14 @@ const actualizarStatusTrayectoria = async (req, res) => {
     const reviewNotes = req.body?.review_notes;
     const notes = typeof reviewNotes === "string" ? reviewNotes.trim() : null;
 
-    // Verifica existencia
+    // ✅ Verifica existencia (corregido: era user_trajectory)
     const [exists] = await db.query(
-      "SELECT trajectory_id FROM user_trajectory WHERE trajectory_id = ? LIMIT 1",
+      "SELECT trajectory_id FROM trajectory WHERE trajectory_id = ? LIMIT 1",
       [trajectoryId]
     );
     if (!exists.length) return res.status(404).json({ error: "Registro no encontrado" });
 
     // Set timestamps según status
-    // - validated => validated_at ahora, rejected_at null
-    // - rejected  => rejected_at ahora, validated_at null
-    // - pending   => ambos null
     const setValidatedAt = st === "validated" ? "CURRENT_TIMESTAMP" : "NULL";
     const setRejectedAt = st === "rejected" ? "CURRENT_TIMESTAMP" : "NULL";
 
