@@ -1,5 +1,9 @@
 const db = require("../config/db");
 
+// 👇 Importamos el helper del controller de coordinaciones
+// OJO: esto requiere que en coordinaciones.controller.js hayas exportado upsertUserCoordinacionAndSync
+const { upsertUserCoordinacionAndSync } = require("./coordinaciones.controller");
+
 /**
  * Helpers
  */
@@ -32,48 +36,35 @@ const TUM_CATEGORIES = new Set([
 
 /**
  * Asegura que el usuario quede inscrito a SOC (coordinación code=SOC)
+ * ✅ AHORA TAMBIÉN: sincroniza enrollments de programas dependientes (@req:coord:SOC)
+ *
  * - Inserta si no existe
- * - Si ya existe, no pisa estados finales (ACTIVO/PENDIENTE_VALIDACION/RECHAZADO/BAJA)
+ * - Si ya existe, no pisa estados finales (ACTIVO/PENDIENTE_VALIDACION/RECHAZADO/BAJA) (esto lo respeta tu helper)
  * - En otros casos lo deja/manda a EN_PROCESO
  */
-async function ensureSocEnrollment(firebaseUid) {
-  // 1) Obtener coordinacion_id de SOC
-  const [socRows] = await db.query(
-    `
-      SELECT coordinacion_id
-      FROM coordinaciones
-      WHERE code = 'SOC' AND is_active = 1
-      LIMIT 1
-    `
-  );
+async function ensureSocEnrollmentAndPrograms(firebaseUid) {
+  // En este flujo NO queremos tumbar trayectoria si falla, pero sí queremos consistencia.
+  // Usamos una transacción corta.
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
 
-  const soc = socRows?.[0];
-  if (!soc?.coordinacion_id) {
-    // Esto es un error de datos (catálogo), pero no debería tumbar el alta de trayectoria.
-    console.warn("⚠️ SOC no existe o no está activo en coordinaciones");
-    return { ok: false, reason: "SOC_NOT_FOUND" };
+    // Esto:
+    // 1) upserta user_coordinaciones (SOC, EN_PROCESO)
+    // 2) corre syncProgramsForCoord => upsert user_program_enrollment para @req:coord:SOC
+    const result = await upsertUserCoordinacionAndSync(conn, firebaseUid, "SOC", "EN_PROCESO");
+
+    await conn.commit();
+    return { ok: true, ...result };
+  } catch (e) {
+    try {
+      await conn.rollback();
+    } catch {}
+    console.error("⚠️ ensureSocEnrollmentAndPrograms error:", e);
+    return { ok: false, reason: "ERROR" };
+  } finally {
+    conn.release();
   }
-
-  // 2) Upsert
-  await db.query(
-    `
-    INSERT INTO user_coordinaciones
-      (user_id, coordinacion_id, status, requested_at, status_updated_at, is_active)
-    VALUES
-      (?,       ?,              'EN_PROCESO', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1)
-    ON DUPLICATE KEY UPDATE
-      is_active = 1,
-      status_updated_at = CURRENT_TIMESTAMP,
-      status = CASE
-        WHEN status IN ('ACTIVO','PENDIENTE_VALIDACION','RECHAZADO','BAJA')
-          THEN status
-        ELSE 'EN_PROCESO'
-      END
-    `,
-    [firebaseUid, soc.coordinacion_id]
-  );
-
-  return { ok: true, coordinacion_id: soc.coordinacion_id };
 }
 
 /**
@@ -84,7 +75,7 @@ async function ensureSocEnrollment(firebaseUid) {
  *  - file_url puede ser null
  *  - status por defecto 'pending'
  *  - submitted_at se setea al crear
- *  - SI category es TUM => auto-inscribe a SOC (EN_PROCESO)
+ *  - SI category es TUM => auto-inscribe a SOC (EN_PROCESO) + auto-enroll a programas @req:coord:SOC
  * ─────────────────────────────────────────────────────────────
  */
 const crearTrayectoria = async (req, res) => {
@@ -142,16 +133,16 @@ const crearTrayectoria = async (req, res) => {
 
     const [result] = await db.query(sql, params);
 
-    // ✅ Auto-inscripción a SOC si la categoría es TUM
+    // ✅ Auto-inscripción a SOC + auto-enrollment programas SOC si la categoría es TUM
     let autoEnrollSoc = null;
     const isTum = TUM_CATEGORIES.has(normCategory(category));
     if (isTum) {
       try {
-        autoEnrollSoc = await ensureSocEnrollment(uid);
-        console.log("✅ Auto-enroll SOC:", { uid, ...autoEnrollSoc });
+        autoEnrollSoc = await ensureSocEnrollmentAndPrograms(uid);
+        console.log("✅ Auto-enroll SOC + programs:", { uid, ...autoEnrollSoc });
       } catch (e) {
         // No tumbes el alta de trayectoria por un tema de coordinación
-        console.error("⚠️ Error auto-enroll SOC (no bloquea trayectoria):", e);
+        console.error("⚠️ Error auto-enroll SOC+programs (no bloquea trayectoria):", e);
         autoEnrollSoc = { ok: false, reason: "ERROR" };
       }
     }
@@ -217,14 +208,6 @@ const obtenerMiTrayectoria = async (req, res) => {
  * ─────────────────────────────────────────────────────────────
  *  GET /trayectoria
  *  Admin/Moderador: lista global con filtros
- *  Similar a documentos.getAll (filtros y moderador por estado)
- *
- *  Query params opcionales:
- *   - searchField: matricula | correo | curp
- *   - search: texto
- *   - status: pending | validated | rejected
- *   - category: texto (LIKE)
- *   - year: number
  * ─────────────────────────────────────────────────────────────
  */
 const getAllTrayectoria = async (req, res) => {
@@ -323,9 +306,6 @@ const getAllTrayectoria = async (req, res) => {
  * ─────────────────────────────────────────────────────────────
  *  PATCH /trayectoria/:trajectoryId/status
  *  Admin/Moderador: cambia status + auditoría
- *  Body:
- *   - status: pending|validated|rejected
- *   - review_notes: opcional
  * ─────────────────────────────────────────────────────────────
  */
 const actualizarStatusTrayectoria = async (req, res) => {
@@ -349,14 +329,12 @@ const actualizarStatusTrayectoria = async (req, res) => {
     const reviewNotes = req.body?.review_notes;
     const notes = typeof reviewNotes === "string" ? reviewNotes.trim() : null;
 
-    // ✅ Verifica existencia (corregido: era user_trajectory)
     const [exists] = await db.query(
       "SELECT trajectory_id FROM trajectory WHERE trajectory_id = ? LIMIT 1",
       [trajectoryId]
     );
     if (!exists.length) return res.status(404).json({ error: "Registro no encontrado" });
 
-    // Set timestamps según status
     const setValidatedAt = st === "validated" ? "CURRENT_TIMESTAMP" : "NULL";
     const setRejectedAt = st === "rejected" ? "CURRENT_TIMESTAMP" : "NULL";
 

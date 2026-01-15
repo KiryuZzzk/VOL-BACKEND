@@ -82,6 +82,12 @@ function meetsMinStatus(userCoordStatus, minStatus) {
   return s === minStatus;
 }
 
+/**
+ * Sync enrollments de todos los programas que dependan de @req:coord:<coordCode>
+ * - si el user tiene coord => enrolled
+ * - si no tiene => disabled
+ * - NO pisa completed
+ */
 async function syncProgramsForCoord(conn, uid, coordCode, userCoordStatus) {
   const code = String(coordCode || "").trim().toUpperCase();
   if (!uid || !code) return { ok: false, reason: "uid/coordCode missing" };
@@ -89,7 +95,11 @@ async function syncProgramsForCoord(conn, uid, coordCode, userCoordStatus) {
   const hasCoord = statusCountsAsHasCoord(userCoordStatus);
   const desired = hasCoord ? "enrolled" : "disabled";
 
-  // Traer programas activos con tags_json (NO hacemos LIKE, parseamos bien)
+  // DEBUG opcional
+  if (process.env.DEBUG_SYNC_COORD === "1") {
+    console.log("[SYNC COORD]", { uid, coordCode: code, userCoordStatus, hasCoord, desired });
+  }
+
   const [pRows] = await conn.query(
     `
     SELECT program_id, code, tags_json
@@ -118,7 +128,10 @@ async function syncProgramsForCoord(conn, uid, coordCode, userCoordStatus) {
     if (matches) targets.push({ program_id: p.program_id, program_code: p.code });
   }
 
-  // Upsert enrollments (no pisar completed)
+  if (process.env.DEBUG_SYNC_COORD === "1") {
+    console.log("[SYNC COORD] targets:", targets.map((t) => t.program_code));
+  }
+
   for (const t of targets) {
     await conn.query(
       `
@@ -134,8 +147,57 @@ async function syncProgramsForCoord(conn, uid, coordCode, userCoordStatus) {
     );
   }
 
-  return { ok: true, coordCode: code, hasCoord, desired, affected: targets.map(x => x.program_code) };
+  return {
+    ok: true,
+    coordCode: code,
+    hasCoord,
+    desired,
+    affected: targets.map((x) => x.program_code),
+  };
 }
+
+/**
+ * Helper para que CUALQUIER controller que toque user_coordinaciones pueda:
+ * 1) upsert la coordinación
+ * 2) correr sync de programas dependientes
+ *
+ * Uso típico en otro controller:
+ * const { upsertUserCoordinacionAndSync } = require("./coordinaciones.controller");
+ * await upsertUserCoordinacionAndSync(conn, uid, "SOC", "EN_PROCESO");
+ */
+async function upsertUserCoordinacionAndSync(conn, uid, coordCode, status) {
+  const code = String(coordCode || "").trim().toUpperCase();
+  const st = normalizeCoordStatus(status);
+
+  if (!uid || !code || !st) throw new Error("upsertUserCoordinacionAndSync: missing uid/code/status");
+  if (!ALLOWED_STATUS.has(st)) throw new Error(`Estatus inválido: ${st}`);
+
+  const [[coord]] = await conn.query(
+    `SELECT coordinacion_id FROM coordinaciones WHERE code = ? AND is_active = 1 LIMIT 1`,
+    [code]
+  );
+
+  if (!coord) throw new Error(`Coordinación no encontrada/inactiva: ${code}`);
+
+  await conn.query(
+    `
+    INSERT INTO user_coordinaciones (user_id, coordinacion_id, status, status_updated_at, is_active)
+    VALUES (?, ?, ?, NOW(), 1)
+    ON DUPLICATE KEY UPDATE
+      status = VALUES(status),
+      status_updated_at = NOW(),
+      is_active = 1
+    `,
+    [uid, coord.coordinacion_id, st]
+  );
+
+  await syncProgramsForCoord(conn, uid, code, st);
+  return { ok: true, code, status: st };
+}
+
+// Export helpers (para reutilizar en otros controllers)
+exports.syncProgramsForCoord = syncProgramsForCoord;
+exports.upsertUserCoordinacionAndSync = upsertUserCoordinacionAndSync;
 
 // =======================
 // ENDPOINTS
@@ -315,7 +377,9 @@ exports.setMisCoordinaciones = async (req, res) => {
     return res.json({ ok: true, message: "Coordinaciones registradas y SV completado", codes });
   } catch (err) {
     console.error("❌ setMisCoordinaciones:", err);
-    try { await conn.rollback(); } catch {}
+    try {
+      await conn.rollback();
+    } catch {}
     return res.status(500).json({ ok: false, error: "Error al guardar coordinaciones" });
   } finally {
     conn.release();
@@ -395,14 +459,15 @@ exports.updateStatusUsuarioEnCoordinacion = async (req, res) => {
       );
     }
 
-    // ✅ AQUÍ está el punto: enrollments automáticos por reglas @req
     await syncProgramsForCoord(conn, targetUid, code, status);
 
     await conn.commit();
     return res.json({ ok: true, message: "Estatus actualizado", code, userId: targetUid, status });
   } catch (err) {
     console.error("❌ updateStatusUsuarioEnCoordinacion:", err);
-    try { await conn.rollback(); } catch {}
+    try {
+      await conn.rollback();
+    } catch {}
     return res.status(500).json({ ok: false, error: "Error al actualizar estatus" });
   } finally {
     conn.release();
