@@ -68,6 +68,7 @@ const inscripcionesRoutes = require("./routes/inscripciones.routes");
 const progresoRoutes = require("./routes/progreso.routes");
 const progresoDocsRoutes = require("./routes/progreso.docs.routes");
 const coordinacionesRoutes = require("./routes/coordinaciones.routes");
+const trayectoriaRoutes = require("./routes/trayectoria.routes");
 
 
 app.use("/users", usersRoutes);
@@ -79,6 +80,7 @@ app.use("/inscripciones", inscripcionesRoutes);
 app.use("/progreso", progresoRoutes);
 app.use("/progreso", progresoDocsRoutes);
 app.use("/coordinaciones", coordinacionesRoutes);
+app.use("/trayectoria", trayectoriaRoutes);
 
 
 // ✅ Servir SCORM montado (assets extraídos)

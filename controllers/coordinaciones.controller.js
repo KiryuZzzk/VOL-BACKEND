@@ -16,6 +16,26 @@ const ALLOWED_STATUS = new Set([
   "BAJA",
 ]);
 
+function getFirebaseUid(req) {
+  // En tu controller actual ya usas req.firebaseUser?.uid
+  const uid = String(req.firebaseUser?.uid || "").trim();
+  return uid || null;
+}
+
+// Compat: si te mandan users.id (UUID char36) lo convertimos a uid.
+// Si te mandan uid ya, lo dejamos.
+async function resolveUidFromParam(maybeIdOrUid) {
+  const v = String(maybeIdOrUid || "").trim();
+  if (!v) return null;
+
+  // Heurística simple: UUID típico 36 chars con guiones
+  const looksUuid = v.length === 36 && v.includes("-");
+  if (!looksUuid) return v; // asumimos que ya es uid
+
+  const [[row]] = await db.query(`SELECT uid FROM users WHERE id = ? LIMIT 1`, [v]);
+  return row?.uid || null;
+}
+
 /**
  * GET /coordinaciones
  * Catálogo de coordinaciones activas
@@ -39,12 +59,12 @@ exports.getCoordinaciones = async (req, res) => {
 
 /**
  * GET /coordinaciones/me
- * Coordinaciones del usuario actual
+ * Coordinaciones del usuario actual (por Firebase UID)
  */
 exports.getMisCoordinaciones = async (req, res) => {
   try {
-    const dbUserId = String(req.user?.id || "").trim();
-    if (!dbUserId) return res.status(403).json({ ok: false, error: "Usuario no registrado en BD" });
+    const firebaseUid = getFirebaseUid(req);
+    if (!firebaseUid) return res.status(401).json({ ok: false, error: "No autenticado" });
 
     const [rows] = await db.query(
       `
@@ -66,7 +86,7 @@ exports.getMisCoordinaciones = async (req, res) => {
         AND c.is_active = 1
       ORDER BY c.name ASC
       `,
-      [dbUserId]
+      [firebaseUid]
     );
 
     return res.json({ ok: true, coordinaciones: rows });
@@ -81,19 +101,11 @@ exports.getMisCoordinaciones = async (req, res) => {
  * Body: { codes: ["SOC","COM"] }
  *
  * Registra selección de coordinaciones (al terminar SV):
- * - crea/actualiza filas en user_coordinaciones -> EN_PROCESO
- * - NO baja status si ya estaba ACTIVO o PENDIENTE_VALIDACION
- * - ✅ Marca programa SV como COMPLETED en user_program_enrollment (VOLUNTARIO)
- *
- * Nota:
- * - user_coordinaciones.user_id usa users.id UUID (req.user.id)
- * - user_program_enrollment.user_id usa Firebase UID (req.firebaseUser.uid)
+ * - upsert en user_coordinaciones usando Firebase UID
+ * - ✅ Marca programa SV como COMPLETED en user_program_enrollment (Firebase UID)
  */
 exports.setMisCoordinaciones = async (req, res) => {
-  const dbUserId = String(req.user?.id || "").trim();
-  if (!dbUserId) return res.status(403).json({ ok: false, error: "Usuario no registrado en BD" });
-
-  const firebaseUid = String(req.firebaseUser?.uid || "").trim();
+  const firebaseUid = getFirebaseUid(req);
   if (!firebaseUid) return res.status(401).json({ ok: false, error: "No autenticado" });
 
   const codes = normalizeCodes(req.body?.codes);
@@ -130,7 +142,7 @@ exports.setMisCoordinaciones = async (req, res) => {
       });
     }
 
-    // 2) Upsert en user_coordinaciones (UUID)
+    // 2) Upsert en user_coordinaciones (Firebase UID)
     for (const c of coords) {
       await conn.query(
         `
@@ -144,14 +156,12 @@ exports.setMisCoordinaciones = async (req, res) => {
           status_updated_at = NOW(),
           is_active = 1
         `,
-        [dbUserId, c.coordinacion_id]
+        [firebaseUid, c.coordinacion_id]
       );
     }
 
     // 3) ✅ Marcar SV como COMPLETED en user_program_enrollment (Firebase UID)
-    const [[sv]] = await conn.query(
-      `SELECT program_id FROM program WHERE code = 'SV' LIMIT 1`
-    );
+    const [[sv]] = await conn.query(`SELECT program_id FROM program WHERE code = 'SV' LIMIT 1`);
 
     if (sv?.program_id) {
       await conn.query(
@@ -183,20 +193,23 @@ exports.setMisCoordinaciones = async (req, res) => {
  * PATCH /coordinaciones/:code/users/:userId/status
  * Body: { status: "...", notes?: "..." }
  *
- * Lo usarán admins/coordinadores para validar.
- * userId aquí es users.id (UUID CHAR(36)).
+ * ✅ Ahora userId se interpreta como Firebase UID.
+ * Compat: si te mandan users.id (UUID), se convierte a uid.
  */
 exports.updateStatusUsuarioEnCoordinacion = async (req, res) => {
   const code = String(req.params.code || "").trim().toUpperCase();
-  const targetUserId = String(req.params.userId || "").trim();
+  const userIdParam = String(req.params.userId || "").trim();
   const status = String(req.body?.status || "").trim().toUpperCase();
   const notes = req.body?.notes != null ? String(req.body.notes) : null;
 
-  if (!code || !targetUserId || !ALLOWED_STATUS.has(status)) {
+  if (!code || !userIdParam || !ALLOWED_STATUS.has(status)) {
     return res.status(400).json({ ok: false, error: "Parámetros inválidos" });
   }
 
-  const validatorId = String(req.user?.id || "").trim() || null;
+  const validatorUid = getFirebaseUid(req) || null;
+
+  const targetUid = await resolveUidFromParam(userIdParam);
+  if (!targetUid) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
 
   const conn = await db.getConnection();
   try {
@@ -221,7 +234,7 @@ exports.updateStatusUsuarioEnCoordinacion = async (req, res) => {
         status_updated_at = NOW(),
         is_active = 1
       `,
-      [targetUserId, coord.coordinacion_id, status]
+      [targetUid, coord.coordinacion_id, status]
     );
 
     const isDecision = ["ACTIVO", "OBSERVADO", "RECHAZADO"].includes(status);
@@ -235,7 +248,7 @@ exports.updateStatusUsuarioEnCoordinacion = async (req, res) => {
         WHERE user_id = ? AND coordinacion_id = ?
         LIMIT 1
         `,
-        [validatorId, notes, targetUserId, coord.coordinacion_id]
+        [validatorUid, notes, targetUid, coord.coordinacion_id]
       );
     } else if (notes !== null) {
       await conn.query(
@@ -245,12 +258,18 @@ exports.updateStatusUsuarioEnCoordinacion = async (req, res) => {
         WHERE user_id = ? AND coordinacion_id = ?
         LIMIT 1
         `,
-        [notes, targetUserId, coord.coordinacion_id]
+        [notes, targetUid, coord.coordinacion_id]
       );
     }
 
     await conn.commit();
-    return res.json({ ok: true, message: "Estatus actualizado", code, userId: targetUserId, status });
+    return res.json({
+      ok: true,
+      message: "Estatus actualizado",
+      code,
+      userId: targetUid,
+      status,
+    });
   } catch (err) {
     console.error("❌ updateStatusUsuarioEnCoordinacion:", err);
     try {
