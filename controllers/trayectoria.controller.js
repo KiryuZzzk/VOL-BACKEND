@@ -55,7 +55,7 @@ const crearTrayectoria = async (req, res) => {
     }
 
     const sql = `
-      INSERT INTO user_trajectory
+      INSERT INTO trajectory
       (uid, year, category, title, folio, file_url, storage_path, file_name, file_type, file_size_bytes,
        status, submitted_at)
       VALUES
@@ -125,7 +125,7 @@ const obtenerMiTrayectoria = async (req, res) => {
         review_notes,
         created_at,
         updated_at
-      FROM user_trajectory
+      FROM trajectory
       WHERE uid = ? AND is_active = 1
       ORDER BY year DESC, created_at DESC
     `;
@@ -228,7 +228,7 @@ const getAllTrayectoria = async (req, res) => {
         ut.review_notes,
         ut.created_at,
         ut.updated_at
-      FROM user_trajectory ut
+      FROM trajectory ut
       JOIN users ON users.uid = ut.uid
       ${where.length ? "WHERE " + where.join(" AND ") : ""}
       ORDER BY ut.created_at DESC
@@ -289,7 +289,7 @@ const actualizarStatusTrayectoria = async (req, res) => {
     const setRejectedAt = st === "rejected" ? "CURRENT_TIMESTAMP" : "NULL";
 
     const sql = `
-      UPDATE user_trajectory
+      UPDATE trajectory
       SET
         status = ?,
         reviewed_by_uid = ?,

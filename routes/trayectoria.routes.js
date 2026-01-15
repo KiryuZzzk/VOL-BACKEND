@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 
 const trayectoriaCtrl = require("../controllers/trayectoria.controller");
-const { upload, uploadTrayectoriaFile } = require("../controllers/trayectoria.docs.controller");
 const { authMiddleware, roleMiddleware } = require("../middlewares/auth");
 
 // Crear
@@ -32,13 +31,5 @@ router.patch(
   trayectoriaCtrl.actualizarStatusTrayectoria
 );
 
-// ✅ Upload archivo
-router.post(
-  "/:trajectoryId/upload",
-  authMiddleware,
-  roleMiddleware(["aspirante", "admin", "moderador"]),
-  upload.single("file"),
-  uploadTrayectoriaFile
-);
 
 module.exports = router;
