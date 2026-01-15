@@ -36,6 +36,126 @@ async function resolveUidFromParam(maybeIdOrUid) {
   return row?.uid || null;
 }
 
+// === helpers sync enrollment <-> coordinaciones ===
+
+function safeJsonParse(value, fallback = null) {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "object") return value;
+  const s = String(value).trim();
+  if (!s) return fallback;
+  try {
+    return JSON.parse(s);
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeCoordStatus(s) {
+  return String(s || "").trim().toUpperCase();
+}
+
+// Define qué estados cuentan como "tiene la coordinación"
+function statusCountsAsHasCoord(status) {
+  const s = normalizeCoordStatus(status);
+  if (!s) return false;
+  return !["RECHAZADO", "BAJA"].includes(s);
+}
+
+// Interpreta tags tipo:
+// @req:coord:SOC
+// @req:coord:SOC:ACTIVO
+function parseReqCoordTag(tag) {
+  const t = String(tag || "").trim();
+  if (!t.startsWith("@req:coord:")) return null;
+
+  const parts = t.split(":"); // ["@req", "coord", "SOC", "ACTIVO?"]
+  const coordCode = (parts[2] || "").trim().toUpperCase();
+  const minStatus = (parts[3] || "").trim().toUpperCase() || null;
+
+  if (!coordCode) return null;
+  return { coordCode, minStatus };
+}
+
+// Define mínimo para tags con :ACTIVO (si luego quieres más, lo expandes)
+function meetsMinStatus(userCoordStatus, minStatus) {
+  const s = normalizeCoordStatus(userCoordStatus);
+  if (!minStatus) return true;
+
+  if (minStatus === "ACTIVO") return s === "ACTIVO";
+  if (minStatus === "PENDIENTE_VALIDACION") return ["PENDIENTE_VALIDACION", "ACTIVO"].includes(s);
+
+  // fallback conservador
+  return s === minStatus;
+}
+
+async function syncProgramsForCoord(conn, uid, coordCode, userCoordStatus) {
+  const code = String(coordCode || "").trim().toUpperCase();
+  if (!uid || !code) return { ok: false, reason: "uid/coordCode missing" };
+
+  // “hasCoord” según tu política
+  const hasCoord = statusCountsAsHasCoord(userCoordStatus);
+
+  // 1) Traer programas activos con tags_json
+  const [pRows] = await conn.query(
+    `
+    SELECT program_id, code, tags_json
+    FROM program
+    WHERE is_active = 1
+      AND tags_json IS NOT NULL
+      AND tags_json <> ''
+    `
+  );
+
+  // 2) Filtrar programas que dependan de esta coordinación
+  const targets = [];
+  for (const p of pRows) {
+    const tags = safeJsonParse(p.tags_json, []);
+    if (!Array.isArray(tags) || !tags.length) continue;
+
+    // ¿algún tag @req:coord:<code> (con o sin minStatus) matchea?
+    let matches = false;
+    for (const tag of tags) {
+      const parsed = parseReqCoordTag(tag);
+      if (!parsed) continue;
+      if (parsed.coordCode !== code) continue;
+      if (!meetsMinStatus(userCoordStatus, parsed.minStatus)) continue;
+      matches = true;
+      break;
+    }
+
+    if (matches) targets.push({ program_id: p.program_id, program_code: p.code });
+  }
+
+  // 3) Upsert enrollments sin pisar completed
+  // - si hasCoord => enrolled
+  // - si !hasCoord => disabled
+  // - jamás tocar completed
+  const desired = hasCoord ? "enrolled" : "disabled";
+
+  for (const t of targets) {
+    await conn.query(
+      `
+      INSERT INTO user_program_enrollment (user_id, program_id, status, enrolled_at)
+      VALUES (?, ?, ?, NOW())
+      ON DUPLICATE KEY UPDATE
+        status = CASE
+          WHEN status = 'completed' THEN status
+          ELSE VALUES(status)
+        END
+      `,
+      [uid, t.program_id, desired]
+    );
+  }
+
+  return {
+    ok: true,
+    coordCode: code,
+    hasCoord,
+    desired,
+    affectedPrograms: targets.map((x) => x.program_code),
+  };
+}
+
 /**
  * GET /coordinaciones
  * Catálogo de coordinaciones activas
@@ -103,6 +223,8 @@ exports.getMisCoordinaciones = async (req, res) => {
  * Registra selección de coordinaciones (al terminar SV):
  * - upsert en user_coordinaciones usando Firebase UID
  * - ✅ Marca programa SV como COMPLETED en user_program_enrollment (Firebase UID)
+ *
+ * ✅ ADICIÓN: si el usuario QUITA una coordinación, se marca como BAJA y se deshabilitan enrollments dependientes.
  */
 exports.setMisCoordinaciones = async (req, res) => {
   const firebaseUid = getFirebaseUid(req);
@@ -115,6 +237,7 @@ exports.setMisCoordinaciones = async (req, res) => {
     return res.status(400).json({ ok: false, error: "Máximo 2 coordinaciones en esta etapa" });
   }
 
+  // Si quieres permitir "quitar todas", cambia esto.
   if (codes.length === 0) {
     return res.json({ ok: true, message: "Sin cambios (lista vacía)" });
   }
@@ -142,6 +265,44 @@ exports.setMisCoordinaciones = async (req, res) => {
       });
     }
 
+    // ✅ 1.5) Desactivar coordinaciones que el usuario ya tenía pero ya no seleccionó
+    const [currentRows] = await conn.query(
+      `
+      SELECT uc.coordinacion_id, c.code, uc.status
+      FROM user_coordinaciones uc
+      JOIN coordinaciones c ON c.coordinacion_id = uc.coordinacion_id
+      WHERE uc.user_id = ?
+        AND uc.is_active = 1
+        AND c.is_active = 1
+      `,
+      [firebaseUid]
+    );
+
+    const selectedSet = new Set(coords.map((c) => String(c.code).toUpperCase()));
+    const toRemove = currentRows
+      .map((r) => ({
+        coordinacion_id: r.coordinacion_id,
+        code: String(r.code).toUpperCase(),
+      }))
+      .filter((r) => !selectedSet.has(r.code));
+
+    for (const r of toRemove) {
+      await conn.query(
+        `
+        UPDATE user_coordinaciones
+        SET status = 'BAJA',
+            status_updated_at = NOW()
+        WHERE user_id = ?
+          AND coordinacion_id = ?
+        LIMIT 1
+        `,
+        [firebaseUid, r.coordinacion_id]
+      );
+
+      // Esto dispara disable en enrollments dependientes
+      await syncProgramsForCoord(conn, firebaseUid, r.code, "BAJA");
+    }
+
     // 2) Upsert en user_coordinaciones (Firebase UID)
     for (const c of coords) {
       await conn.query(
@@ -158,6 +319,8 @@ exports.setMisCoordinaciones = async (req, res) => {
         `,
         [firebaseUid, c.coordinacion_id]
       );
+
+      await syncProgramsForCoord(conn, firebaseUid, c.code, "EN_PROCESO");
     }
 
     // 3) ✅ Marcar SV como COMPLETED en user_program_enrollment (Firebase UID)
@@ -261,6 +424,8 @@ exports.updateStatusUsuarioEnCoordinacion = async (req, res) => {
         [notes, targetUid, coord.coordinacion_id]
       );
     }
+
+    await syncProgramsForCoord(conn, targetUid, code, status);
 
     await conn.commit();
     return res.json({
