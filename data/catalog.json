@@ -2393,7 +2393,7 @@
         "required": true,
         "estimatedMinutes": null,
         "config": {
-          "text": "Si te interesa capacitarte presencialmente, consulta las convocatorias de tu estado en:\nhttps://capacitacion.cruzrojamexicana.org.mx/Sedes\n\nSi deseas la modalidad híbrida y cumples con los requisitos del documento anterior, los cuales son:\n\n• No contar con un Centro de Capacitación en tu municipio.\n• Comprometerte a servir horas voluntarias.\n\nEscoge la modalidad en la siguiente actividad."
+          "text": "Si te interesa capacitarte presencialmente, consulta las convocatorias de tu estado en:\nhttps://capacitacion.cruzrojamexicana.org.mx/Sedes\n\nSi deseas la modalidad híbrida y cumples con los requisitos del documento anterior, los cuales son:\n\n• No contar con un Centro de Capacitación en tu municipio.\n• Comprometerte a servir horas voluntarias.\n\n Cuando inicie la convocatoria del Híbrido, podrás observarla en tu plataforma. El 16 de febrero del 2026 se habilitará."
         },
         "activity_id": null,
         "code": "A02",
@@ -2493,7 +2493,7 @@
           "optional": false,
           "block_id": null,
           "code": "B01",
-          "slug": "p09_b01_pre_49caa1d9",
+          "slug": "PREV_b01_pre_49caa1d9",
           "modules": [
             {
               "title": "Módulo Único",
@@ -2504,7 +2504,7 @@
               "isFinalExam": false,
               "module_id": null,
               "code": "M01",
-              "slug": "p09_b01_m01_m_dulo_nico",
+              "slug": "PREV_b01_m01_m_dulo_nico",
               "activities": [
                 {
                   "title": "Introducción a la Prevención",
@@ -2517,17 +2517,17 @@
                   },
                   "activity_id": null,
                   "code": "A01",
-                  "slug": "p09_b01_m01_a01_int_75fe0ac1",
-                  "shortId": "P09-B01-M01-A01"
+                  "slug": "PREV_b01_m01_a01_int_75fe0ac1",
+                  "shortId": "PREV-B01-M01-A01"
                 }
               ],
-              "shortId": "P09-B01-M01"
+              "shortId": "PREV-B01-M01"
             }
           ],
-          "shortId": "P09-B01"
+          "shortId": "PREV-B01"
         }
       ],
-      "shortId": "P09"
+      "shortId": "PREV"
     },
         {
       "title": "Voluntariado de Damas",
@@ -2661,12 +2661,12 @@
     },
 
         {
-      "title": "Programa Nacional de Actualización",
-      "description": "Actualiza tus conocimientos en atención prehospitalara",
+      "title": "Inscripción PNA",
+      "description": "Actualiza tus conocimientos en atención prehospitalaria",
       "estimatedMinutes": null,
       "level": null,
       "formacion": "formacionEspecializada",
-      "image": "/assets/PNA.png",
+      "image": "/assets/Insc_PNA.png",
       "tags": [
         "urgencias_medicas",
         "capacitacion",
@@ -2705,7 +2705,7 @@
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {
-                    "manualId": "manual_tum_introduccion"
+                    "manualId": "/manuals/capacitacion/info_inscripcion_PNA"
                   },
                   "activity_id": null,
                   "code": "A01",
@@ -2714,13 +2714,31 @@
                 },
 
                 {
-                  "title": "Lectura: ¿Cómo inscribirme?",
-                  "type": "reading",
+                  "title": "Sube tu comprobante de pago",
+                  "type": "upload",
                   "order": 1,
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {
-                    "manualId": "manual_tum_introduccion"
+                    "documentTitle": "Comprobante de inscripción al PNA",
+                    "description": "Adjunta el comprobante solicitado para continuar con el proceso.",
+                    "accept": "application/pdf,image/*",
+                    "required": true
+                  },
+                  "activity_id": null,
+                  "code": "A01",
+                  "slug": "INSC_PN_b01_m01_a01_lec_05f3144b",
+                  "shortId": "INSC_PN-B01-M01-A01"
+                },
+
+                 {
+                  "title": "Siguiente paso",
+                  "type": "text",
+                  "order": 1,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "text": "En los próximos días estaremos revisando tu perfil y validando el comprobante de pago. El Programa Nacional de Actualización inicia el lunes 26 de enero del 2026 ¡Te esperamos!"
                   },
                   "activity_id": null,
                   "code": "A01",
