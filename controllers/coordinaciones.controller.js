@@ -27,20 +27,21 @@ async function resolveUidFromParam(maybeIdOrUid) {
   const v = String(maybeIdOrUid || "").trim();
   if (!v) return null;
 
+  // Heurística simple: UUID típico 36 chars con guiones
   const looksUuid = v.length === 36 && v.includes("-");
-  if (!looksUuid) return v;
+  if (!looksUuid) return v; // asumimos que ya es uid
 
   const [[row]] = await db.query(`SELECT uid FROM users WHERE id = ? LIMIT 1`, [v]);
   return row?.uid || null;
 }
 
-// =======================
-// SYNC ENROLLMENTS <-> COORD
-// =======================
+// ======================================================
+// ✅ HELPERS: sync enrollments <-> coordinaciones
+// ======================================================
 
 function safeJsonParse(value, fallback = null) {
   if (value === null || value === undefined) return fallback;
-  if (typeof value === "object") return value;
+  if (typeof value === "object") return value; // mysql JSON puede venir como array ya
   const s = String(value).trim();
   if (!s) return fallback;
   try {
@@ -54,6 +55,7 @@ function normalizeCoordStatus(s) {
   return String(s || "").trim().toUpperCase();
 }
 
+// Define qué estados cuentan como “tiene coord”
 function statusCountsAsHasCoord(status) {
   const s = normalizeCoordStatus(status);
   if (!s) return false;
@@ -79,13 +81,14 @@ function meetsMinStatus(userCoordStatus, minStatus) {
   if (minStatus === "ACTIVO") return s === "ACTIVO";
   if (minStatus === "PENDIENTE_VALIDACION") return ["PENDIENTE_VALIDACION", "ACTIVO"].includes(s);
 
+  // fallback conservador
   return s === minStatus;
 }
 
 /**
- * Sync enrollments de todos los programas que dependan de @req:coord:<coordCode>
- * - si el user tiene coord => enrolled
- * - si no tiene => disabled
+ * Sincroniza enrollments de programas que dependan de @req:coord:<coordCode>
+ * - si tiene coord => enrolled
+ * - si pierde coord => disabled
  * - NO pisa completed
  */
 async function syncProgramsForCoord(conn, uid, coordCode, userCoordStatus) {
@@ -95,7 +98,6 @@ async function syncProgramsForCoord(conn, uid, coordCode, userCoordStatus) {
   const hasCoord = statusCountsAsHasCoord(userCoordStatus);
   const desired = hasCoord ? "enrolled" : "disabled";
 
-  // DEBUG opcional
   if (process.env.DEBUG_SYNC_COORD === "1") {
     console.log("[SYNC COORD]", { uid, coordCode: code, userCoordStatus, hasCoord, desired });
   }
@@ -147,23 +149,13 @@ async function syncProgramsForCoord(conn, uid, coordCode, userCoordStatus) {
     );
   }
 
-  return {
-    ok: true,
-    coordCode: code,
-    hasCoord,
-    desired,
-    affected: targets.map((x) => x.program_code),
-  };
+  return { ok: true, coordCode: code, desired, affected: targets.map((t) => t.program_code) };
 }
 
 /**
- * Helper para que CUALQUIER controller que toque user_coordinaciones pueda:
- * 1) upsert la coordinación
- * 2) correr sync de programas dependientes
- *
- * Uso típico en otro controller:
- * const { upsertUserCoordinacionAndSync } = require("./coordinaciones.controller");
- * await upsertUserCoordinacionAndSync(conn, uid, "SOC", "EN_PROCESO");
+ * Helper reutilizable (para trayectoria.controller.js y otros):
+ * - upsert user_coordinaciones
+ * - sync enrollments dependientes
  */
 async function upsertUserCoordinacionAndSync(conn, uid, coordCode, status) {
   const code = String(coordCode || "").trim().toUpperCase();
@@ -176,7 +168,6 @@ async function upsertUserCoordinacionAndSync(conn, uid, coordCode, status) {
     `SELECT coordinacion_id FROM coordinaciones WHERE code = ? AND is_active = 1 LIMIT 1`,
     [code]
   );
-
   if (!coord) throw new Error(`Coordinación no encontrada/inactiva: ${code}`);
 
   await conn.query(
@@ -191,18 +182,22 @@ async function upsertUserCoordinacionAndSync(conn, uid, coordCode, status) {
     [uid, coord.coordinacion_id, st]
   );
 
-  await syncProgramsForCoord(conn, uid, code, st);
-  return { ok: true, code, status: st };
+  const sync = await syncProgramsForCoord(conn, uid, code, st);
+  return { ok: true, code, status: st, ...sync };
 }
 
-// Export helpers (para reutilizar en otros controllers)
+// ✅ EXPORTS para que trayectoria.controller.js pueda importarlos
 exports.syncProgramsForCoord = syncProgramsForCoord;
 exports.upsertUserCoordinacionAndSync = upsertUserCoordinacionAndSync;
 
-// =======================
+// ======================================================
 // ENDPOINTS
-// =======================
+// ======================================================
 
+/**
+ * GET /coordinaciones
+ * Catálogo de coordinaciones activas
+ */
 exports.getCoordinaciones = async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -220,6 +215,10 @@ exports.getCoordinaciones = async (req, res) => {
   }
 };
 
+/**
+ * GET /coordinaciones/me
+ * Coordinaciones del usuario actual (por Firebase UID)
+ */
 exports.getMisCoordinaciones = async (req, res) => {
   try {
     const firebaseUid = getFirebaseUid(req);
@@ -259,11 +258,11 @@ exports.getMisCoordinaciones = async (req, res) => {
  * POST /coordinaciones/me
  * Body: { codes: ["SOC","COM"] }
  *
- * ✅ Hace:
- * - upsert coordinaciones (EN_PROCESO)
- * - sync enrollments por cada coord seleccionada
- * - BAJA coordinaciones removidas + disable enrollments dependientes
- * - marca SV como completed
+ * Registra selección de coordinaciones (al terminar SV):
+ * - upsert en user_coordinaciones usando Firebase UID
+ * - ✅ Marca programa SV como COMPLETED en user_program_enrollment (Firebase UID)
+ * - ✅ Sync enrollments de programas dependientes por cada coord elegida
+ * - ✅ Si quitó una coord, se marca BAJA y deshabilita enrollments dependientes
  */
 exports.setMisCoordinaciones = async (req, res) => {
   const firebaseUid = getFirebaseUid(req);
@@ -271,12 +270,11 @@ exports.setMisCoordinaciones = async (req, res) => {
 
   const codes = normalizeCodes(req.body?.codes);
 
+  // Regla actual: máximo 2 al finalizar SV
   if (codes.length > 2) {
     return res.status(400).json({ ok: false, error: "Máximo 2 coordinaciones en esta etapa" });
   }
 
-  // Si quieres que quitar todas desactive todo, aquí sí conviene permitirlo.
-  // Por ahora lo dejamos: si lista vacía, no cambia nada.
   if (codes.length === 0) {
     return res.json({ ok: true, message: "Sin cambios (lista vacía)" });
   }
@@ -285,7 +283,7 @@ exports.setMisCoordinaciones = async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    // Resolver codes -> coordinacion_id
+    // 1) Resolver codes -> coordinacion_id
     const [coords] = await conn.query(
       `SELECT coordinacion_id, code
        FROM coordinaciones
@@ -338,7 +336,7 @@ exports.setMisCoordinaciones = async (req, res) => {
       await syncProgramsForCoord(conn, firebaseUid, r.code, "BAJA");
     }
 
-    // Upsert seleccionadas + sync enrollments
+    // 2) Upsert en user_coordinaciones (Firebase UID) + sync enrollments
     for (const c of coords) {
       await conn.query(
         `
@@ -358,8 +356,9 @@ exports.setMisCoordinaciones = async (req, res) => {
       await syncProgramsForCoord(conn, firebaseUid, c.code, "EN_PROCESO");
     }
 
-    // Marcar SV como completed
+    // 3) ✅ Marcar SV como COMPLETED en user_program_enrollment (Firebase UID)
     const [[sv]] = await conn.query(`SELECT program_id FROM program WHERE code = 'SV' LIMIT 1`);
+
     if (sv?.program_id) {
       await conn.query(
         `
@@ -390,8 +389,9 @@ exports.setMisCoordinaciones = async (req, res) => {
  * PATCH /coordinaciones/:code/users/:userId/status
  * Body: { status: "...", notes?: "..." }
  *
- * ✅ actualiza status
- * ✅ dispara sync enrollments por esa coordinación
+ * ✅ Ahora userId se interpreta como Firebase UID.
+ * Compat: si te mandan users.id (UUID), se convierte a uid.
+ * ✅ Dispara sync enrollments dependientes
  */
 exports.updateStatusUsuarioEnCoordinacion = async (req, res) => {
   const code = String(req.params.code || "").trim().toUpperCase();
@@ -459,10 +459,17 @@ exports.updateStatusUsuarioEnCoordinacion = async (req, res) => {
       );
     }
 
+    // ✅ Dispara sync de programas dependientes
     await syncProgramsForCoord(conn, targetUid, code, status);
 
     await conn.commit();
-    return res.json({ ok: true, message: "Estatus actualizado", code, userId: targetUid, status });
+    return res.json({
+      ok: true,
+      message: "Estatus actualizado",
+      code,
+      userId: targetUid,
+      status,
+    });
   } catch (err) {
     console.error("❌ updateStatusUsuarioEnCoordinacion:", err);
     try {

@@ -2667,8 +2667,7 @@
       "tags": [
         "urgencias_medicas",
         "capacitacion",
-        "tum",
-        "@req:coord:SOC"
+        "tum"
       ],
       "program_id": 12,
       "code": "INSC_PNA",
@@ -2702,7 +2701,7 @@
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {
-                    "manualId": "/manuals/capacitacion/info_inscripcion_PNA"
+                    "manualId": "/manuals/capacitacion/info_inscripcion_PNA.pdf"
                   },
                   "activity_id": 57,
                   "code": "A01",
@@ -2712,7 +2711,7 @@
                 {
                   "title": "Sube tu comprobante de pago",
                   "type": "upload",
-                  "order": 1,
+                  "order": 2,
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {
@@ -2721,24 +2720,28 @@
                     "accept": "application/pdf,image/*",
                     "required": true
                   },
-                  "activity_id": 57,
-                  "code": "A01",
+                  "activity_id": 58,
+                  "code": "A02",
                   "slug": "INSC_PN_b01_m01_a01_lec_05f3144b",
-                  "shortId": "INSC_PN-B01-M01-A01"
+                  "shortId": "INSC_PN-B01-M01-A02"
                 },
                 {
-                  "title": "Siguiente paso",
-                  "type": "text",
-                  "order": 1,
-                  "required": true,
+                  "title": "Únete al grupo de WhatsApp",
+                  "type": "url",
+                  "order": 3,
+                  "required": false,
                   "estimatedMinutes": null,
                   "config": {
-                    "text": "En los próximos días estaremos revisando tu perfil y validando el comprobante de pago. El Programa Nacional de Actualización inicia el lunes 26 de enero del 2026 ¡Te esperamos!"
+                    "mode": "cta_qr",
+                    "platform": "whatsapp",
+                    "url": "https://chat.whatsapp.com/Cxb2SgODTeL2Yl5rTIQgrc",
+                    "ctaLabel": "Unirme al grupo de WhatsApp",
+                    "showQr": true
                   },
-                  "activity_id": 57,
-                  "code": "A01",
-                  "slug": "INSC_PN_b01_m01_a01_lec_05f3144b",
-                  "shortId": "INSC_PN-B01-M01-A01"
+                  "activity_id": 60,
+                  "code": "A03",
+                  "slug": "INSC_PNA_b05_m01_a03_url_whatsapp",
+                  "shortId": "INSC_PNA-B05-M01-A03"
                 }
               ],
               "shortId": "INSC_PNA-B01-M01"
