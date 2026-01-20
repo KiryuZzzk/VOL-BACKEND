@@ -240,37 +240,55 @@ const getAll = async (req, res) => {
 
     const validFields = ["matricula", "correo", "curp"];
 
-    const camposUsuarios = [
-      "users.id",
-      "users.nombre",
-      "users.apellido_paterno",
-      "users.apellido_materno",
-      "users.matricula",
-      "users.correo",
-      "users.curp",
-    ];
+const camposUsuarios = [
+  "users.id",
+  "users.uid",
+  "users.nombre",
+  "users.apellido_pat AS apellido_paterno",
+  "users.apellido_mat AS apellido_materno",
+  "users.matricula",
+  "users.correo",
+  "users.curp",
+];
 
-    const camposDocumentos = [
-      "documentos.curp_url",
-      "documentos.curp_aprobado",
-      "documentos.acta_nacimiento_url",
-      "documentos.acta_nacimiento_aprobado",
-      "documentos.ine_url",
-      "documentos.ine_aprobado",
-      "documentos.cv_url",
-      "documentos.cv_aprobado",
-      "documentos.nss_url",
-      "documentos.nss_aprobado",
-      "documentos.constancia_url",
-      "documentos.constancia_aprobado",
-      "documentos.foto_url",
-      "documentos.foto_aprobado",
-      "documentos.certificado_medico_url",
-      "documentos.certificado_medico_aprobado",
-      "documentos.sobre_mi",
-      "documentos.fecha_creacion",
-      "documentos.ultima_actualizacion",
-    ];
+const camposDocumentos = [
+  "documentos.curp_url",
+  "documentos.curp_aprobado",
+  "documentos.curp_estado",
+
+  "documentos.acta_nacimiento_url",
+  "documentos.acta_nacimiento_aprobado",
+  "documentos.acta_nacimiento_estado",
+
+  "documentos.ine_url",
+  "documentos.ine_aprobado",
+  "documentos.ine_estado",
+
+  "documentos.cv_url",
+  "documentos.cv_aprobado",
+  "documentos.cv_estado",
+
+  "documentos.nss_url",
+  "documentos.nss_aprobado",
+  "documentos.nss_estado",
+
+  "documentos.constancia_url",
+  "documentos.constancia_aprobado",
+  "documentos.constancia_estado",
+
+  "documentos.foto_url",
+  "documentos.foto_aprobado",
+  "documentos.foto_estado",
+
+  "documentos.certificado_medico_url",
+  "documentos.certificado_medico_aprobado",
+  "documentos.certificado_medico_estado",
+
+  "documentos.sobre_mi",
+  "documentos.fecha_creacion",
+  "documentos.ultima_actualizacion",
+];
+
 
     const campos = [...camposUsuarios, ...camposDocumentos].join(", ");
 

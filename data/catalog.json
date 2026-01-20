@@ -1961,28 +1961,64 @@
               "slug": "RDR_b01_m01_m_dulo_nico",
               "activities": [
                 {
-                  "title": "Actividad 1",
-                  "type": "activity",
+                  "title": "Introducción",
+                  "type": "url",
                   "order": 1,
                   "required": true,
                   "estimatedMinutes": null,
-                  "config": {},
+                  "config": {
+                    "url": "https://view.genially.com/696fb8a743237b8c5858d228/interactive-content-rdr-i"
+                  },
                   "activity_id": null,
                   "code": "A01",
-                  "slug": "RDR_b01_m01_a01_actividad_1",
+                  "slug": "RDR_b01_m01_a01_int_75fe0ac1",
                   "shortId": "RDR-B01-M01-A01"
                 },
-                {
-                  "title": "Actividad 2",
-                  "type": "activity",
+                                {
+                  "title": "Amenazas",
+                  "type": "url",
                   "order": 2,
                   "required": true,
                   "estimatedMinutes": null,
-                  "config": {},
+                  "config": {
+                    "url": "https://view.genially.com/696fdc9dcff2833f183f081f/interactive-content-rdr-amenazas"
+                  },
                   "activity_id": null,
                   "code": "A02",
-                  "slug": "RDR_b01_m01_a02_actividad_2",
+                  "slug": "RDR_b01_m01_a02_int_75fe0ac1",
                   "shortId": "RDR-B01-M01-A02"
+                },
+                                {
+                  "title": "Lineas de trabajo",
+                  "type": "url",
+                  "order": 3,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "url": "https://view.genially.com/696fdcb88a742b9c74e37be2/interactive-content-rdr-lineas-de-trabajo"
+                  },
+                  "activity_id": null,
+                  "code": "A03",
+                  "slug": "RDR_b01_m01_a03_int_75fe0ac1",
+                  "shortId": "RDR-B01-M01-A03"
+                },
+                                                                 {
+                  "title": "Únete al grupo de WhatsApp",
+                  "type": "url",
+                  "order":  4,
+                  "required": false,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "mode": "cta_qr",
+                    "platform": "whatsapp",
+                    "url": "https://chat.whatsapp.com/Bh6n939bKnvKzaLRzU9qKa",
+                    "ctaLabel": "Unirme al grupo de WhatsApp",
+                    "showQr": true
+                  },
+                  "activity_id": null,
+                  "code": "A04",
+                  "slug": "RDR_b05_m01_a02_url_whatsapp",
+                  "shortId": "RDR-B01-M01-A04"
                 }
               ],
               "shortId": "RDR-B01-M01"
