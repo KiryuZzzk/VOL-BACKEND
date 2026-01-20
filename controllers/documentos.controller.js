@@ -228,12 +228,18 @@ const guardarDocumentos = async (req, res) => {
  *  Admin/Mod: listar todos
  *  ───────────────────────────────────────────────────────────── */
 const getAll = async (req, res) => {
-  const { rol, estado } = req.user;
-  const { searchField, search } = req.query;
-
-  const validFields = ["matricula", "correo", "curp"];
-
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: "No autenticado" });
+    }
+
+    const { rol, estado } = req.user;
+    const { searchField, search } = req.query;
+
+    console.log("🔍 getAll docs → filtros:", { rol, estado, searchField, search });
+
+    const validFields = ["matricula", "correo", "curp"];
+
     const camposUsuarios = [
       "users.id",
       "users.nombre",
@@ -247,28 +253,20 @@ const getAll = async (req, res) => {
     const camposDocumentos = [
       "documentos.curp_url",
       "documentos.curp_aprobado",
-      "documentos.curp_estado",
       "documentos.acta_nacimiento_url",
       "documentos.acta_nacimiento_aprobado",
-      "documentos.acta_nacimiento_estado",
       "documentos.ine_url",
       "documentos.ine_aprobado",
-      "documentos.ine_estado",
       "documentos.cv_url",
       "documentos.cv_aprobado",
-      "documentos.cv_estado",
       "documentos.nss_url",
       "documentos.nss_aprobado",
-      "documentos.nss_estado",
       "documentos.constancia_url",
       "documentos.constancia_aprobado",
-      "documentos.constancia_estado",
       "documentos.foto_url",
       "documentos.foto_aprobado",
-      "documentos.foto_estado",
       "documentos.certificado_medico_url",
       "documentos.certificado_medico_aprobado",
-      "documentos.certificado_medico_estado",
       "documentos.sobre_mi",
       "documentos.fecha_creacion",
       "documentos.ultima_actualizacion",
@@ -279,7 +277,7 @@ const getAll = async (req, res) => {
     let sql = `
       SELECT ${campos}
       FROM users
-      JOIN documentos ON users.id = documentos.user_id
+      LEFT JOIN documentos ON users.id = documentos.user_id
     `;
     const params = [];
 
@@ -295,16 +293,19 @@ const getAll = async (req, res) => {
       params.push(`%${search.trim()}%`);
     }
 
+    console.log("🛠 getAll docs SQL:", sql, params);
+
     const [results] = await db.query(sql, params);
-    if (!Array.isArray(results)) {
-      return res.status(500).json({ error: "Error interno en la consulta" });
-    }
-    return res.json(results);
+    return res.json(Array.isArray(results) ? results : []);
   } catch (err) {
-    console.error("❌ getAll docs:", err);
-    return res.status(500).json({ error: "Error al obtener perfiles" });
+    console.error("❌ getAll docs:", err?.sqlMessage || err);
+    return res.status(500).json({
+      error: "Error al obtener perfiles",
+      detail: err?.sqlMessage || err?.message || "unknown",
+    });
   }
 };
+
 
 /** ─────────────────────────────────────────────────────────────
  *  Admin/Mod: actualizar estado (pendiente|validado|rechazado)
