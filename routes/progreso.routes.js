@@ -67,4 +67,8 @@ router.post(
   progresoCtrl.scormCommitActividad
 );
 
+// Resumen global
+router.get("/me/resumen", auth, progresoController.getMiResumen);
+
+
 module.exports = router;

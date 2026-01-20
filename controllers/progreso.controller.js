@@ -838,3 +838,63 @@ exports.choosePathActividad = async (req, res) => {
     conn.release();
   }
 };
+
+/**
+ * GET /progreso/me/resumen
+ *
+ * Resumen global del progreso del usuario (por Firebase UID).
+ * - activitiesCompleted: cuántas activities tienen status='completed'
+ * - daysActive: rango inclusivo entre primera actividad iniciada y última actividad tocada/terminada
+ *
+ * Fuente de verdad:
+ *   user_activity_progress (status, started_at, completed_at, last_seen_at)
+ *
+ * Nota: NO depende de programas ni catálogo. Cero deuda técnica.
+ */
+exports.getMiResumen = async (req, res) => {
+  const uid = getProgressUserId(req);
+
+  if (!uid) return res.status(401).json({ error: "No autenticado" });
+
+  try {
+    const [rows] = await db.query(
+      `
+      SELECT
+        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS activitiesCompleted,
+        MIN(COALESCE(started_at, completed_at, last_seen_at)) AS firstActivityAt,
+        MAX(COALESCE(completed_at, last_seen_at, started_at)) AS lastActivityAt
+      FROM user_activity_progress
+      WHERE user_id = ?
+      `,
+      [uid]
+    );
+
+    const r = rows?.[0] || {};
+
+    const activitiesCompleted = Number(r.activitiesCompleted || 0);
+
+    // DÍAS: rango inclusivo en días. Si solo hay un día => 1.
+    // Si no hay actividad => 0.
+    const first = r.firstActivityAt ? new Date(r.firstActivityAt) : null;
+    const last = r.lastActivityAt ? new Date(r.lastActivityAt) : null;
+
+    let daysActive = 0;
+    if (first && last && !Number.isNaN(first.getTime()) && !Number.isNaN(last.getTime())) {
+      const MS_PER_DAY = 24 * 60 * 60 * 1000;
+      const diffMs = last.getTime() - first.getTime();
+      const diffDays = Math.floor(diffMs / MS_PER_DAY);
+      daysActive = Math.max(1, diffDays + 1);
+    }
+
+    return res.json({
+      user_id: uid,
+      activitiesCompleted,
+      daysActive,
+      firstActivityAt: r.firstActivityAt,
+      lastActivityAt: r.lastActivityAt,
+    });
+  } catch (err) {
+    console.error("getMiResumen error:", err);
+    return res.status(500).json({ error: "Error obteniendo resumen de progreso" });
+  }
+};
