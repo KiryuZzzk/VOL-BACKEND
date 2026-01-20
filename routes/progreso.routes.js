@@ -68,7 +68,7 @@ router.post(
 );
 
 // Resumen global
-router.get("/me/resumen", auth, progresoController.getMiResumen);
-
+router.get(
+  "/me/resumen",authMiddleware,progresoCtrl.getMiResumen);
 
 module.exports = router;
