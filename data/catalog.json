@@ -1671,6 +1671,24 @@
                   "code": "A04",
                   "slug": "COM_b01_m01_a04_lec_02e4d9e1",
                   "shortId": "COM-B01-M01-A04"
+                },
+                 {
+                  "title": "Únete al grupo de WhatsApp",
+                  "type": "url",
+                  "order": 5,
+                  "required": false,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "mode": "cta_qr",
+                    "platform": "whatsapp",
+                    "url": "https://chat.whatsapp.com/ETtWHMTjx6585IKKC67E0m",
+                    "ctaLabel": "Unirme al grupo de WhatsApp",
+                    "showQr": true
+                  },
+                  "activity_id": null,
+                  "code": "A05",
+                  "slug": "COM_b05_m01_a05_url_whatsapp",
+                  "shortId": "COM-B01-M01-A05"
                 }
               ],
               "shortId": "COM-B01-M01"
@@ -1801,6 +1819,24 @@
                   "code": "A05",
                   "slug": "vol_b01_m01_a05_vid_cdfaa298",
                   "shortId": "vol-B01-M01-A05"
+                },
+                                 {
+                  "title": "Únete al grupo de WhatsApp",
+                  "type": "url",
+                  "order": 6,
+                  "required": false,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "mode": "cta_qr",
+                    "platform": "whatsapp",
+                    "url": "https://chat.whatsapp.com/Jlxeikl1dmh3BgeawtWBbU",
+                    "ctaLabel": "Unirme al grupo de WhatsApp",
+                    "showQr": true
+                  },
+                  "activity_id": null,
+                  "code": "A06",
+                  "slug": "vol_b05_m01_a06_url_whatsapp",
+                  "shortId": "vol-B01-M01-A06"
                 }
               ],
               "shortId": "vol-B01-M01"
@@ -1860,6 +1896,24 @@
                   "code": "A01",
                   "slug": "MIG_b01_m01_a01_sco_c7395804",
                   "shortId": "MIG-B01-M01-A01"
+                },
+                                                 {
+                  "title": "Únete al grupo de WhatsApp",
+                  "type": "url",
+                  "order": 2,
+                  "required": false,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "mode": "cta_qr",
+                    "platform": "whatsapp",
+                    "url": "https://chat.whatsapp.com/DDOYdvbdGcn99gXx2y4E5I",
+                    "ctaLabel": "Unirme al grupo de WhatsApp",
+                    "showQr": true
+                  },
+                  "activity_id": null,
+                  "code": "A02",
+                  "slug": "MIG_b05_m01_a02_url_whatsapp",
+                  "shortId": "MIG-B01-M01-A02"
                 }
               ],
               "shortId": "MIG-B01-M01"
@@ -2325,7 +2379,25 @@
                                   "code": "A08",
                                   "slug": "APS_b01_m01_a08_examen_final",
                                   "shortId": "APS-B01-M01-A08"
-                                }
+                                },
+                    {
+                  "title": "Únete al grupo de WhatsApp",
+                  "type": "url",
+                  "order": 9,
+                  "required": false,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "mode": "cta_qr",
+                    "platform": "whatsapp",
+                    "url": "https://chat.whatsapp.com/DxNPRbpUkjgEyxEr5Wl6di",
+                    "ctaLabel": "Unirme al grupo de WhatsApp",
+                    "showQr": true
+                  },
+                  "activity_id": null,
+                  "code": "A09",
+                  "slug": "APS_b01_m01_a09_url_whatsapp",
+                  "shortId": "APS-B01-M01-A09"
+                }
                               ],
                               "shortId": "APS-B01-M01"
                             }
@@ -2389,7 +2461,7 @@
                 {
         "title": "Elige tu modalidad y ubicación",
         "type": "text",
-        "order": 1,
+        "order": 2,
         "required": true,
         "estimatedMinutes": null,
         "config": {
@@ -2399,7 +2471,25 @@
         "code": "A02",
         "slug": "TUM_b01_m01_a01_text_05f3144b",
         "shortId": "TUM-B01-M01-A02"
-      }
+      },
+                    {
+                  "title": "Únete al grupo de WhatsApp",
+                  "type": "url",
+                  "order": 3,
+                  "required": false,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "mode": "cta_qr",
+                    "platform": "whatsapp",
+                    "url": "https://chat.whatsapp.com/K2krZCKipMBLkQa4xeFsoK",
+                    "ctaLabel": "Unirme al grupo de WhatsApp",
+                    "showQr": true
+                  },
+                  "activity_id": null,
+                  "code": "A03",
+                  "slug": "TUM_b01_m01_a03_url_whatsapp",
+                  "shortId": "TUM-B01-M01-A03"
+                }
               ],
               "shortId": "TUM-B01-M01"
             }
@@ -2426,7 +2516,7 @@
       "slug": "capacitacion_admin",
       "blocks": [
         {
-          "title": "Formación inicial TUM",
+          "title": "Capacita con nosotros",
           "description": "",
           "order": 1,
           "estimatedMinutes": null,
@@ -2436,7 +2526,7 @@
           "slug": "CAP_b01_for_0c202c81",
           "modules": [
             {
-              "title": "Introducción al Técnico en Urgencias Médicas",
+              "title": "Capacita con nosotros",
               "description": "",
               "order": 1,
               "estimatedMinutes": null,
@@ -2446,18 +2536,22 @@
               "code": "M01",
               "slug": "CAP_b01_m01_int_ea77498f",
               "activities": [
-                {
-                  "title": "Lectura: ¿Cómo ser TUM?",
-                  "type": "reading",
+                                    {
+                  "title": "Únete al grupo de WhatsApp",
+                  "type": "url",
                   "order": 1,
-                  "required": true,
+                  "required": false,
                   "estimatedMinutes": null,
                   "config": {
-                    "manualId": "manual_tum_introduccion"
+                    "mode": "cta_qr",
+                    "platform": "whatsapp",
+                    "url": "https://chat.whatsapp.com/IYkbtTdQSLlFWNG27GCKcS",
+                    "ctaLabel": "Unirme al grupo de WhatsApp",
+                    "showQr": true
                   },
                   "activity_id": null,
                   "code": "A01",
-                  "slug": "CAP_b01_m01_a01_lec_05f3144b",
+                  "slug": "CAP_b01_m01_a01_url_whatsapp",
                   "shortId": "CAP-B01-M01-A01"
                 }
               ],
@@ -2519,6 +2613,24 @@
                   "code": "A01",
                   "slug": "PREV_b01_m01_a01_int_75fe0ac1",
                   "shortId": "PREV-B01-M01-A01"
+                },
+                                    {
+                  "title": "Únete al grupo de WhatsApp",
+                  "type": "url",
+                  "order": 2,
+                  "required": false,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "mode": "cta_qr",
+                    "platform": "whatsapp",
+                    "url": "https://chat.whatsapp.com/DM7PG9nHLHpHsVPnCWPgoC",
+                    "ctaLabel": "Unirme al grupo de WhatsApp",
+                    "showQr": true
+                  },
+                  "activity_id": null,
+                  "code": "A02",
+                  "slug": "PREV_b01_m01_a02_url_whatsapp",
+                  "shortId": "PREV-B01-M01-A02"
                 }
               ],
               "shortId": "PREV-B01-M01"

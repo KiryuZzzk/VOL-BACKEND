@@ -1,17 +1,16 @@
 const db = require("../config/db");
-// const admin = require("firebase-admin"); // Ya no re-verificamos aquí
 const { v4: uuidv4 } = require("uuid");
 
-/** Campos esperados en tabla `documentos` (o en `users` si ahí quedaron) */
+/** Campos esperados en tabla `documentos` */
 const DOC_COLS = `
-  curp_url, curp_aprobado,
-  acta_nacimiento_url, acta_nacimiento_aprobado,
-  ine_url, ine_aprobado,
-  cv_url, cv_aprobado,
-  nss_url, nss_aprobado,
-  constancia_url, constancia_aprobado,
-  foto_url, foto_aprobado,
-  certificado_medico_url, certificado_medico_aprobado,
+  curp_url, curp_aprobado, curp_estado,
+  acta_nacimiento_url, acta_nacimiento_aprobado, acta_nacimiento_estado,
+  ine_url, ine_aprobado, ine_estado,
+  cv_url, cv_aprobado, cv_estado,
+  nss_url, nss_aprobado, nss_estado,
+  constancia_url, constancia_aprobado, constancia_estado,
+  foto_url, foto_aprobado, foto_estado,
+  certificado_medico_url, certificado_medico_aprobado, certificado_medico_estado,
   sobre_mi,
   fecha_creacion,
   ultima_actualizacion
@@ -26,7 +25,8 @@ function mergeUserAndDocs(userRow = {}, docsRow = {}) {
     correo: userRow.correo,
     ...docsRow,
   };
-  // Normaliza aprobados null → false
+
+  // ✅ Normaliza solo los aprobados (boolean). NO toques *_estado.
   [
     "curp_aprobado",
     "acta_nacimiento_aprobado",
@@ -37,17 +37,41 @@ function mergeUserAndDocs(userRow = {}, docsRow = {}) {
     "foto_aprobado",
     "certificado_medico_aprobado",
   ].forEach((k) => {
-    if (out[k] == null) out[k] = false;
+    if (out[k] == null) out[k] = 0;
   });
+
   return out;
 }
 
+function normalizeEstado(estado) {
+  // acepta string o boolean (compat)
+  if (typeof estado === "string") {
+    const s = estado.toLowerCase().trim();
+    if (!["pendiente", "validado", "rechazado"].includes(s)) return null;
+    return s;
+  }
+  if (typeof estado === "boolean") return estado ? "validado" : "pendiente";
+  return null;
+}
+
+function aprobadoFromEstado(estadoStr) {
+  return estadoStr === "validado" ? 1 : 0;
+}
+
+const DOC_MAP = {
+  curp: { url: "curp_url", aprobado: "curp_aprobado", estado: "curp_estado" },
+  acta_nacimiento: { url: "acta_nacimiento_url", aprobado: "acta_nacimiento_aprobado", estado: "acta_nacimiento_estado" },
+  ine: { url: "ine_url", aprobado: "ine_aprobado", estado: "ine_estado" },
+  cv: { url: "cv_url", aprobado: "cv_aprobado", estado: "cv_estado" },
+  nss: { url: "nss_url", aprobado: "nss_aprobado", estado: "nss_estado" },
+  constancia: { url: "constancia_url", aprobado: "constancia_aprobado", estado: "constancia_estado" },
+  foto: { url: "foto_url", aprobado: "foto_aprobado", estado: "foto_estado" },
+  certificado_medico: { url: "certificado_medico_url", aprobado: "certificado_medico_aprobado", estado: "certificado_medico_estado" },
+};
+
 /** ─────────────────────────────────────────────────────────────
- *  Crear/actualizar documentos (aspirante/admin/mod)
- *  Usa req.user.id (inyectado por authMiddleware)
- *  IMPORTANTE: para que el UPSERT funcione por usuario, asegúrate
- *  de tener UNIQUE KEY en documentos.user_id
- *  ALTER TABLE documentos ADD UNIQUE KEY uniq_user (user_id);
+ *  Crear/actualizar documentos (usuario autenticado)
+ *  Regla: si sube/re-sube archivo => estado = 'pendiente' y aprobado=0
  *  ───────────────────────────────────────────────────────────── */
 const guardarDocumentos = async (req, res) => {
   try {
@@ -82,61 +106,114 @@ const guardarDocumentos = async (req, res) => {
       return res.status(400).json({ error: "No se enviaron documentos o datos." });
     }
 
-    // Genera UUID solo si realmente insertamos una nueva fila
+    // Genera UUID solo si insertamos una nueva fila
     const idDocumento = uuidv4();
 
+    // Insert base
     const insertCampos = [
       "id",
       "user_id",
       "curp_url",
+      "curp_aprobado",
+      "curp_estado",
       "acta_nacimiento_url",
+      "acta_nacimiento_aprobado",
+      "acta_nacimiento_estado",
       "ine_url",
+      "ine_aprobado",
+      "ine_estado",
       "cv_url",
+      "cv_aprobado",
+      "cv_estado",
       "nss_url",
+      "nss_aprobado",
+      "nss_estado",
       "constancia_url",
+      "constancia_aprobado",
+      "constancia_estado",
       "foto_url",
+      "foto_aprobado",
+      "foto_estado",
       "certificado_medico_url",
+      "certificado_medico_aprobado",
+      "certificado_medico_estado",
       "sobre_mi",
     ];
 
     const insertValores = [
       idDocumento,
       userIdInterno,
+
       curp_url || null,
+      0,
+      curp_url ? "pendiente" : null,
+
       acta_nacimiento_url || null,
+      0,
+      acta_nacimiento_url ? "pendiente" : null,
+
       ine_url || null,
+      0,
+      ine_url ? "pendiente" : null,
+
       cv_url || null,
+      0,
+      cv_url ? "pendiente" : null,
+
       nss_url || null,
+      0,
+      nss_url ? "pendiente" : null,
+
       constancia_url || null,
+      0,
+      constancia_url ? "pendiente" : null,
+
       foto_url || null,
+      0,
+      foto_url ? "pendiente" : null,
+
       certificado_medico_url || null,
-      (typeof sobre_mi === "string" ? sobre_mi : null),
+      0,
+      certificado_medico_url ? "pendiente" : null,
+
+      typeof sobre_mi === "string" ? sobre_mi : null,
     ];
 
     const updateCampos = [];
     const updateValores = [];
 
-    if (curp_url) { updateCampos.push("curp_url = ?"); updateValores.push(curp_url); }
-    if (acta_nacimiento_url) { updateCampos.push("acta_nacimiento_url = ?"); updateValores.push(acta_nacimiento_url); }
-    if (ine_url) { updateCampos.push("ine_url = ?"); updateValores.push(ine_url); }
-    if (cv_url) { updateCampos.push("cv_url = ?"); updateValores.push(cv_url); }
-    if (nss_url) { updateCampos.push("nss_url = ?"); updateValores.push(nss_url); }
-    if (constancia_url) { updateCampos.push("constancia_url = ?"); updateValores.push(constancia_url); }
-    if (foto_url) { updateCampos.push("foto_url = ?"); updateValores.push(foto_url); }
-    if (certificado_medico_url) { updateCampos.push("certificado_medico_url = ?"); updateValores.push(certificado_medico_url); }
-    if (typeof sobre_mi === "string") { updateCampos.push("sobre_mi = ?"); updateValores.push(sobre_mi); }
+    // helper: si cambias URL => pending + aprobado=0
+    const setUrlPending = (urlCol, apCol, estCol, val) => {
+      updateCampos.push(`${urlCol} = ?`);
+      updateValores.push(val);
+
+      updateCampos.push(`${apCol} = 0`);
+      updateCampos.push(`${estCol} = 'pendiente'`);
+    };
+
+    if (curp_url) setUrlPending("curp_url", "curp_aprobado", "curp_estado", curp_url);
+    if (acta_nacimiento_url) setUrlPending("acta_nacimiento_url", "acta_nacimiento_aprobado", "acta_nacimiento_estado", acta_nacimiento_url);
+    if (ine_url) setUrlPending("ine_url", "ine_aprobado", "ine_estado", ine_url);
+    if (cv_url) setUrlPending("cv_url", "cv_aprobado", "cv_estado", cv_url);
+    if (nss_url) setUrlPending("nss_url", "nss_aprobado", "nss_estado", nss_url);
+    if (constancia_url) setUrlPending("constancia_url", "constancia_aprobado", "constancia_estado", constancia_url);
+    if (foto_url) setUrlPending("foto_url", "foto_aprobado", "foto_estado", foto_url);
+    if (certificado_medico_url) setUrlPending("certificado_medico_url", "certificado_medico_aprobado", "certificado_medico_estado", certificado_medico_url);
+
+    if (typeof sobre_mi === "string") {
+      updateCampos.push("sobre_mi = ?");
+      updateValores.push(sobre_mi);
+    }
 
     // siempre actualiza timestamp
     updateCampos.push("ultima_actualizacion = CURRENT_TIMESTAMP");
 
     const sql = `
       INSERT INTO documentos (${insertCampos.join(", ")})
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (${insertCampos.map(() => "?").join(", ")})
       ON DUPLICATE KEY UPDATE
       ${updateCampos.join(", ")}
     `;
-
-    console.log("📤 guardarDocumentos → INSERT/UPDATE", { userIdInterno, insertValores, updateValores });
 
     await db.query(sql, [...insertValores, ...updateValores]);
 
@@ -148,44 +225,53 @@ const guardarDocumentos = async (req, res) => {
 };
 
 /** ─────────────────────────────────────────────────────────────
- *  Admin/Mod: listar todos (ya lo tenías)
+ *  Admin/Mod: listar todos
  *  ───────────────────────────────────────────────────────────── */
 const getAll = async (req, res) => {
   const { rol, estado } = req.user;
   const { searchField, search } = req.query;
 
-  console.log("🔍 getAll docs → filtros:", { rol, estado, searchField, search });
-
   const validFields = ["matricula", "correo", "curp"];
+
   try {
     const camposUsuarios = [
       "users.id",
       "users.nombre",
+      "users.apellido_paterno",
+      "users.apellido_materno",
       "users.matricula",
       "users.correo",
-      "users.curp"
+      "users.curp",
     ];
 
     const camposDocumentos = [
       "documentos.curp_url",
       "documentos.curp_aprobado",
+      "documentos.curp_estado",
       "documentos.acta_nacimiento_url",
       "documentos.acta_nacimiento_aprobado",
+      "documentos.acta_nacimiento_estado",
       "documentos.ine_url",
       "documentos.ine_aprobado",
+      "documentos.ine_estado",
       "documentos.cv_url",
       "documentos.cv_aprobado",
+      "documentos.cv_estado",
       "documentos.nss_url",
       "documentos.nss_aprobado",
+      "documentos.nss_estado",
       "documentos.constancia_url",
       "documentos.constancia_aprobado",
+      "documentos.constancia_estado",
       "documentos.foto_url",
       "documentos.foto_aprobado",
+      "documentos.foto_estado",
       "documentos.certificado_medico_url",
       "documentos.certificado_medico_aprobado",
+      "documentos.certificado_medico_estado",
       "documentos.sobre_mi",
       "documentos.fecha_creacion",
-      "documentos.ultima_actualizacion"
+      "documentos.ultima_actualizacion",
     ];
 
     const campos = [...camposUsuarios, ...camposDocumentos].join(", ");
@@ -209,8 +295,6 @@ const getAll = async (req, res) => {
       params.push(`%${search.trim()}%`);
     }
 
-    console.log("🛠 getAll docs SQL:", sql, params);
-
     const [results] = await db.query(sql, params);
     if (!Array.isArray(results)) {
       return res.status(500).json({ error: "Error interno en la consulta" });
@@ -223,31 +307,57 @@ const getAll = async (req, res) => {
 };
 
 /** ─────────────────────────────────────────────────────────────
- *  Admin/Mod: actualizar estado aprobado/rechazado de un documento
+ *  Admin/Mod: actualizar estado (pendiente|validado|rechazado)
  *  ───────────────────────────────────────────────────────────── */
 const actualizarEstadoDocumento = async (req, res) => {
   try {
     const { user_matricula, documento, estado } = req.body;
 
-    if (!user_matricula || !documento || typeof estado !== "boolean") {
+    if (!user_matricula || !documento) {
       return res.status(400).json({ error: "Datos incompletos" });
     }
 
-    const campoAprobado = `${documento}_aprobado`;
-    const [usuario] = await db.query("SELECT id FROM users WHERE matricula = ?", [user_matricula]);
-    if (!usuario.length) return res.status(404).json({ error: "Usuario no encontrado" });
+    const cols = DOC_MAP[String(documento || "").trim()];
+    if (!cols) return res.status(400).json({ error: "Documento inválido" });
+
+    const estadoStr = normalizeEstado(estado);
+    if (!estadoStr) return res.status(400).json({ error: "Estado inválido" });
+
+    const [urows] = await db.query(
+      "SELECT id FROM users WHERE matricula = ? LIMIT 1",
+      [user_matricula]
+    );
+    if (!urows?.length) return res.status(404).json({ error: "Usuario no encontrado" });
+    const userId = urows[0].id;
+
+    // check archivo existe
+    const [drows] = await db.query(
+      `SELECT ${cols.url} AS urlActual FROM documentos WHERE user_id = ? LIMIT 1`,
+      [userId]
+    );
+    if (!drows?.length) return res.status(404).json({ error: "Registro de documentos no encontrado" });
+    if (!drows[0]?.urlActual) return res.status(400).json({ error: "No hay archivo para ese documento" });
+
+    const aprobadoBool = aprobadoFromEstado(estadoStr);
 
     const sql = `
       UPDATE documentos
-      SET ${campoAprobado} = ?, ultima_actualizacion = CURRENT_TIMESTAMP
+      SET ${cols.estado} = ?, ${cols.aprobado} = ?
       WHERE user_id = ?
+      LIMIT 1
     `;
+    await db.query(sql, [estadoStr, aprobadoBool, userId]);
 
-    await db.query(sql, [estado, usuario[0].id]);
-    return res.status(200).json({ mensaje: "Estado actualizado correctamente." });
-  } catch (e) {
-    console.error("❌ actualizarEstadoDocumento:", e);
-    return res.status(500).json({ error: "Error al actualizar estado del documento" });
+    return res.json({
+      ok: true,
+      user_matricula,
+      documento,
+      estado: estadoStr,
+      aprobado: !!aprobadoBool,
+    });
+  } catch (err) {
+    console.error("❌ actualizarEstadoDocumento:", err);
+    return res.status(500).json({ error: "Error interno" });
   }
 };
 
@@ -259,26 +369,16 @@ const obtenerMisDocumentos = async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: "No autenticado" });
 
-    console.log("📄 obtenerMisDocumentos → user_id:", userId);
-
     const [userRows] = await db.query(
       "SELECT id, matricula, curp, correo FROM users WHERE id = ? LIMIT 1",
       [userId]
     );
     if (!userRows.length) return res.status(404).json({ error: "Usuario no encontrado" });
 
-    // Busca en documentos; si no hay fila, intentamos en users (por compat)
     let [docsRows] = await db.query(
       `SELECT ${DOC_COLS} FROM documentos WHERE user_id = ? LIMIT 1`,
       [userId]
     );
-    if (!docsRows.length) {
-      console.warn("ℹ️ obtenerMisDocumentos: sin fila en documentos; probando en users");
-      [docsRows] = await db.query(
-        `SELECT ${DOC_COLS} FROM users WHERE id = ? LIMIT 1`,
-        [userId]
-      );
-    }
 
     const payload = mergeUserAndDocs(userRows[0], docsRows[0] || {});
     return res.json(payload);
@@ -294,9 +394,7 @@ const obtenerMisDocumentos = async (req, res) => {
 const obtenerDocumentosPorUserId = async (req, res) => {
   try {
     const requestedUserId = String(req.params.userId || "").trim();
-    if (!requestedUserId) {
-      return res.status(400).json({ error: "Parámetro userId inválido" });
-    }
+    if (!requestedUserId) return res.status(400).json({ error: "Parámetro userId inválido" });
 
     const [userRows] = await db.query(
       "SELECT id, matricula, curp, correo FROM users WHERE id = ? LIMIT 1",
@@ -308,12 +406,6 @@ const obtenerDocumentosPorUserId = async (req, res) => {
       `SELECT ${DOC_COLS} FROM documentos WHERE user_id = ? LIMIT 1`,
       [requestedUserId]
     );
-    if (!docsRows.length) {
-      [docsRows] = await db.query(
-        `SELECT ${DOC_COLS} FROM users WHERE id = ? LIMIT 1`,
-        [requestedUserId]
-      );
-    }
 
     const payload = mergeUserAndDocs(userRows[0], docsRows[0] || {});
     return res.json(payload);
