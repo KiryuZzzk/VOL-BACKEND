@@ -2,8 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const progresoAdminController = require("../controllers/progreso.admin.controller");
-const authMiddleware = require("../middlewares/authMiddleware");
-const roleMiddleware = require("../middlewares/roleMiddleware");
+const { authMiddleware, roleMiddleware } = require("../middlewares/auth");
 
 // ✅ Programas inscritos
 router.get(
