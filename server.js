@@ -72,6 +72,7 @@ const trayectoriaRoutes = require("./routes/trayectoria.routes");
 const progresoAdminRoutes = require("./routes/progreso.admin.routes");
 
 
+
 app.use("/users", usersRoutes);
 app.use("/certificados", certificadosRoutes);
 app.use("/disponibilidad", disponibilidadRoutes);

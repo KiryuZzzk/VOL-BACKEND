@@ -1,5 +1,11 @@
-// controllers/progreso.admin.controller.js
 const db = require("../config/db");
+
+// ─────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────
+function safeUpper(s) {
+  return String(s || "").trim().toUpperCase();
+}
 
 function toInt(v) {
   const n = Number(v);
@@ -12,19 +18,29 @@ function normalizeScore(value) {
   return Number.isFinite(n) ? n : null;
 }
 
-function safeUpper(s) {
-  return String(s || "").trim().toUpperCase();
+async function resolveFirebaseUidFromUserId(connOrDb, userId) {
+  const id = String(userId || "").trim();
+  if (!id) return null;
+
+  const [rows] = await connOrDb.query(
+    "SELECT uid FROM users WHERE id = ? LIMIT 1",
+    [id]
+  );
+
+  return rows?.[0]?.uid || null;
 }
 
-/**
- * GET /progreso/admin/users/:userUid/programas
- * Lista programas inscritos (enrolled/completed/disabled) para un usuario por Firebase UID.
- */
-exports.getUserProgramEnrollments = async (req, res) => {
-  const userUid = String(req.params.userUid || "").trim();
-  if (!userUid) return res.status(400).json({ error: "userUid requerido" });
-
+// ─────────────────────────────────────────────────────────────
+// GET Programas en los que está inscrito (por userId interno)
+// ─────────────────────────────────────────────────────────────
+exports.getProgramasUsuario = async (req, res) => {
   try {
+    const userId = String(req.params.userId || "").trim();
+    if (!userId) return res.status(400).json({ error: "Parámetro userId inválido" });
+
+    const userUid = await resolveFirebaseUidFromUserId(db, userId);
+    if (!userUid) return res.status(404).json({ error: "Usuario no encontrado" });
+
     const [rows] = await db.query(
       `
       SELECT
@@ -37,48 +53,45 @@ exports.getUserProgramEnrollments = async (req, res) => {
       FROM user_program_enrollment upe
       JOIN program p ON p.program_id = upe.program_id
       WHERE upe.user_id = ?
-        AND p.is_active = 1
       ORDER BY upe.enrolled_at DESC
       `,
       [userUid]
     );
 
-    return res.json({ ok: true, user_id: userUid, programs: rows });
+    return res.json({ ok: true, userId, userUid, programs: rows });
   } catch (err) {
-    console.error("getUserProgramEnrollments:", err);
-    return res.status(500).json({ error: "Error al obtener programas del usuario" });
+    console.error("❌ getProgramasUsuario:", err?.sqlMessage || err);
+    return res.status(500).json({ error: "Error al obtener programas" });
   }
 };
 
-/**
- * GET /progreso/admin/users/:userUid/programas/:code
- * Devuelve actividades del programa + progreso (status/score/etc) para un usuario por UID.
- * (reusa la lógica de getMiProgresoPrograma pero para cualquier userUid)
- */
-exports.getUserProgressByProgram = async (req, res) => {
-  const userUid = String(req.params.userUid || "").trim();
-  const programCode = safeUpper(req.params.code);
-
-  if (!userUid) return res.status(400).json({ error: "userUid requerido" });
-  if (!programCode) return res.status(400).json({ error: "code requerido" });
-
+// ─────────────────────────────────────────────────────────────
+// GET Progreso por programa (por userId interno, usa uid)
+// ─────────────────────────────────────────────────────────────
+exports.getProgresoProgramaUsuario = async (req, res) => {
   try {
+    const userId = String(req.params.userId || "").trim();
+    const programCode = safeUpper(req.params.programCode);
+
+    if (!userId) return res.status(400).json({ error: "Parámetro userId inválido" });
+    if (!programCode) return res.status(400).json({ error: "programCode inválido" });
+
+    const userUid = await resolveFirebaseUidFromUserId(db, userId);
+    if (!userUid) return res.status(404).json({ error: "Usuario no encontrado" });
+
     const [rows] = await db.query(
       `
       SELECT
         p.code AS program_code,
         p.name AS program_name,
-
         b.code AS block_code,
         m.code AS module_code,
-
         a.activity_id,
         a.code AS activity_code,
         a.name AS activity_name,
         a.type AS activity_type,
         a.required,
         a.min_score,
-        a.is_final_exam,
 
         COALESCE(uap.status, 'not_started') AS status,
         COALESCE(uap.attempts, 0) AS attempts,
@@ -95,21 +108,18 @@ exports.getUserProgressByProgram = async (req, res) => {
        AND uap.user_id = ?
       WHERE p.code = ?
         AND p.is_active = 1
-      ORDER BY
-        b.order_index ASC,
-        m.order_index ASC,
-        a.order_index ASC
+      ORDER BY b.order_index ASC, m.order_index ASC, a.order_index ASC
       `,
       [userUid, programCode]
     );
 
-    // resumen rápido
     const total = rows.length;
     const completed = rows.filter((x) => x.status === "completed").length;
 
     return res.json({
       ok: true,
-      user_id: userUid,
+      userId,
+      userUid,
       programCode,
       summary: {
         totalActivities: total,
@@ -119,23 +129,24 @@ exports.getUserProgressByProgram = async (req, res) => {
       activities: rows,
     });
   } catch (err) {
-    console.error("getUserProgressByProgram:", err);
-    return res.status(500).json({ error: "Error al obtener progreso del programa" });
+    console.error("❌ getProgresoProgramaUsuario:", err?.sqlMessage || err);
+    return res.status(500).json({ error: "Error al obtener progreso" });
   }
 };
 
-/**
- * GET /progreso/admin/users/:userUid/docs?programCode=SV
- * Lista evidencias (user_activity_docs) del usuario (y opcionalmente filtra por programa).
- * Incluye activity_name/code y score/status desde user_activity_progress.
- */
-exports.getUserDocs = async (req, res) => {
-  const userUid = String(req.params.userUid || "").trim();
-  const programCode = safeUpper(req.query.programCode);
-
-  if (!userUid) return res.status(400).json({ error: "userUid requerido" });
-
+// ─────────────────────────────────────────────────────────────
+// GET Evidencias (user_activity_docs) + score/status de progress
+// ─────────────────────────────────────────────────────────────
+exports.getDocsUsuario = async (req, res) => {
   try {
+    const userId = String(req.params.userId || "").trim();
+    const programCode = safeUpper(req.query.programCode);
+
+    if (!userId) return res.status(400).json({ error: "Parámetro userId inválido" });
+
+    const userUid = await resolveFirebaseUidFromUserId(db, userId);
+    if (!userUid) return res.status(404).json({ error: "Usuario no encontrado" });
+
     const params = [userUid];
     let whereProgram = "";
     if (programCode) {
@@ -188,51 +199,49 @@ exports.getUserDocs = async (req, res) => {
       params
     );
 
-    return res.json({ ok: true, user_id: userUid, docs: rows });
+    return res.json({ ok: true, userId, userUid, docs: rows });
   } catch (err) {
-    console.error("getUserDocs:", err);
-    return res.status(500).json({ error: "Error al obtener evidencias del usuario" });
+    console.error("❌ getDocsUsuario:", err?.sqlMessage || err);
+    return res.status(500).json({ error: "Error al obtener evidencias" });
   }
 };
 
-/**
- * PATCH /progreso/admin/users/:userUid/docs/:docId/review
- * body: { status: 'approved'|'rejected'|'submitted', score?: number|null, review_note?: string }
- * - Actualiza user_activity_docs (status + reviewed_* + note)
- * - Actualiza user_activity_progress SOLO para esa activity_id (docs)
- *   approved => completed, rejected => failed, submitted => in_progress
- */
-exports.reviewUserDoc = async (req, res) => {
-  const userUid = String(req.params.userUid || "").trim();
+// ─────────────────────────────────────────────────────────────
+// PATCH Review doc (solo docs, no otras actividades)
+// - actualiza user_activity_docs
+// - actualiza user_activity_progress para esa activity_id
+// ─────────────────────────────────────────────────────────────
+exports.reviewDocUsuario = async (req, res) => {
+  const userId = String(req.params.userId || "").trim();
   const docId = toInt(req.params.docId);
 
-  if (!userUid) return res.status(400).json({ error: "userUid requerido" });
+  if (!userId) return res.status(400).json({ error: "Parámetro userId inválido" });
   if (!Number.isFinite(docId) || docId <= 0) return res.status(400).json({ error: "docId inválido" });
 
   const status = String(req.body?.status || "").trim().toLowerCase();
-  const reviewNote = req.body?.review_note ?? req.body?.reviewNote ?? null;
+  const reviewNote = req.body?.review_note ?? null;
   const score = normalizeScore(req.body?.score);
 
   const ALLOWED = new Set(["submitted", "approved", "rejected"]);
   if (!ALLOWED.has(status)) return res.status(400).json({ error: "status inválido" });
 
-  // reviewer: firebase uid del admin (tu authMiddleware ya lo mete)
-  const reviewerUid = String(req.user?.uid || req.firebaseUser?.uid || "").trim() || null;
+  const reviewerUid = String(req.user?.uid || "").trim() || null;
 
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
 
+    const userUid = await resolveFirebaseUidFromUserId(conn, userId);
+    if (!userUid) {
+      await conn.rollback();
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    // valida doc pertenece al uid
     const [rows] = await conn.query(
-      `
-      SELECT id, user_id, activity_id
-      FROM user_activity_docs
-      WHERE id = ? AND user_id = ?
-      LIMIT 1
-      `,
+      `SELECT id, user_id, activity_id FROM user_activity_docs WHERE id = ? AND user_id = ? LIMIT 1`,
       [docId, userUid]
     );
-
     if (!rows.length) {
       await conn.rollback();
       return res.status(404).json({ error: "Evidencia no encontrada para ese usuario" });
@@ -240,7 +249,7 @@ exports.reviewUserDoc = async (req, res) => {
 
     const activityId = rows[0].activity_id;
 
-    // 1) update doc
+    // update docs
     await conn.query(
       `
       UPDATE user_activity_docs
@@ -255,7 +264,7 @@ exports.reviewUserDoc = async (req, res) => {
       [status, reviewerUid, reviewNote, docId]
     );
 
-    // 2) update progress (solo esa activity)
+    // map status docs -> progress status
     const nextProgressStatus =
       status === "approved" ? "completed" : status === "rejected" ? "failed" : "in_progress";
 
@@ -282,15 +291,11 @@ exports.reviewUserDoc = async (req, res) => {
 
     await conn.commit();
 
-    const [after] = await conn.query(
-      "SELECT * FROM user_activity_docs WHERE id = ? LIMIT 1",
-      [docId]
-    );
-
-    return res.json({ ok: true, doc: after?.[0] || null });
+    const [after] = await conn.query("SELECT * FROM user_activity_docs WHERE id = ? LIMIT 1", [docId]);
+    return res.json({ ok: true, userId, userUid, doc: after?.[0] || null });
   } catch (err) {
     try { await conn.rollback(); } catch {}
-    console.error("reviewUserDoc:", err);
+    console.error("❌ reviewDocUsuario:", err?.sqlMessage || err);
     return res.status(500).json({ error: "Error al calificar evidencia" });
   } finally {
     conn.release();
