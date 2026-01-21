@@ -285,7 +285,7 @@ exports.reviewDocUsuario = async (req, res) => {
     if (!Number.isFinite(docId)) return res.status(400).json({ error: "docId inválido" });
 
     const { status, score, review_note } = req.body || {};
-    const newStatus = safeStr(status).trim(); // 'approved' | 'rejected' | 'submitted'
+    const newStatus = safeStr(status).trim(); // submitted | approved | rejected
     const newScore = normalizeScore(score);
     const note = review_note === undefined ? null : safeStr(review_note);
 
@@ -307,7 +307,7 @@ exports.reviewDocUsuario = async (req, res) => {
       return res.status(404).json({ error: "Documento no encontrado" });
     }
 
-    const userUid = docRow.user_id; // YA es firebase uid (por tu esquema)
+    const userUid = docRow.user_id; // firebase uid (por tu esquema)
     const activityId = docRow.activity_id;
 
     // 1) update doc
@@ -354,7 +354,7 @@ exports.reviewDocUsuario = async (req, res) => {
         [userUid, activityId]
       );
     } else {
-      // submitted: no tocamos progreso (o podrías poner in_progress si quieres)
+      // submitted -> asegúrate de que al menos esté in_progress si venía not_started
       await conn.query(
         `
         INSERT INTO user_activity_progress
@@ -371,12 +371,13 @@ exports.reviewDocUsuario = async (req, res) => {
 
     await conn.commit();
 
+    // ✅ OJO: tu tabla activity usa "name", NO "title"
     const [after] = await conn.query(
       `
       SELECT
         uad.*,
         a.code AS activity_code,
-        a.title AS activity_title
+        a.name AS activity_title
       FROM user_activity_docs uad
       JOIN activity a ON a.activity_id = uad.activity_id
       WHERE uad.id = ? LIMIT 1
@@ -395,9 +396,26 @@ exports.reviewDocUsuario = async (req, res) => {
     try {
       await conn.rollback();
     } catch {}
-    console.error("❌ reviewDocUsuario:", err?.sqlMessage || err);
-    return res.status(500).json({ error: "Error al calificar evidencia" });
+
+    console.error("❌ reviewDocUsuario:", {
+      message: err?.message,
+      sqlMessage: err?.sqlMessage,
+      code: err?.code,
+      errno: err?.errno,
+      sqlState: err?.sqlState,
+      sql: err?.sql,
+    });
+
+    return res.status(500).json({
+      error: "Error al calificar evidencia",
+      debug: {
+        code: err?.code,
+        errno: err?.errno,
+        sqlMessage: err?.sqlMessage,
+      },
+    });
   } finally {
     conn.release();
   }
 };
+
