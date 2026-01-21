@@ -250,8 +250,24 @@ exports.getAdminProgramView = async (req, res) => {
       activities,
     });
   } catch (err) {
-    console.error("❌ getAdminProgramView:", err?.sqlMessage || err);
-    return res.status(500).json({ error: "Error al obtener vista del programa" });
+console.error("❌ getAdminProgramView:", {
+  message: err?.message,
+  sqlMessage: err?.sqlMessage,
+  code: err?.code,
+  errno: err?.errno,
+  sqlState: err?.sqlState,
+  sql: err?.sql,
+});
+
+return res.status(500).json({
+  error: "Error al obtener vista del programa",
+  debug: {
+    code: err?.code,
+    errno: err?.errno,
+    sqlMessage: err?.sqlMessage,
+  },
+});
+
   }
 };
 

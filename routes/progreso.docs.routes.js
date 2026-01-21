@@ -32,11 +32,3 @@ router.delete(
 
 module.exports = router;
 
-/**
- * Cómo integrarlo en tu server.js (ejemplo):
- *   const progresoDocsRoutes = require("./routes/progreso.docs.routes");
- *   app.use("/progreso", progresoDocsRoutes);
- *
- * O si ya tienes progreso.routes.js:
- *   pega estas rutas dentro de tu router actual.
- */
