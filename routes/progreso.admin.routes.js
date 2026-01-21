@@ -1,36 +1,32 @@
 const express = require("express");
 const router = express.Router();
 
-const adminCtrl = require("../controllers/progreso.admin.controller");
-const { authMiddleware, roleMiddleware } = require("../middlewares/auth");
+const progresoAdminController = require("../controllers/progreso.admin.controller");
+const authMiddleware = require("../middlewares/authMiddleware");
+const roleMiddleware = require("../middlewares/roleMiddleware");
 
-// ✅ solo admin/mod (idéntico a documentos)
+// ✅ Programas inscritos
 router.get(
-  "/admin/:userId/programas",
+  "/users/:userId/programas",
   authMiddleware,
-  roleMiddleware(["admin", "moderador"]),
-  adminCtrl.getProgramasUsuario
+  roleMiddleware(["admin", "superadmin"]),
+  progresoAdminController.getProgramasUsuario
 );
 
+// ✅ Vista completa del programa (actividades+progreso+doc)
 router.get(
-  "/admin/:userId/programas/:programCode/progreso",
+  "/users/:userId/programas/:programCode",
   authMiddleware,
-  roleMiddleware(["admin", "moderador"]),
-  adminCtrl.getProgresoProgramaUsuario
+  roleMiddleware(["admin", "superadmin"]),
+  progresoAdminController.getAdminProgramView
 );
 
-router.get(
-  "/admin/:userId/docs",
-  authMiddleware,
-  roleMiddleware(["admin", "moderador"]),
-  adminCtrl.getDocsUsuario
-);
-
+// ✅ Review de evidencia (doc)
 router.patch(
-  "/admin/:userId/docs/:docId/review",
+  "/docs/:docId/review",
   authMiddleware,
-  roleMiddleware(["admin", "moderador"]),
-  adminCtrl.reviewDocUsuario
+  roleMiddleware(["admin", "superadmin"]),
+  progresoAdminController.reviewDocUsuario
 );
 
 module.exports = router;

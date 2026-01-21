@@ -3,8 +3,12 @@ const db = require("../config/db");
 // ─────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────
-function safeUpper(s) {
-  return String(s || "").trim().toUpperCase();
+function safeStr(v) {
+  return v === null || v === undefined ? "" : String(v);
+}
+
+function safeUpper(v) {
+  return safeStr(v).trim().toUpperCase();
 }
 
 function toInt(v) {
@@ -18,28 +22,43 @@ function normalizeScore(value) {
   return Number.isFinite(n) ? n : null;
 }
 
-async function resolveFirebaseUidFromUserId(connOrDb, userId) {
-  const id = String(userId || "").trim();
-  if (!id) return null;
+/**
+ * Acepta:
+ * - users.id (uuid interno)
+ * - users.uid (firebase uid)
+ * Devuelve siempre firebase uid (users.uid)
+ */
+async function resolveFirebaseUidFromUserId(connOrDb, userIdOrUid) {
+  const v = safeStr(userIdOrUid).trim();
+  if (!v) return null;
 
-  const [rows] = await connOrDb.query(
+  // 1) intenta por id interno
+  let [rows] = await connOrDb.query(
     "SELECT uid FROM users WHERE id = ? LIMIT 1",
-    [id]
+    [v]
   );
+  if (rows?.[0]?.uid) return rows[0].uid;
 
-  return rows?.[0]?.uid || null;
+  // 2) fallback por uid
+  [rows] = await connOrDb.query(
+    "SELECT uid FROM users WHERE uid = ? LIMIT 1",
+    [v]
+  );
+  if (rows?.[0]?.uid) return rows[0].uid;
+
+  return null;
 }
 
 // ─────────────────────────────────────────────────────────────
-// GET Programas en los que está inscrito (por userId interno)
+// GET Programas inscritos del usuario
 // ─────────────────────────────────────────────────────────────
 exports.getProgramasUsuario = async (req, res) => {
   try {
-    const userId = String(req.params.userId || "").trim();
+    const userId = safeStr(req.params.userId).trim();
     if (!userId) return res.status(400).json({ error: "Parámetro userId inválido" });
 
-    const userUid = await resolveFirebaseUidFromUserId(db, userId);
-    if (!userUid) return res.status(404).json({ error: "Usuario no encontrado" });
+    const uid = await resolveFirebaseUidFromUserId(db, userId);
+    if (!uid) return res.status(404).json({ error: "Usuario no encontrado" });
 
     const [rows] = await db.query(
       `
@@ -55,10 +74,10 @@ exports.getProgramasUsuario = async (req, res) => {
       WHERE upe.user_id = ?
       ORDER BY upe.enrolled_at DESC
       `,
-      [userUid]
+      [uid]
     );
 
-    return res.json({ ok: true, userId, userUid, programs: rows });
+    return res.json({ ok: true, userId, uid, userUid: uid, programs: rows });
   } catch (err) {
     console.error("❌ getProgramasUsuario:", err?.sqlMessage || err);
     return res.status(500).json({ error: "Error al obtener programas" });
@@ -66,190 +85,212 @@ exports.getProgramasUsuario = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// GET Progreso por programa (por userId interno, usa uid)
+// GET Vista admin del programa (actividades + progreso + docs)
 // ─────────────────────────────────────────────────────────────
-exports.getProgresoProgramaUsuario = async (req, res) => {
+exports.getAdminProgramView = async (req, res) => {
   try {
-    const userId = String(req.params.userId || "").trim();
+    const userId = safeStr(req.params.userId).trim();
     const programCode = safeUpper(req.params.programCode);
 
     if (!userId) return res.status(400).json({ error: "Parámetro userId inválido" });
-    if (!programCode) return res.status(400).json({ error: "programCode inválido" });
+    if (!programCode) return res.status(400).json({ error: "Parámetro programCode inválido" });
 
-    const userUid = await resolveFirebaseUidFromUserId(db, userId);
-    if (!userUid) return res.status(404).json({ error: "Usuario no encontrado" });
+    const uid = await resolveFirebaseUidFromUserId(db, userId);
+    if (!uid) return res.status(404).json({ error: "Usuario no encontrado" });
 
+    // Traemos TODO el catálogo del programa (bloques/módulos/actividades)
+    // + progreso por actividad (uap)
+    // + evidencia (uad) si existe
     const [rows] = await db.query(
       `
       SELECT
+        p.program_id,
         p.code AS program_code,
         p.name AS program_name,
+
+        b.block_id,
         b.code AS block_code,
+        b.name AS block_name,
+        b.order_index AS block_order,
+
+        m.module_id,
         m.code AS module_code,
+        m.name AS module_name,
+        m.order_index AS module_order,
+
         a.activity_id,
         a.code AS activity_code,
-        a.name AS activity_name,
+        a.title AS activity_title,
         a.type AS activity_type,
-        a.required,
-        a.min_score,
+        a.order_index AS activity_order,
+        a.required AS activity_required,
 
         COALESCE(uap.status, 'not_started') AS status,
         COALESCE(uap.attempts, 0) AS attempts,
         uap.score,
         uap.started_at,
         uap.completed_at,
-        uap.last_seen_at
-      FROM program p
-      JOIN block b ON b.program_id = p.program_id AND b.is_active = 1
-      JOIN module m ON m.block_id = b.block_id AND m.is_active = 1
-      JOIN activity a ON a.module_id = m.module_id AND a.is_active = 1
-      LEFT JOIN user_activity_progress uap
-        ON uap.activity_id = a.activity_id
-       AND uap.user_id = ?
-      WHERE p.code = ?
-        AND p.is_active = 1
-      ORDER BY b.order_index ASC, m.order_index ASC, a.order_index ASC
-      `,
-      [userUid, programCode]
-    );
+        uap.last_seen_at,
 
-    const total = rows.length;
-    const completed = rows.filter((x) => x.status === "completed").length;
-
-    return res.json({
-      ok: true,
-      userId,
-      userUid,
-      programCode,
-      summary: {
-        totalActivities: total,
-        completedActivities: completed,
-        progressPct: total ? Math.round((completed / total) * 100) : 0,
-      },
-      activities: rows,
-    });
-  } catch (err) {
-    console.error("❌ getProgresoProgramaUsuario:", err?.sqlMessage || err);
-    return res.status(500).json({ error: "Error al obtener progreso" });
-  }
-};
-
-// ─────────────────────────────────────────────────────────────
-// GET Evidencias (user_activity_docs) + score/status de progress
-// ─────────────────────────────────────────────────────────────
-exports.getDocsUsuario = async (req, res) => {
-  try {
-    const userId = String(req.params.userId || "").trim();
-    const programCode = safeUpper(req.query.programCode);
-
-    if (!userId) return res.status(400).json({ error: "Parámetro userId inválido" });
-
-    const userUid = await resolveFirebaseUidFromUserId(db, userId);
-    if (!userUid) return res.status(404).json({ error: "Usuario no encontrado" });
-
-    const params = [userUid];
-    let whereProgram = "";
-    if (programCode) {
-      whereProgram = " AND p.code = ? ";
-      params.push(programCode);
-    }
-
-    const [rows] = await db.query(
-      `
-      SELECT
         uad.id AS doc_id,
-        uad.user_id,
-        uad.activity_id,
-        uad.program_code,
-        uad.block_code,
-        uad.module_code,
+        uad.status AS doc_status,
         uad.document_title,
-        uad.description,
+        uad.description AS doc_description,
         uad.file_url,
         uad.file_name,
         uad.file_type,
         uad.file_size,
         uad.storage_path,
         uad.user_note,
-        uad.status AS doc_status,
+        uad.review_note,
         uad.reviewed_by,
         uad.reviewed_at,
-        uad.review_note,
-        uad.created_at,
-        uad.updated_at,
+        uad.created_at AS doc_created_at,
+        uad.updated_at AS doc_updated_at
 
-        a.code AS activity_code,
-        a.name AS activity_name,
-        a.type AS activity_type,
+      FROM program p
+      JOIN block b    ON b.program_id = p.program_id AND b.is_active = 1
+      JOIN module m   ON m.block_id = b.block_id AND m.is_active = 1
+      JOIN activity a ON a.module_id = m.module_id AND a.is_active = 1
 
-        COALESCE(uap.status, 'not_started') AS progress_status,
-        uap.score AS progress_score
-      FROM user_activity_docs uad
-      JOIN activity a ON a.activity_id = uad.activity_id
-      JOIN module m ON m.module_id = a.module_id
-      JOIN block b ON b.block_id = m.block_id
-      JOIN program p ON p.program_id = b.program_id
       LEFT JOIN user_activity_progress uap
-        ON uap.user_id = uad.user_id
-       AND uap.activity_id = uad.activity_id
-      WHERE uad.user_id = ?
-      ${whereProgram}
-      ORDER BY uad.updated_at DESC
+        ON uap.activity_id = a.activity_id
+       AND uap.user_id = ?
+
+      LEFT JOIN user_activity_docs uad
+        ON uad.activity_id = a.activity_id
+       AND uad.user_id = ?
+
+      WHERE p.code = ?
+        AND p.is_active = 1
+      ORDER BY b.order_index ASC, m.order_index ASC, a.order_index ASC
       `,
-      params
+      [uid, uid, programCode]
     );
 
-    return res.json({ ok: true, userId, userUid, docs: rows });
+    if (!rows || rows.length === 0) {
+      // puede ser que el programa no exista o no tenga catálogo activo
+      return res.status(404).json({ error: "Programa no encontrado o sin actividades" });
+    }
+
+    const program = {
+      program_id: rows[0].program_id,
+      code: rows[0].program_code,
+      name: rows[0].program_name,
+    };
+
+    // Construimos activities con doc anidado (solo si existe doc_id)
+    const activities = rows.map((r) => {
+      const hasDoc = r.doc_id !== null && r.doc_id !== undefined;
+
+      const doc = hasDoc
+        ? {
+            doc_id: r.doc_id,
+            doc_status: r.doc_status,
+            document_title: r.document_title,
+            description: r.doc_description,
+            file_url: r.file_url,
+            file_name: r.file_name,
+            file_type: r.file_type,
+            file_size: r.file_size,
+            storage_path: r.storage_path,
+            user_note: r.user_note,
+            review_note: r.review_note,
+            reviewed_by: r.reviewed_by,
+            reviewed_at: r.reviewed_at,
+            created_at: r.doc_created_at,
+            updated_at: r.doc_updated_at,
+          }
+        : null;
+
+      return {
+        activity_id: r.activity_id,
+        activity_code: r.activity_code,
+        activity_title: r.activity_title,
+        activity_type: r.activity_type, // 'upload'
+        activity_order: r.activity_order,
+        required: !!r.activity_required,
+
+        block_id: r.block_id,
+        block_code: r.block_code,
+        block_name: r.block_name,
+        block_order: r.block_order,
+
+        module_id: r.module_id,
+        module_code: r.module_code,
+        module_name: r.module_name,
+        module_order: r.module_order,
+
+        status: r.status,
+        attempts: r.attempts,
+        score: r.score,
+        started_at: r.started_at,
+        completed_at: r.completed_at,
+        last_seen_at: r.last_seen_at,
+
+        doc,
+      };
+    });
+
+    const total = activities.length;
+    const completed = activities.filter((a) => a.status === "completed").length;
+    const pct = total ? Math.round((completed / total) * 100) : 0;
+
+    return res.json({
+      ok: true,
+      userId,
+      uid,
+      userUid: uid,
+      program,
+      summary: {
+        totalActivities: total,
+        completedActivities: completed,
+        progressPct: pct,
+      },
+      activities,
+    });
   } catch (err) {
-    console.error("❌ getDocsUsuario:", err?.sqlMessage || err);
-    return res.status(500).json({ error: "Error al obtener evidencias" });
+    console.error("❌ getAdminProgramView:", err?.sqlMessage || err);
+    return res.status(500).json({ error: "Error al obtener vista del programa" });
   }
 };
 
 // ─────────────────────────────────────────────────────────────
-// PATCH Review doc (solo docs, no otras actividades)
-// - actualiza user_activity_docs
-// - actualiza user_activity_progress para esa activity_id
+// PATCH Review doc (approve/reject + review_note + score opcional)
 // ─────────────────────────────────────────────────────────────
 exports.reviewDocUsuario = async (req, res) => {
-  const userId = String(req.params.userId || "").trim();
-  const docId = toInt(req.params.docId);
-
-  if (!userId) return res.status(400).json({ error: "Parámetro userId inválido" });
-  if (!Number.isFinite(docId) || docId <= 0) return res.status(400).json({ error: "docId inválido" });
-
-  const status = String(req.body?.status || "").trim().toLowerCase();
-  const reviewNote = req.body?.review_note ?? null;
-  const score = normalizeScore(req.body?.score);
-
-  const ALLOWED = new Set(["submitted", "approved", "rejected"]);
-  if (!ALLOWED.has(status)) return res.status(400).json({ error: "status inválido" });
-
-  const reviewerUid = String(req.user?.uid || "").trim() || null;
-
   const conn = await db.getConnection();
   try {
+    const docId = toInt(req.params.docId);
+    if (!Number.isFinite(docId)) return res.status(400).json({ error: "docId inválido" });
+
+    const { status, score, review_note } = req.body || {};
+    const newStatus = safeStr(status).trim(); // 'approved' | 'rejected' | 'submitted'
+    const newScore = normalizeScore(score);
+    const note = review_note === undefined ? null : safeStr(review_note);
+
+    if (!["approved", "rejected", "submitted"].includes(newStatus)) {
+      return res.status(400).json({ error: "status inválido (submitted|approved|rejected)" });
+    }
+
+    const reviewerUid = req?.firebaseUser?.uid || null;
+
     await conn.beginTransaction();
 
-    const userUid = await resolveFirebaseUidFromUserId(conn, userId);
-    if (!userUid) {
-      await conn.rollback();
-      return res.status(404).json({ error: "Usuario no encontrado" });
-    }
-
-    // valida doc pertenece al uid
     const [rows] = await conn.query(
-      `SELECT id, user_id, activity_id FROM user_activity_docs WHERE id = ? AND user_id = ? LIMIT 1`,
-      [docId, userUid]
+      "SELECT id, user_id, activity_id FROM user_activity_docs WHERE id = ? LIMIT 1",
+      [docId]
     );
-    if (!rows.length) {
+    const docRow = rows?.[0];
+    if (!docRow) {
       await conn.rollback();
-      return res.status(404).json({ error: "Evidencia no encontrada para ese usuario" });
+      return res.status(404).json({ error: "Documento no encontrado" });
     }
 
-    const activityId = rows[0].activity_id;
+    const userUid = docRow.user_id; // YA es firebase uid (por tu esquema)
+    const activityId = docRow.activity_id;
 
-    // update docs
+    // 1) update doc
     await conn.query(
       `
       UPDATE user_activity_docs
@@ -257,44 +298,83 @@ exports.reviewDocUsuario = async (req, res) => {
         status = ?,
         reviewed_by = ?,
         reviewed_at = NOW(),
-        review_note = ?,
-        updated_at = NOW()
+        review_note = ?
       WHERE id = ?
       `,
-      [status, reviewerUid, reviewNote, docId]
+      [newStatus, reviewerUid, note, docId]
     );
 
-    // map status docs -> progress status
-    const nextProgressStatus =
-      status === "approved" ? "completed" : status === "rejected" ? "failed" : "in_progress";
-
-    await conn.query(
-      `
-      INSERT INTO user_activity_progress
-        (user_id, activity_id, status, attempts, score, started_at, completed_at, last_seen_at)
-      VALUES
-        (?, ?, ?, 1, ?, NOW(), ?, NOW())
-      ON DUPLICATE KEY UPDATE
-        status = VALUES(status),
-        score = COALESCE(VALUES(score), score),
-        completed_at = COALESCE(VALUES(completed_at), completed_at),
-        last_seen_at = NOW()
-      `,
-      [
-        userUid,
-        activityId,
-        nextProgressStatus,
-        score,
-        nextProgressStatus === "completed" ? new Date() : null,
-      ]
-    );
+    // 2) sincronizar progreso según dictamen
+    if (newStatus === "approved") {
+      await conn.query(
+        `
+        INSERT INTO user_activity_progress
+          (user_id, activity_id, status, score, attempts, started_at, completed_at, last_seen_at)
+        VALUES
+          (?, ?, 'completed', ?, 1, NOW(), NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+          status = 'completed',
+          score = COALESCE(VALUES(score), score),
+          completed_at = COALESCE(completed_at, NOW()),
+          last_seen_at = NOW()
+        `,
+        [userUid, activityId, newScore]
+      );
+    } else if (newStatus === "rejected") {
+      await conn.query(
+        `
+        INSERT INTO user_activity_progress
+          (user_id, activity_id, status, score, attempts, started_at, last_seen_at)
+        VALUES
+          (?, ?, 'in_progress', NULL, 1, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+          status = 'in_progress',
+          last_seen_at = NOW()
+        `,
+        [userUid, activityId]
+      );
+    } else {
+      // submitted: no tocamos progreso (o podrías poner in_progress si quieres)
+      await conn.query(
+        `
+        INSERT INTO user_activity_progress
+          (user_id, activity_id, status, attempts, started_at, last_seen_at)
+        VALUES
+          (?, ?, 'in_progress', 1, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+          status = IF(status='not_started','in_progress',status),
+          last_seen_at = NOW()
+        `,
+        [userUid, activityId]
+      );
+    }
 
     await conn.commit();
 
-    const [after] = await conn.query("SELECT * FROM user_activity_docs WHERE id = ? LIMIT 1", [docId]);
-    return res.json({ ok: true, userId, userUid, doc: after?.[0] || null });
+    const [after] = await conn.query(
+      `
+      SELECT
+        uad.*,
+        a.code AS activity_code,
+        a.title AS activity_title
+      FROM user_activity_docs uad
+      JOIN activity a ON a.activity_id = uad.activity_id
+      WHERE uad.id = ? LIMIT 1
+      `,
+      [docId]
+    );
+
+    return res.json({
+      ok: true,
+      docId,
+      uid: userUid,
+      userUid,
+      doc: after?.[0] || null,
+    });
   } catch (err) {
-    try { await conn.rollback(); } catch {}
+    try {
+      await conn.rollback();
+    } catch {}
     console.error("❌ reviewDocUsuario:", err?.sqlMessage || err);
     return res.status(500).json({ error: "Error al calificar evidencia" });
   } finally {
