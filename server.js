@@ -84,6 +84,7 @@ app.use("/progreso", progresoDocsRoutes);
 app.use("/coordinaciones", coordinacionesRoutes);
 app.use("/trayectoria", trayectoriaRoutes);
 app.use("/progreso", progresoAdminRoutes);
+app.use("/progreso/admin", progresoAdminRoutes);
 
 
 // ✅ Servir SCORM montado (assets extraídos)
