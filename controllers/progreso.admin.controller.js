@@ -89,8 +89,8 @@ exports.getProgramasUsuario = async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 exports.getAdminProgramView = async (req, res) => {
   try {
-    const userId = safeStr(req.params.userId).trim();
-    const programCode = safeUpper(req.params.programCode);
+    const userId = String(req.params.userId || "").trim();
+    const programCode = String(req.params.programCode || "").trim().toUpperCase();
 
     if (!userId) return res.status(400).json({ error: "Parámetro userId inválido" });
     if (!programCode) return res.status(400).json({ error: "Parámetro programCode inválido" });
@@ -98,9 +98,6 @@ exports.getAdminProgramView = async (req, res) => {
     const uid = await resolveFirebaseUidFromUserId(db, userId);
     if (!uid) return res.status(404).json({ error: "Usuario no encontrado" });
 
-    // Traemos TODO el catálogo del programa (bloques/módulos/actividades)
-    // + progreso por actividad (uap)
-    // + evidencia (uad) si existe
     const [rows] = await db.query(
       `
       SELECT
@@ -120,10 +117,11 @@ exports.getAdminProgramView = async (req, res) => {
 
         a.activity_id,
         a.code AS activity_code,
-        a.title AS activity_title,
+        a.name AS activity_title,          -- ✅ AQUÍ (antes a.title)
         a.type AS activity_type,
         a.order_index AS activity_order,
         a.required AS activity_required,
+        a.min_score AS activity_min_score,
 
         COALESCE(uap.status, 'not_started') AS status,
         COALESCE(uap.attempts, 0) AS attempts,
@@ -149,9 +147,15 @@ exports.getAdminProgramView = async (req, res) => {
         uad.updated_at AS doc_updated_at
 
       FROM program p
-      JOIN block b    ON b.program_id = p.program_id AND b.is_active = 1
-      JOIN module m   ON m.block_id = b.block_id AND m.is_active = 1
-      JOIN activity a ON a.module_id = m.module_id AND a.is_active = 1
+      JOIN block b
+        ON b.program_id = p.program_id
+       AND b.is_active = 1
+      JOIN module m
+        ON m.block_id = b.block_id
+       AND m.is_active = 1
+      JOIN activity a
+        ON a.module_id = m.module_id
+       AND a.is_active = 1
 
       LEFT JOIN user_activity_progress uap
         ON uap.activity_id = a.activity_id
@@ -163,13 +167,13 @@ exports.getAdminProgramView = async (req, res) => {
 
       WHERE p.code = ?
         AND p.is_active = 1
+
       ORDER BY b.order_index ASC, m.order_index ASC, a.order_index ASC
       `,
       [uid, uid, programCode]
     );
 
     if (!rows || rows.length === 0) {
-      // puede ser que el programa no exista o no tenga catálogo activo
       return res.status(404).json({ error: "Programa no encontrado o sin actividades" });
     }
 
@@ -179,7 +183,6 @@ exports.getAdminProgramView = async (req, res) => {
       name: rows[0].program_name,
     };
 
-    // Construimos activities con doc anidado (solo si existe doc_id)
     const activities = rows.map((r) => {
       const hasDoc = r.doc_id !== null && r.doc_id !== undefined;
 
@@ -210,6 +213,7 @@ exports.getAdminProgramView = async (req, res) => {
         activity_type: r.activity_type, // 'upload'
         activity_order: r.activity_order,
         required: !!r.activity_required,
+        min_score: r.activity_min_score,
 
         block_id: r.block_id,
         block_code: r.block_code,
@@ -250,26 +254,26 @@ exports.getAdminProgramView = async (req, res) => {
       activities,
     });
   } catch (err) {
-console.error("❌ getAdminProgramView:", {
-  message: err?.message,
-  sqlMessage: err?.sqlMessage,
-  code: err?.code,
-  errno: err?.errno,
-  sqlState: err?.sqlState,
-  sql: err?.sql,
-});
+    console.error("❌ getAdminProgramView:", {
+      message: err?.message,
+      sqlMessage: err?.sqlMessage,
+      code: err?.code,
+      errno: err?.errno,
+      sqlState: err?.sqlState,
+      sql: err?.sql,
+    });
 
-return res.status(500).json({
-  error: "Error al obtener vista del programa",
-  debug: {
-    code: err?.code,
-    errno: err?.errno,
-    sqlMessage: err?.sqlMessage,
-  },
-});
-
+    return res.status(500).json({
+      error: "Error al obtener vista del programa",
+      debug: {
+        code: err?.code,
+        errno: err?.errno,
+        sqlMessage: err?.sqlMessage,
+      },
+    });
   }
 };
+
 
 // ─────────────────────────────────────────────────────────────
 // PATCH Review doc (approve/reject + review_note + score opcional)
