@@ -2899,6 +2899,146 @@
         }
       ],
       "shortId": "INSC_PNA"
+    },
+    {
+      "title": "Programa Nacional de Actualización",
+      "description": "Actualiza tus conocimientos en atención prehospitalaria",
+      "estimatedMinutes": null,
+      "level": null,
+      "formacion": "formacionEspecializada",
+      "image": "/assets/PNA.png",
+      "tags": [
+        "urgencias_medicas",
+        "capacitacion",
+        "tum"
+      ],
+      "program_id": 13,
+      "code": "PNA",
+      "slug": "capacitacion_PNA",
+      "blocks": [
+        {
+          "title": "Soporte Vital Básico",
+          "description": "",
+          "order": 1,
+          "estimatedMinutes": null,
+          "optional": false,
+          "block_id": 18,
+          "code": "B01",
+          "slug": "PNA_b01_for_0c202c81",
+          "modules": [
+            {
+              "title": "Soporte Vital Básico",
+              "description": "",
+              "order": 1,
+              "estimatedMinutes": null,
+              "prerequisites": [],
+              "isFinalExam": false,
+              "module_id": 31,
+              "code": "M01",
+              "slug": "PNA_b01_m01_int_ea77498f",
+              "activities": [
+                {
+                  "title": "Lectura: Manual del paticipante",
+                  "type": "reading",
+                  "order": 1,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/modulo1.pdf"
+                  },
+                  "activity_id": 69,
+                  "code": "A01",
+                  "slug": "PNA_b01_m01_a01_lec_05f3144b",
+                  "shortId": "PNA-B01-M01-A01"
+                },
+                {
+                  "title": "Video clase",
+                  "type": "video",
+                  "order": 2,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "IQyYoVKPumM"
+                    ]
+                  },
+                  "activity_id": 70,
+                  "code": "A02",
+                  "slug": "PNA_b01_m01_a02_vid_e54ba96f",
+                  "shortId": "PNA-B01-M01-A02"
+                },
+                {
+                  "title": "Presentación",
+                  "type": "reading",
+                  "order": 3,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/modulo1presentacion.pdf"
+                  },
+                  "activity_id": 71,
+                  "code": "A03",
+                  "slug": "PNA_b01_m01_a03_lec_05f3144b",
+                  "shortId": "PNA-B01-M01-A03"
+                },
+                {
+                  "title": "Indicaciones de actividad",
+                  "type": "reading",
+                  "order": 4,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/modulo1actividad1.pdf"
+                  },
+                  "activity_id": 72,
+                  "code": "A04",
+                  "slug": "PNA_b01_m01_a04_lec_05f3144b",
+                  "shortId": "PNA-B01-M01-A04"
+                },
+                {
+                  "title": "Sube tu actividad",
+                  "type": "upload",
+                  "order": 5,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "documentTitle": "PNA: Actividad 1",
+                    "description": "Adjunta tu actividad realizada.",
+                    "accept": "application/pdf,image/*",
+                    "required": true
+                  },
+                  "activity_id": 73,
+                  "code": "A05",
+                  "slug": "PNA_b01_m01_a05_lec_05f3144b",
+                  "shortId": "PNA-B01-M01-A05"
+                },
+                {
+                  "title": "Solicita tus prácticas",
+                  "type": "solicitud",
+                  "order": 6,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "request_key": "PNA_EXAMEN_FINAL_PRACTICO",
+                    "request_title": "Solicitud de Examen Final Práctico",
+                    "placeholder": "Si lo ves necesario, añade algún comentario adicional.",
+                    "helperText": "Tu solicitud será revisada por un coordinador. Recibirás una respuesta pronto.",
+                    "requiredComment": false
+                  },
+                  "activity_id": 74,
+                  "code": "A06",
+                  "slug": "PNA_b01_m01_a06_lec_05f3144b",
+                  "shortId": "PNA-B01-M01-A06"
+                }
+              ],
+              "shortId": "PNA-B01-M01"
+            }
+          ],
+          "shortId": "PNA-B01"
+        }
+      ],
+      "shortId": "PNA"
     }
   ]
 }
