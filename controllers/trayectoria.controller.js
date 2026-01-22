@@ -182,16 +182,16 @@ const obtenerMiTrayectoria = async (req, res) => {
   }
 };
 
-/**
+
+/*
  * ─────────────────────────────────────────────────────────────
  *  DELETE /trayectoria/:trajectoryId
- *  Usuario autenticado: borra SU PROPIO registro (soft delete)
- *
- *  ✅ No borra físicamente; solo is_active=0
- *  ✅ Verifica ownership por uid
+ *  Usuario autenticado
+ *  Borrado lógico (is_active=0) de SU PROPIO registro
+ *  Regla: si está validated => no se puede borrar (para no romper auditoría)
  * ─────────────────────────────────────────────────────────────
  */
-const eliminarMiTrayectoria = async (req, res) => {
+const borrarMiTrayectoria = async (req, res) => {
   try {
     const uid = req.user?.uid;
     if (!uid) return res.status(401).json({ error: "No autenticado" });
@@ -201,47 +201,41 @@ const eliminarMiTrayectoria = async (req, res) => {
       return res.status(400).json({ error: "trajectoryId inválido" });
     }
 
-    // Traemos el registro para:
-    // 1) confirmar que existe
-    // 2) confirmar que le pertenece al usuario
-    // 3) devolver algo útil al front
+    // 1) Verifica que exista y sea del usuario
     const [rows] = await db.query(
-      `
-      SELECT trajectory_id, uid, is_active
-      FROM trajectory
-      WHERE trajectory_id = ?
-      LIMIT 1
-      `,
-      [trajectoryId]
+      `SELECT trajectory_id, status
+       FROM trajectory
+       WHERE trajectory_id = ? AND uid = ? AND is_active = 1
+       LIMIT 1`,
+      [trajectoryId, uid]
     );
 
     if (!rows.length) return res.status(404).json({ error: "Registro no encontrado" });
 
-    const row = rows[0];
-    if (String(row.uid) !== String(uid)) {
-      return res.status(403).json({ error: "No tienes permiso para borrar este registro" });
+    const st = String(rows[0].status || "").toLowerCase();
+    if (st === "validated") {
+      return res.status(409).json({
+        error: "No puedes borrar un registro validado. Si necesitas corregirlo, contacta a soporte.",
+      });
     }
 
-    if (Number(row.is_active) !== 1) {
-      // ya estaba borrado
-      return res.json({ mensaje: "Registro ya estaba eliminado", trajectory_id: trajectoryId });
-    }
-
-    await db.query(
-      `
-      UPDATE trajectory
-      SET is_active = 0, updated_at = CURRENT_TIMESTAMP
-      WHERE trajectory_id = ? AND uid = ?
-      `,
+    // 2) Borrado lógico
+    const [result] = await db.query(
+      `UPDATE trajectory
+       SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+       WHERE trajectory_id = ? AND uid = ? AND is_active = 1`,
       [trajectoryId, uid]
     );
 
-    return res.json({ mensaje: "Registro eliminado", trajectory_id: trajectoryId });
+    if (!result.affectedRows) return res.status(404).json({ error: "Registro no encontrado" });
+
+    return res.status(204).send();
   } catch (err) {
-    console.error("❌ eliminarMiTrayectoria:", err);
-    return res.status(500).json({ error: "Error al eliminar trayectoria" });
+    console.error("❌ borrarMiTrayectoria:", err);
+    return res.status(500).json({ error: "Error al borrar trayectoria" });
   }
 };
+
 
 /**
  * ─────────────────────────────────────────────────────────────
@@ -404,7 +398,7 @@ const actualizarStatusTrayectoria = async (req, res) => {
 module.exports = {
   crearTrayectoria,
   obtenerMiTrayectoria,
-  eliminarMiTrayectoria, // ✅ NUEVO
+  borrarMiTrayectoria, // ✅ NUEVO
   getAllTrayectoria,
   actualizarStatusTrayectoria,
 };
