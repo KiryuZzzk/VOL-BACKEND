@@ -12,7 +12,7 @@ router.get(
   progresoAdminController.getProgramasUsuario
 );
 
-// ✅ Vista completa del programa (actividades+progreso+doc)
+// ✅ Vista completa del programa (actividades+progreso+doc+request)
 router.get(
   "/users/:userId/programas/:programCode",
   authMiddleware,
@@ -26,6 +26,14 @@ router.patch(
   authMiddleware,
   roleMiddleware(["admin", "superadmin"]),
   progresoAdminController.reviewDocUsuario
+);
+
+// ✅ Review de solicitud (request)
+router.patch(
+  "/requests/:requestId/review",
+  authMiddleware,
+  roleMiddleware(["admin", "superadmin"]),
+  progresoAdminController.reviewRequestUsuario
 );
 
 module.exports = router;

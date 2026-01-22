@@ -29,29 +29,17 @@ function normCategory(s) {
 }
 
 // Categorías que disparan auto-inscripción a SOC
-const TUM_CATEGORIES = new Set([
-  normCategory("TUM Cruz Roja Mexicana"),
-  normCategory("TUM externo"),
-]);
+const TUM_CATEGORIES = new Set([normCategory("TUM Cruz Roja Mexicana"), normCategory("TUM externo")]);
 
 /**
  * Asegura que el usuario quede inscrito a SOC (coordinación code=SOC)
  * ✅ AHORA TAMBIÉN: sincroniza enrollments de programas dependientes (@req:coord:SOC)
- *
- * - Inserta si no existe
- * - Si ya existe, no pisa estados finales (ACTIVO/PENDIENTE_VALIDACION/RECHAZADO/BAJA) (esto lo respeta tu helper)
- * - En otros casos lo deja/manda a EN_PROCESO
  */
 async function ensureSocEnrollmentAndPrograms(firebaseUid) {
-  // En este flujo NO queremos tumbar trayectoria si falla, pero sí queremos consistencia.
-  // Usamos una transacción corta.
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
 
-    // Esto:
-    // 1) upserta user_coordinaciones (SOC, EN_PROCESO)
-    // 2) corre syncProgramsForCoord => upsert user_program_enrollment para @req:coord:SOC
     const result = await upsertUserCoordinacionAndSync(conn, firebaseUid, "SOC", "EN_PROCESO");
 
     await conn.commit();
@@ -70,12 +58,6 @@ async function ensureSocEnrollmentAndPrograms(firebaseUid) {
 /**
  * ─────────────────────────────────────────────────────────────
  *  POST /trayectoria
- *  Usuario autenticado (aspirante/admin/mod)
- *  Crea un registro de trayectoria del usuario (uid)
- *  - file_url puede ser null
- *  - status por defecto 'pending'
- *  - submitted_at se setea al crear
- *  - SI category es TUM => auto-inscribe a SOC (EN_PROCESO) + auto-enroll a programas @req:coord:SOC
  * ─────────────────────────────────────────────────────────────
  */
 const crearTrayectoria = async (req, res) => {
@@ -95,7 +77,6 @@ const crearTrayectoria = async (req, res) => {
       file_size_bytes,
     } = req.body;
 
-    // Validaciones mínimas
     if (!category || !title) {
       return res.status(400).json({ error: "category y title son obligatorios" });
     }
@@ -141,7 +122,6 @@ const crearTrayectoria = async (req, res) => {
         autoEnrollSoc = await ensureSocEnrollmentAndPrograms(uid);
         console.log("✅ Auto-enroll SOC + programs:", { uid, ...autoEnrollSoc });
       } catch (e) {
-        // No tumbes el alta de trayectoria por un tema de coordinación
         console.error("⚠️ Error auto-enroll SOC+programs (no bloquea trayectoria):", e);
         autoEnrollSoc = { ok: false, reason: "ERROR" };
       }
@@ -161,8 +141,6 @@ const crearTrayectoria = async (req, res) => {
 /**
  * ─────────────────────────────────────────────────────────────
  *  GET /trayectoria/mios
- *  Usuario autenticado
- *  Devuelve su trayectoria (por uid)
  * ─────────────────────────────────────────────────────────────
  */
 const obtenerMiTrayectoria = async (req, res) => {
@@ -201,6 +179,67 @@ const obtenerMiTrayectoria = async (req, res) => {
   } catch (err) {
     console.error("❌ obtenerMiTrayectoria:", err);
     return res.status(500).json({ error: "Error al obtener trayectoria" });
+  }
+};
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ *  DELETE /trayectoria/:trajectoryId
+ *  Usuario autenticado: borra SU PROPIO registro (soft delete)
+ *
+ *  ✅ No borra físicamente; solo is_active=0
+ *  ✅ Verifica ownership por uid
+ * ─────────────────────────────────────────────────────────────
+ */
+const eliminarMiTrayectoria = async (req, res) => {
+  try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: "No autenticado" });
+
+    const trajectoryId = Number(req.params.trajectoryId);
+    if (!Number.isFinite(trajectoryId) || trajectoryId <= 0) {
+      return res.status(400).json({ error: "trajectoryId inválido" });
+    }
+
+    // Traemos el registro para:
+    // 1) confirmar que existe
+    // 2) confirmar que le pertenece al usuario
+    // 3) devolver algo útil al front
+    const [rows] = await db.query(
+      `
+      SELECT trajectory_id, uid, is_active
+      FROM trajectory
+      WHERE trajectory_id = ?
+      LIMIT 1
+      `,
+      [trajectoryId]
+    );
+
+    if (!rows.length) return res.status(404).json({ error: "Registro no encontrado" });
+
+    const row = rows[0];
+    if (String(row.uid) !== String(uid)) {
+      return res.status(403).json({ error: "No tienes permiso para borrar este registro" });
+    }
+
+    if (Number(row.is_active) !== 1) {
+      // ya estaba borrado
+      return res.json({ mensaje: "Registro ya estaba eliminado", trajectory_id: trajectoryId });
+    }
+
+    await db.query(
+      `
+      UPDATE trajectory
+      SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+      WHERE trajectory_id = ? AND uid = ?
+      `,
+      [trajectoryId, uid]
+    );
+
+    return res.json({ mensaje: "Registro eliminado", trajectory_id: trajectoryId });
+  } catch (err) {
+    console.error("❌ eliminarMiTrayectoria:", err);
+    return res.status(500).json({ error: "Error al eliminar trayectoria" });
   }
 };
 
@@ -255,6 +294,9 @@ const getAllTrayectoria = async (req, res) => {
       where.push("ut.year = ?");
       params.push(y);
     }
+
+    // (Opcional) si quieres ocultar eliminados aquí también:
+    where.push("ut.is_active = 1");
 
     const sql = `
       SELECT
@@ -362,6 +404,7 @@ const actualizarStatusTrayectoria = async (req, res) => {
 module.exports = {
   crearTrayectoria,
   obtenerMiTrayectoria,
+  eliminarMiTrayectoria, // ✅ NUEVO
   getAllTrayectoria,
   actualizarStatusTrayectoria,
 };

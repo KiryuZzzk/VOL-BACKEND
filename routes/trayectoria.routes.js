@@ -31,5 +31,8 @@ router.patch(
   trayectoriaCtrl.actualizarStatusTrayectoria
 );
 
+router.delete("/trayectoria/:trajectoryId", authMiddleware, trayectoriaCtrl.eliminarMiTrayectoria);
+
+
 
 module.exports = router;
