@@ -898,3 +898,267 @@ exports.getMiResumen = async (req, res) => {
     return res.status(500).json({ error: "Error obteniendo resumen de progreso" });
   }
 };
+
+
+/**
+ * =======================
+ * 📨 SOLICITUDES (USER)
+ * =======================
+ * GET  /progreso/actividades/:activityId/solicitud
+ * POST /progreso/actividades/:activityId/solicitud
+ *
+ * Tabla: user_activity_requests
+ * Regla:
+ *  - Si existe última solicitud en status submitted|approved => NO permite duplicar
+ *  - Si la última fue rejected => permite reenviar
+ */
+
+// GET /progreso/actividades/:activityId/solicitud
+exports.getSolicitudActividad = async (req, res) => {
+  const uid = getProgressUserId(req);
+  const activityId = normalizeActivityId(req.params.activityId);
+
+  if (!uid) return res.status(401).json({ error: "No autenticado" });
+  if (!activityId) return res.status(400).json({ error: "activityId inválido" });
+
+  try {
+    const [rows] = await db.query(
+      `
+      SELECT
+        request_id,
+        user_id,
+        activity_id,
+        request_key,
+        request_title,
+        user_comment,
+        status,
+        score,
+        review_note,
+        reviewed_by,
+        reviewed_at,
+        created_at,
+        updated_at
+      FROM user_activity_requests
+      WHERE user_id = ? AND activity_id = ?
+      ORDER BY request_id DESC
+      LIMIT 1
+      `,
+      [uid, activityId]
+    );
+
+    return res.json({
+      ok: true,
+      request: rows?.[0] || null,
+    });
+  } catch (err) {
+    console.error("❌ getSolicitudActividad error:", err);
+    return res.status(500).json({ error: "Error al obtener solicitud" });
+  }
+};
+
+// POST /progreso/actividades/:activityId/solicitud
+exports.crearSolicitudActividad = async (req, res) => {
+  const uid = getProgressUserId(req);
+  const activityId = normalizeActivityId(req.params.activityId);
+
+  const request_key = String(req.body?.request_key || "").trim();
+  const request_title =
+    req.body?.request_title === undefined ? null : String(req.body.request_title || "").trim();
+  const user_comment =
+    req.body?.user_comment === undefined ? null : String(req.body.user_comment || "").trim();
+
+  if (!uid) return res.status(401).json({ error: "No autenticado" });
+  if (!activityId) return res.status(400).json({ error: "activityId inválido" });
+  if (!request_key) return res.status(400).json({ error: "request_key requerido" });
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // 0) validar que la actividad exista
+    const [aRows] = await conn.query(
+      `SELECT activity_id, type, is_active FROM activity WHERE activity_id = ? LIMIT 1`,
+      [activityId]
+    );
+
+    const a = aRows?.[0];
+    if (!a) {
+      await conn.rollback();
+      return res.status(404).json({ error: "Actividad no encontrada" });
+    }
+    if (Number(a.is_active) === 0) {
+      await conn.rollback();
+      return res.status(400).json({ error: "Actividad inactiva" });
+    }
+
+    // 1) revisar última solicitud (si existe)
+    const [prevRows] = await conn.query(
+      `
+      SELECT request_id, status
+      FROM user_activity_requests
+      WHERE user_id = ? AND activity_id = ?
+      ORDER BY request_id DESC
+      LIMIT 1
+      `,
+      [uid, activityId]
+    );
+
+    const prev = prevRows?.[0] || null;
+    const prevStatus = prev ? String(prev.status || "").trim() : null;
+
+    if (prev && (prevStatus === "submitted" || prevStatus === "approved")) {
+      await conn.rollback();
+      return res.status(409).json({
+        error: "Ya existe una solicitud en revisión o aprobada para esta actividad",
+        lastStatus: prevStatus,
+        requestId: prev.request_id,
+      });
+    }
+
+    // 2) crear solicitud
+    const titleToSave = request_title && request_title.trim() ? request_title.trim() : null;
+    const commentToSave = user_comment && user_comment.trim() ? user_comment.trim() : null;
+
+    const [ins] = await conn.query(
+      `
+      INSERT INTO user_activity_requests
+        (user_id, activity_id, request_key, request_title, user_comment, status, created_at, updated_at)
+      VALUES
+        (?, ?, ?, ?, ?, 'submitted', NOW(), NOW())
+      `,
+      [uid, activityId, request_key, titleToSave, commentToSave]
+    );
+
+    const requestId = ins?.insertId;
+
+    // 3) sincronizar progreso => in_progress
+    await conn.query(
+      `
+      INSERT INTO user_activity_progress
+        (user_id, activity_id, status, attempts, started_at, last_seen_at)
+      VALUES
+        (?, ?, 'in_progress', 1, NOW(), NOW())
+      ON DUPLICATE KEY UPDATE
+        status = IF(status='completed', status, 'in_progress'),
+        started_at = COALESCE(started_at, NOW()),
+        last_seen_at = NOW()
+      `,
+      [uid, activityId]
+    );
+
+    await conn.commit();
+
+    const [after] = await conn.query(
+      `
+      SELECT
+        request_id,
+        user_id,
+        activity_id,
+        request_key,
+        request_title,
+        user_comment,
+        status,
+        score,
+        review_note,
+        reviewed_by,
+        reviewed_at,
+        created_at,
+        updated_at
+      FROM user_activity_requests
+      WHERE request_id = ?
+      LIMIT 1
+      `,
+      [requestId]
+    );
+
+    return res.json({
+      ok: true,
+      requestId,
+      request: after?.[0] || null,
+    });
+  } catch (err) {
+    try {
+      await conn.rollback();
+    } catch {}
+
+    console.error("❌ crearSolicitudActividad error:", {
+      message: err?.message,
+      sqlMessage: err?.sqlMessage,
+      code: err?.code,
+      errno: err?.errno,
+      sqlState: err?.sqlState,
+      sql: err?.sql,
+    });
+
+    return res.status(500).json({
+      error: "Error al crear solicitud",
+      debug: {
+        code: err?.code,
+        errno: err?.errno,
+        sqlMessage: err?.sqlMessage,
+      },
+    });
+  } finally {
+    conn.release();
+  }
+};
+
+/**
+ * GET /progreso/me/resumen
+ *
+ * Resumen global del progreso del usuario (por Firebase UID).
+ * - activitiesCompleted: cuántas activities tienen status='completed'
+ * - daysActive: rango inclusivo entre primera actividad iniciada y última actividad tocada/terminada
+ *
+ * Fuente de verdad:
+ *   user_activity_progress (status, started_at, completed_at, last_seen_at)
+ *
+ * Nota: NO depende de programas ni catálogo. Cero deuda técnica.
+ */
+exports.getMiResumen = async (req, res) => {
+  const uid = getProgressUserId(req);
+
+  if (!uid) return res.status(401).json({ error: "No autenticado" });
+
+  try {
+    const [rows] = await db.query(
+      `
+      SELECT
+        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS activitiesCompleted,
+        MIN(COALESCE(started_at, completed_at, last_seen_at)) AS firstActivityAt,
+        MAX(COALESCE(completed_at, last_seen_at, started_at)) AS lastActivityAt
+      FROM user_activity_progress
+      WHERE user_id = ?
+      `,
+      [uid]
+    );
+
+    const r = rows?.[0] || {};
+
+    const activitiesCompleted = Number(r.activitiesCompleted || 0);
+
+    // DÍAS: rango inclusivo en días. Si solo hay un día => 1.
+    // Si no hay actividad => 0.
+    const first = r.firstActivityAt ? new Date(r.firstActivityAt) : null;
+    const last = r.lastActivityAt ? new Date(r.lastActivityAt) : null;
+
+    let daysActive = 0;
+    if (first && last && !Number.isNaN(first.getTime()) && !Number.isNaN(last.getTime())) {
+      const MS_PER_DAY = 24 * 60 * 60 * 1000;
+      const diffMs = last.getTime() - first.getTime();
+      const diffDays = Math.floor(diffMs / MS_PER_DAY);
+      daysActive = Math.max(1, diffDays + 1);
+    }
+
+    return res.json({
+      user_id: uid,
+      activitiesCompleted,
+      daysActive,
+      firstActivityAt: r.firstActivityAt,
+      lastActivityAt: r.lastActivityAt,
+    });
+  } catch (err) {
+    console.error("getMiResumen error:", err);
+    return res.status(500).json({ error: "Error obteniendo resumen de progreso" });
+  }
+};

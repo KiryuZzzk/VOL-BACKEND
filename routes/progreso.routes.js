@@ -46,6 +46,19 @@ router.post(
   progresoCtrl.choosePathActividad
 );
 
+// 📨 Solicitudes (actividad tipo "solicitud")
+router.get(
+  "/actividades/:activityId/solicitud",
+  authMiddleware,
+  progresoCtrl.getSolicitudActividad
+);
+
+router.post(
+  "/actividades/:activityId/solicitud",
+  authMiddleware,
+  progresoCtrl.crearSolicitudActividad
+);
+
 // Obtener el catálogo de programas inscritos
 router.get(
   "/me/programas",
@@ -69,6 +82,9 @@ router.post(
 
 // Resumen global
 router.get(
-  "/me/resumen",authMiddleware,progresoCtrl.getMiResumen);
+  "/me/resumen",
+  authMiddleware,
+  progresoCtrl.getMiResumen
+);
 
 module.exports = router;
