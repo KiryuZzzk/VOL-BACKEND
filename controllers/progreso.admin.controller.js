@@ -38,6 +38,19 @@ async function resolveFirebaseUidFromUserId(connOrDb, userId) {
   return null;
 }
 
+// Resuelve program_id por code (solo activos)
+async function resolveProgramIdFromCode(connOrDb, programCode) {
+  const code = safeUpper(programCode);
+  if (!code) return null;
+
+  const [rows] = await connOrDb.query(
+    "SELECT program_id FROM program WHERE code = ? AND is_active = 1 LIMIT 1",
+    [code]
+  );
+
+  return rows?.[0]?.program_id ?? null;
+}
+
 // ─────────────────────────────────────────────────────────────
 // GET: Programas inscritos del usuario (ADMIN)
 // GET /progreso/admin/users/:userId/programas
@@ -308,6 +321,203 @@ exports.getAdminProgramView = async (req, res) => {
 
     return res.status(500).json({
       error: "Error al obtener vista del programa",
+      debug: {
+        code: err?.code,
+        errno: err?.errno,
+        sqlMessage: err?.sqlMessage,
+      },
+    });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// ✅ NUEVO: Listar programas (para selector "Por programa")
+// GET /progreso/admin/programas
+// ─────────────────────────────────────────────────────────────
+exports.listProgramasAdmin = async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `
+      SELECT program_id, code, name
+      FROM program
+      WHERE is_active = 1
+      ORDER BY name ASC
+      `
+    );
+
+    return res.json({ ok: true, programs: rows || [] });
+  } catch (err) {
+    console.error("❌ listProgramasAdmin:", {
+      message: err?.message,
+      sqlMessage: err?.sqlMessage,
+      code: err?.code,
+      errno: err?.errno,
+      sqlState: err?.sqlState,
+      sql: err?.sql,
+    });
+
+    return res.status(500).json({
+      error: "Error al listar programas",
+      debug: {
+        code: err?.code,
+        errno: err?.errno,
+        sqlMessage: err?.sqlMessage,
+      },
+    });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// ✅ NUEVO: Usuarios por programa (por ID)
+// GET /progreso/admin/programs/:programId/users
+//
+// Devuelve:
+// - datos del usuario (users.*)
+// - enrollment_status
+// - totalActivities (del programa)
+// - completedActivities (por user)
+// - progressPct
+// - avgScore (promedio de scores dentro de actividades del programa)
+// - lastActivityAt
+// ─────────────────────────────────────────────────────────────
+exports.getUsersByProgramIdAdmin = async (req, res) => {
+  try {
+    const programId = toInt(req.params.programId);
+    if (!Number.isFinite(programId)) return res.status(400).json({ error: "programId inválido" });
+
+    // Programa
+    const [pRows] = await db.query(
+      "SELECT program_id, code, name FROM program WHERE program_id = ? AND is_active = 1 LIMIT 1",
+      [programId]
+    );
+    const p = pRows?.[0];
+    if (!p) return res.status(404).json({ error: "Programa no encontrado" });
+
+    // Total de actividades del programa (activas)
+    const [tRows] = await db.query(
+      `
+      SELECT COUNT(*) AS total
+      FROM program p
+      JOIN block b ON b.program_id = p.program_id AND b.is_active = 1
+      JOIN module m ON m.block_id = b.block_id AND m.is_active = 1
+      JOIN activity a ON a.module_id = m.module_id AND a.is_active = 1
+      WHERE p.program_id = ? AND p.is_active = 1
+      `,
+      [programId]
+    );
+    const totalActivities = Number(tRows?.[0]?.total || 0);
+
+    // Stats por usuario SOLO dentro de las actividades del programa
+    const [rows] = await db.query(
+      `
+      SELECT
+        u.id AS user_id_internal,
+        u.uid,
+        u.matricula,
+        u.correo,
+        u.nombre,
+        u.apellido_pat,
+        u.apellido_mat,
+
+        upe.status AS enrollment_status,
+        upe.enrolled_at,
+        upe.completed_at,
+
+        ? AS total_activities,
+
+        COALESCE(stats.completed, 0) AS completed_activities,
+
+        CASE
+          WHEN ? > 0 THEN ROUND((COALESCE(stats.completed, 0) / ?) * 100, 0)
+          ELSE 0
+        END AS progress_pct,
+
+        stats.avg_score,
+        stats.last_activity_at
+
+      FROM user_program_enrollment upe
+      JOIN users u
+        ON u.uid = upe.user_id
+
+      LEFT JOIN (
+        SELECT
+          uap.user_id,
+          SUM(CASE WHEN uap.status = 'completed' THEN 1 ELSE 0 END) AS completed,
+          ROUND(AVG(CASE WHEN uap.score IS NOT NULL THEN uap.score END), 2) AS avg_score,
+          MAX(COALESCE(uap.completed_at, uap.started_at, uap.last_seen_at)) AS last_activity_at
+        FROM user_activity_progress uap
+        JOIN activity a ON a.activity_id = uap.activity_id AND a.is_active = 1
+        JOIN module m ON m.module_id = a.module_id AND m.is_active = 1
+        JOIN block b ON b.block_id = m.block_id AND b.is_active = 1
+        WHERE b.program_id = ?
+        GROUP BY uap.user_id
+      ) stats
+        ON stats.user_id = u.uid
+
+      WHERE upe.program_id = ?
+        AND upe.status IN ('enrolled', 'completed')
+
+      ORDER BY progress_pct DESC, avg_score DESC, last_activity_at DESC
+      `,
+      [totalActivities, totalActivities, totalActivities, programId, programId]
+    );
+
+    return res.json({
+      ok: true,
+      program: { program_id: p.program_id, code: p.code, name: p.name },
+      totalActivities,
+      users: rows || [],
+    });
+  } catch (err) {
+    console.error("❌ getUsersByProgramIdAdmin:", {
+      message: err?.message,
+      sqlMessage: err?.sqlMessage,
+      code: err?.code,
+      errno: err?.errno,
+      sqlState: err?.sqlState,
+      sql: err?.sql,
+    });
+
+    return res.status(500).json({
+      error: "Error al obtener usuarios por programa",
+      debug: {
+        code: err?.code,
+        errno: err?.errno,
+        sqlMessage: err?.sqlMessage,
+      },
+    });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// ✅ NUEVO: Usuarios por programa (por CODE)
+// GET /progreso/admin/programas/:programCode/users
+//
+// Es wrapper: resuelve program_id y llama el mismo query.
+// ─────────────────────────────────────────────────────────────
+exports.getUsersByProgramCodeAdmin = async (req, res) => {
+  try {
+    const programCode = safeUpper(req.params.programCode);
+    if (!programCode) return res.status(400).json({ error: "programCode inválido" });
+
+    const programId = await resolveProgramIdFromCode(db, programCode);
+    if (!programId) return res.status(404).json({ error: "Programa no encontrado" });
+
+    // Reutiliza la lógica del endpoint por ID
+    req.params.programId = String(programId);
+    return exports.getUsersByProgramIdAdmin(req, res);
+  } catch (err) {
+    console.error("❌ getUsersByProgramCodeAdmin:", {
+      message: err?.message,
+      sqlMessage: err?.sqlMessage,
+      code: err?.code,
+      errno: err?.errno,
+      sqlState: err?.sqlState,
+      sql: err?.sql,
+    });
+
+    return res.status(500).json({
+      error: "Error al obtener usuarios por programa (code)",
       debug: {
         code: err?.code,
         errno: err?.errno,

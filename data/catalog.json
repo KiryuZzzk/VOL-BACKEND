@@ -2945,13 +2945,13 @@
               "slug": "PNA_b01_m01_int_ea77498f",
               "activities": [
                 {
-                  "title": "Lectura: Manual del paticipante",
+                  "title": "Lectura: SVB",
                   "type": "reading",
                   "order": 1,
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {
-                    "manualId": "/manuals/capacitacion/PNA/modulo1.pdf"
+                    "manualId": "/manuals/capacitacion/PNA/M1/ManualParticipante.pdf"
                   },
                   "activity_id": null,
                   "code": "A01",
@@ -2960,7 +2960,7 @@
                 },
 
                  {
-                  "title": "Video clase",
+                  "title": "RCP en adultos",
                   "type": "video",
                   "order": 2,
                   "required": true,
@@ -2968,7 +2968,7 @@
                   "config": {
                     "provider": "youtube",
                     "videoIds": [
-                      "IQyYoVKPumM"
+                      "Opx1N3WmrS8"
                     ]
                   },
                   "activity_id": null,
@@ -2976,38 +2976,74 @@
                   "slug": "PNA_b01_m01_a02_vid_e54ba96f",
                   "shortId": "PNA-B01-M01-A02"
                 },
-                {
-                  "title": "Presentación",
-                  "type": "reading",
+
+                                 {
+                  "title": "RCP en lactantes",
+                  "type": "video",
                   "order": 3,
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {
-                    "manualId": "/manuals/capacitacion/PNA/modulo1presentacion.pdf"
+                    "provider": "youtube",
+                    "videoIds": [
+                      "900JWdV1yek"
+                    ]
                   },
                   "activity_id": null,
                   "code": "A03",
-                  "slug": "PNA_b01_m01_a03_lec_05f3144b",
+                  "slug": "PNA_b01_m01_a03_vid_e54ba96f",
                   "shortId": "PNA-B01-M01-A03"
                 },
-                {
-                  "title": "Indicaciones de actividad",
-                  "type": "reading",
+                                 {
+                  "title": "DOVA",
+                  "type": "video",
                   "order": 4,
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {
-                    "manualId": "/manuals/capacitacion/PNA/modulo1actividad1.pdf"
+                    "provider": "youtube",
+                    "videoIds": [
+                      "yd6E4od6Q44"
+                    ]
                   },
                   "activity_id": null,
                   "code": "A04",
-                  "slug": "PNA_b01_m01_a04_lec_05f3144b",
+                  "slug": "PNA_b01_m01_a04_vid_e54ba96f",
                   "shortId": "PNA-B01-M01-A04"
                 },
+
                 {
-                  "title": "Sube tu actividad",
-                  "type": "upload",
+                  "title": "Presentación SVB",
+                  "type": "reading",
                   "order": 5,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/M1/Presentacion.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A05",
+                  "slug": "PNA_b01_m01_a05_lec_05f3144b",
+                  "shortId": "PNA-B01-M01-A05"
+                },
+                {
+                  "title": "Indicaciones de actividad 1",
+                  "type": "reading",
+                  "order": 6,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/M1/Actividad1.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A06",
+                  "slug": "PNA_b01_m01_a06_lec_05f3144b",
+                  "shortId": "PNA-B01-M01-A06"
+                },
+                {
+                  "title": "Sube tu actividad 1",
+                  "type": "upload",
+                  "order": 7,
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {
@@ -3017,14 +3053,1617 @@
                     "required": true
                   },
                   "activity_id": null,
-                  "code": "A05",
-                  "slug": "PNA_b01_m01_a05_lec_05f3144b",
-                  "shortId": "PNA-B01-M01-A05"
+                  "code": "A07",
+                  "slug": "PNA_b01_m01_a07_lec_05f3144b",
+                  "shortId": "PNA-B01-M01-A07"
                 },
                 {
+                  "title": "Indicaciones de actividad 2",
+                  "type": "reading",
+                  "order": 8,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/M1/Actividad2.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A08",
+                  "slug": "PNA_b01_m01_a08_lec_05f3144b",
+                  "shortId": "PNA-B01-M01-A08"
+                },
+                {
+                  "title": "Sube tu actividad 2",
+                  "type": "upload",
+                  "order": 9,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "documentTitle": "PNA: Actividad 2",
+                    "description": "Adjunta tu actividad realizada.",
+                    "accept": "application/pdf,image/*",
+                    "required": true
+                  },
+                  "activity_id": null,
+                  "code": "A09",
+                  "slug": "PNA_b01_m01_a09_lec_05f3144b",
+                  "shortId": "PNA-B01-M01-A09"
+                },
+
+                {
+          "title": "Examen SVB",
+          "type": "final_quiz",
+          "order":  10,
+          "required": true,
+          "estimatedMinutes": null,
+          "config": {
+            "pickCount": 15,
+            "maxAttempts": 2,
+            "shuffleQuestions": true,
+            "shuffleOptions": true,
+            "questionsBank": [
+              {
+                "texto": "¿Cuál es el tercer eslabón de la cadena de supervivencia extrahospitalario en adulto?",
+                "opciones": [
+                  "Activación del SMU",
+                  "Prevención",
+                  "RCP de alta calidad",
+                  "Desfibrilación"
+                ],
+                "respuestaCorrecta": "Desfibrilación",
+                "categoria": "SVB - Cadena de supervivencia"
+              },
+              {
+                "texto": "¿Cuántos eslabones conforman la cadena de supervivencia extrahospitalaria en pediátricos?",
+                "opciones": [
+                  "6 eslabones",
+                  "4 eslabones",
+                  "5 eslabones",
+                  "7 eslabones"
+                ],
+                "respuestaCorrecta": "6 eslabones",
+                "categoria": "SVB - Cadena de supervivencia"
+              },
+              {
+                "texto": "¿Cuál es la relación apropiada de compresión-ventilación para Reanimación Cardiopulmonar (RCP) en un adulto?",
+                "opciones": [
+                  "30:2",
+                  "3:1",
+                  "15:2",
+                  "30:1"
+                ],
+                "respuestaCorrecta": "30:2",
+                "categoria": "SVB - RCP"
+              },
+              {
+                "texto": "Entre cada compresión de tórax usted debe:",
+                "opciones": [
+                  "Quitar sus manos del tórax.",
+                  "Permitir la expansión completa del tórax.",
+                  "Administrar una respiración.",
+                  "Revisar el pulso."
+                ],
+                "respuestaCorrecta": "Permitir la expansión completa del tórax.",
+                "categoria": "SVB - RCP"
+              },
+              {
+                "texto": "¿En qué arteria se debe valorar el pulso en un lactante?",
+                "opciones": [
+                  "Carótida",
+                  "Braquial",
+                  "Cefálica",
+                  "Podálica"
+                ],
+                "respuestaCorrecta": "Braquial",
+                "categoria": "SVB - Evaluación"
+              },
+              {
+                "texto": "¿En qué arteria se debe valorar el pulso en niños?",
+                "opciones": [
+                  "Carótida o femoral",
+                  "Podálica o humeral",
+                  "Pulmonar o cubital",
+                  "Coronaria o braquial"
+                ],
+                "respuestaCorrecta": "Carótida o femoral",
+                "categoria": "SVB - Evaluación"
+              },
+              {
+                "texto": "La Reanimación Cardiopulmonar (RCP) NO será efectiva si el paciente está:",
+                "opciones": [
+                  "Horizontal.",
+                  "En posición prona.",
+                  "En posición supina",
+                  "En una superficie firme."
+                ],
+                "respuestaCorrecta": "En posición prona.",
+                "categoria": "SVB - RCP"
+              },
+              {
+                "texto": "El hombre no responde cuando le toca los hombros y exclama: ¿SE ENCUENTRA BIEN? ¿Qué debería de hacer a continuación?",
+                "opciones": [
+                  "Inicie la RCP de alta calidad",
+                  "Comprobar el pulso carotideo",
+                  "Pedir ayuda en voz alta",
+                  "Comenzar a proporcionar ventilaciones de rescate"
+                ],
+                "respuestaCorrecta": "Pedir ayuda en voz alta",
+                "categoria": "SVB - Secuencia inicial"
+              },
+              {
+                "texto": "¿Cuál es la frecuencia de las compresiones torácicas en un adulto?",
+                "opciones": [
+                  "60 - 80 compresiones por minuto",
+                  "120 - 140 compresiones por minuto",
+                  "80 - 100 compresiones por minuto",
+                  "100 - 120 compresiones por minuto"
+                ],
+                "respuestaCorrecta": "100 - 120 compresiones por minuto",
+                "categoria": "SVB - RCP"
+              },
+              {
+                "texto": "¿Cuál es la profundidad de compresiones en un adulto?",
+                "opciones": [
+                  "5 cm (2 pulgadas)",
+                  "2.5 cm (1 pulgada)",
+                  "4 cm ( 1 ½ pulgadas)",
+                  "6.5 cm (2 ½ pulgadas)"
+                ],
+                "respuestaCorrecta": "5 cm (2 pulgadas)",
+                "categoria": "SVB - RCP"
+              },
+              {
+                "texto": "Si sospecha que una victima que no responde sufre un traumatismo craneal o en la columna cervical, ¿Cuál es el método más apropiado para apertura de la vía aérea del paciente?",
+                "opciones": [
+                  "No aperturar la vía aérea",
+                  "Tracción mandibular",
+                  "Maniobra extensión de la cabeza y elevación del mentón",
+                  "Extensión cabeza y cuello"
+                ],
+                "respuestaCorrecta": "Tracción mandibular",
+                "categoria": "SVB - Vía aérea"
+              },
+              {
+                "texto": "¿Cuál es la causa mas habitual de paro cardiaco en niños?",
+                "opciones": [
+                  "Problema cardiaco",
+                  "Infección y sepsis",
+                  "Defecto cardiaco congénito adquirido",
+                  "Insuficiencia respiratoria o shock"
+                ],
+                "respuestaCorrecta": "Insuficiencia respiratoria o shock",
+                "categoria": "SVB - Pediatría"
+              },
+              {
+                "texto": "¿Cual es la profundidad de compresión en un niño?",
+                "opciones": [
+                  "5 cm (2 pulgadas)",
+                  "2.5 cm (1 pulgada)",
+                  "4 cm ( 1 ½ pulgadas)",
+                  "6.5 cm (2 ½ pulgadas)"
+                ],
+                "respuestaCorrecta": "5 cm (2 pulgadas)",
+                "categoria": "SVB - Pediatría"
+              },
+              {
+                "texto": "¿Cuál es la profundidad de compresión en un lactante?",
+                "opciones": [
+                  "5 cm (2 pulgadas)",
+                  "2.5 cm (1 pulgada)",
+                  "4 cm ( 1 ½ pulgadas)",
+                  "6.5 cm (2 ½ pulgadas)"
+                ],
+                "respuestaCorrecta": "4 cm ( 1 ½ pulgadas)",
+                "categoria": "SVB - Pediatría"
+              },
+              {
+                "texto": "¿Cuál es la relación apropiada de compresión-ventilación para Reanimación Cardiopulmonar (RCP) en un pediátrico con dos reanimadores?",
+                "opciones": [
+                  "30:2",
+                  "3:1",
+                  "15:2",
+                  "30:1"
+                ],
+                "respuestaCorrecta": "15:2",
+                "categoria": "SVB - Pediatría"
+              },
+              {
+                "texto": "¿Qué es la FCT?",
+                "opciones": [
+                  "La fuerza que se utiliza para comprimir el pecho",
+                  "Proporción de tiempo durante el cual los reanimadores llevan a cabo las compresiones torácicas en la RCP",
+                  "Relación compresión – ventilación",
+                  "Otro termino para la expansión completa del tórax"
+                ],
+                "respuestaCorrecta": "Proporción de tiempo durante el cual los reanimadores llevan a cabo las compresiones torácicas en la RCP",
+                "categoria": "SVB - RCP"
+              },
+              {
+                "texto": "¿Cuál es el tiempo máximo para la comprobación del pulso y la ventilación de un paciente?",
+                "opciones": [
+                  "Máximo 6 segundos",
+                  "Máximo 8 segundos",
+                  "Máximo 5 segundos",
+                  "Máximo 10 segundos"
+                ],
+                "respuestaCorrecta": "Máximo 10 segundos",
+                "categoria": "SVB - Evaluación"
+              },
+              {
+                "texto": "¿Cuál es la acción inicial mas apropiada que debe de realizar en cuanto el DEA llega al lugar donde se encuentra el paciente?",
+                "opciones": [
+                  "Pulsar el botón de analizar",
+                  "Colocar los parches",
+                  "Pulsar el botón de descarga",
+                  "Encender el DEA"
+                ],
+                "respuestaCorrecta": "Encender el DEA",
+                "categoria": "SVB - DEA"
+              },
+              {
+                "texto": "Si una victima de paro cardiaco tiene un marcapasos o desfibrilador implantado, ¿Qué pasos esenciales debe seguir?",
+                "opciones": [
+                  "Evitar colocar el parche del DEA justo encima del dispositivo implantado",
+                  "Apagar el dispositivo implantado antes de colocar los parches del DEA",
+                  "Evitar utilizar el DEA para que el dispositivo implantado no sufra daños",
+                  "Plantearse la posibilidad de usar parches pediátricos para disminuir la energía de descarga administrada"
+                ],
+                "respuestaCorrecta": "Evitar colocar el parche del DEA justo encima del dispositivo implantado",
+                "categoria": "SVB - DEA"
+              },
+              {
+                "texto": "¿Cuáles son los 2 ritmos que el DEA puede desfibrilar?",
+                "opciones": [
+                  "Asistolia y AESP",
+                  "FV y TV sin Pulso",
+                  "TSV y FA",
+                  "Bloqueo AV I y Bloqueo AV II"
+                ],
+                "respuestaCorrecta": "FV y TV sin Pulso",
+                "categoria": "SVB - DEA"
+              },
+              {
+                "texto": "¿Cuáles son los dos ritmos que el DEA NO puede desfibrilar?",
+                "opciones": [
+                  "Asistolia y AESP",
+                  "FV y TV sin Pulso",
+                  "TSV y FA",
+                  "Bloqueo AV I y Bloqueo AV II"
+                ],
+                "respuestaCorrecta": "Asistolia y AESP",
+                "categoria": "SVB - DEA"
+              },
+              {
+                "texto": "¿Qué acción debe de realizar mientras el DEA esta analizando el ritmo cardiaco?",
+                "opciones": [
+                  "Comprobar el pulso",
+                  "Continuar con las compresiones torácicas",
+                  "Alejarse de la victima",
+                  "Realizar solamente ventilaciones de rescate"
+                ],
+                "respuestaCorrecta": "Alejarse de la victima",
+                "categoria": "SVB - DEA"
+              },
+              {
+                "texto": "¿Cuáles son los 3 componentes esenciales del triángulo de reanimación?",
+                "opciones": [
+                  "Líder de equipo, medicamentos, registro",
+                  "Compresor, líder, vía aérea",
+                  "Registro, vía aérea, medicamentos",
+                  "Compresor, desfibrilador, vía aérea"
+                ],
+                "respuestaCorrecta": "Compresor, desfibrilador, vía aérea",
+                "categoria": "SVB - Trabajo en equipo"
+              },
+              {
+                "texto": "El soporte vital básico se conforma de:",
+                "opciones": [
+                  "Capacidad de respuesta, circulación, vía aérea y ventilación",
+                  "Hemorragias, vía aérea, circulación, exposición",
+                  "Inconsciencia, respiración, vía aérea, circulación",
+                  "Compresión, hemorragias, estado de alerta, ventilación"
+                ],
+                "respuestaCorrecta": "Capacidad de respuesta, circulación, vía aérea y ventilación",
+                "categoria": "SVB - Conceptos"
+              },
+              {
+                "texto": "¿Cuál es la acción apropiada para demostrar que existe un circuito cerrado de comunicación cuando el líder del equipo le asigna una tarea?",
+                "opciones": [
+                  "Repetir al líder del equipo la tarea que se le asigno",
+                  "Asentir con la cabeza para confirmar la tarea asignada",
+                  "Comenzar a realizar la tarea sin decir nada al equipo",
+                  "Esperar a que el líder del equipo se dirija a usted por su nombre antes de confirmar que acepta la tarea"
+                ],
+                "respuestaCorrecta": "Repetir al líder del equipo la tarea que se le asigno",
+                "categoria": "SVB - Trabajo en equipo"
+              },
+              {
+                "texto": "¿Con que frecuencia se debe de realizar ventilaciones de rescate en un adulto con pulso?",
+                "opciones": [
+                  "1 ventilación cada 2 o 3 segundos",
+                  "1 ventilación cada 3 o 5 segundos",
+                  "1 ventilación cada 5 o 6 segundos",
+                  "1 ventilación cada 6 o 7 segundos"
+                ],
+                "respuestaCorrecta": "1 ventilación cada 5 o 6 segundos",
+                "categoria": "SVB - Ventilación"
+              },
+              {
+                "texto": "¿Con que frecuencia se debe de realizar ventilaciones de rescate en un paciente pediátrico o lactante con pulso?",
+                "opciones": [
+                  "1 ventilación cada 2 o 3 segundos",
+                  "1 ventilación cada 3 o 5 segundos",
+                  "1 ventilación cada 5 o 6 segundos",
+                  "1 ventilación cada 6 o 7 segundos"
+                ],
+                "respuestaCorrecta": "1 ventilación cada 2 o 3 segundos",
+                "categoria": "SVB - Ventilación"
+              },
+              {
+                "texto": "¿Qué victima necesitaría solamente ventilaciones de rescate?",
+                "opciones": [
+                  "Sin ventilación ni pulso",
+                  "Sin ventilación, pero con pulso",
+                  "Ventilación con pulso débil",
+                  "Jadeos o boqueo sin pulso"
+                ],
+                "respuestaCorrecta": "Sin ventilación, pero con pulso",
+                "categoria": "SVB - Ventilación"
+              },
+              {
+                "texto": "¿Qué acción sería la más adecuada para reducir el riesgo de distensión gástrica en la ventilación?",
+                "opciones": [
+                  "Realizar ventilaciones rápidas y profundas",
+                  "Utilizar la técnica boca – mascarilla",
+                  "Administrar la ventilación durante 1 segundo",
+                  "Todas las respuestas anteriores son correctas"
+                ],
+                "respuestaCorrecta": "Administrar la ventilación durante 1 segundo",
+                "categoria": "SVB - Ventilación"
+              },
+              {
+                "texto": "Los signos de una obstrucción severa de la vía aérea superior incluyen todo lo siguiente, EXCEPTO",
+                "opciones": [
+                  "Incapacidad para emitir sonidos",
+                  "Cianosis aguda",
+                  "Tos fuerte y enérgica",
+                  "Se agarra la garganta"
+                ],
+                "respuestaCorrecta": "Tos fuerte y enérgica",
+                "categoria": "SVB - Obstrucción vía aérea"
+              },
+              {
+                "texto": "Para la maniobra de desobstrucción de la vía aérea por un cuerpo extraño en un paciente lactante ¿cuántas palmadas y compresiones deberían de realizarse?",
+                "opciones": [
+                  "5 palmadas en la espalda y 3 compresiones torácicas",
+                  "3 palmadas en la espalda y 5 compresiones torácicas",
+                  "3 palmadas en la espalda y 3 compresiones torácicas",
+                  "5 palmadas en la espalda y 5 compresiones torácicas"
+                ],
+                "respuestaCorrecta": "5 palmadas en la espalda y 5 compresiones torácicas",
+                "categoria": "SVB - Obstrucción vía aérea"
+              },
+              {
+                "texto": "¿Cuál de las siguientes víctimas de obstrucción grave de la vía aérea deberán de recibir compresiones abdominales?",
+                "opciones": [
+                  "Un varón de complexión media de 27 años",
+                  "Un varón de 50 años obeso",
+                  "Un lactante de 9 meses",
+                  "Una mujer con signos evidentes de estar embarazada"
+                ],
+                "respuestaCorrecta": "Un varón de complexión media de 27 años",
+                "categoria": "SVB - Obstrucción vía aérea"
+              }
+            ],
+            "minScore": 80
+          },
+          "activity_id": null,
+          "code": "A10",
+          "slug": "PNA_b01_m01_a10_examen",
+          "shortId": "PNA-B01-M01-A10"
+        }
+              ],
+              "shortId": "PNA-B01-M01"
+            },
+
+
+
+
+
+
+
+
+                        {
+              "title": "Trauma",
+              "description": "",
+              "order": 2,
+              "estimatedMinutes": null,
+              "prerequisites": [],
+              "isFinalExam": false,
+              "module_id": null,
+              "code": "M02",
+              "slug": "PNA_b01_m02_int_ea77498f",
+              "activities": [
+                {
+                  "title": "Lectura: Evaluación y atención al paciente de trauma",
+                  "type": "reading",
+                  "order": 1,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/M2/ManualParticipante.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A01",
+                  "slug": "PNA_b01_m02_a01_lec_05f3144b",
+                  "shortId": "PNA-B01-M02-A01"
+                },
+
+                 {
+                  "title": "Control de hemorragias y manejo del choque hipovolémico",
+                  "type": "video",
+                  "order": 2,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "BduNCnHpFa0"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A02",
+                  "slug": "PNA_b01_m02_a02_vid_e54ba96f",
+                  "shortId": "PNA-B01-M02-A02"
+                },
+
+                                 {
+                  "title": "Restricción del movimiento espinal",
+                  "type": "video",
+                  "order": 3,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "lniiYBdZ11Y"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A03",
+                  "slug": "PNA_b01_m02_a03_vid_e54ba96f",
+                  "shortId": "PNA-B01-M02-A03"
+                },
+                                 {
+                  "title": "Traumatismo craneoencefálico",
+                  "type": "video",
+                  "order": 4,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "gOZSSPmeNR4"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A04",
+                  "slug": "PNA_b01_m02_a04_vid_e54ba96f",
+                  "shortId": "PNA-B01-M02-A04"
+                },
+                                 {
+                  "title": "Paciente con quemaduras",
+                  "type": "video",
+                  "order": 5,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "IQyYoVKPumM"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A05",
+                  "slug": "PNA_b01_m02_a05_vid_e54ba96f",
+                  "shortId": "PNA-B01-M02-A05"
+                },
+
+                {
+                  "title": "Presentación Trauma",
+                  "type": "reading",
+                  "order": 6,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/M2/Presentacion.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A06",
+                  "slug": "PNA_b01_m02_a06_lec_05f3144b",
+                  "shortId": "PNA-B01-M02-A06"
+                },
+                {
+                  "title": "Indicaciones de actividad 1",
+                  "type": "reading",
+                  "order": 7,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/M2/Actividad1.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A07",
+                  "slug": "PNA_b01_m01_a07_lec_05f3144b",
+                  "shortId": "PNA-B01-M02-A07"
+                },
+                {
+                  "title": "Sube tu actividad 1",
+                  "type": "upload",
+                  "order": 8,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "documentTitle": "PNA: Actividad 1",
+                    "description": "Adjunta tu actividad realizada.",
+                    "accept": "application/pdf,image/*",
+                    "required": true
+                  },
+                  "activity_id": null,
+                  "code": "A08",
+                  "slug": "PNA_b01_m01_a08_lec_05f3144b",
+                  "shortId": "PNA-B01-M02-A08"
+                },
+                {
+                  "title": "Indicaciones de actividad 1",
+                  "type": "reading",
+                  "order": 9,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/M2/Actividad2.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A09",
+                  "slug": "PNA_b01_m01_a09_lec_05f3144b",
+                  "shortId": "PNA-B01-M02-A09"
+                },
+                {
+                  "title": "Sube tu actividad 2",
+                  "type": "upload",
+                  "order": 10,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "documentTitle": "PNA: Actividad 2",
+                    "description": "Adjunta tu actividad realizada.",
+                    "accept": "application/pdf,image/*",
+                    "required": true
+                  },
+                  "activity_id": null,
+                  "code": "A10",
+                  "slug": "PNA_b01_m01_a10_lec_05f3144b",
+                  "shortId": "PNA-B01-M02-A10"
+                },
+
+{
+  "title": "Examen trauma",
+  "type": "final_quiz",
+  "order": 11,
+  "required": true,
+  "estimatedMinutes": null,
+  "config": {
+    "pickCount": 15,
+    "maxAttempts": 2,
+    "shuffleQuestions": true,
+    "shuffleOptions": true,
+    "questionsBank": [
+      {
+        "texto": "El concepto de hora dorada se refiere principalmente a:",
+        "opciones": [
+          "El tiempo máximo permitido para trasladar a cualquier paciente",
+          "El periodo crítico posterior al trauma donde la atención temprana mejora la supervivencia",
+          "El lapso necesario para estabilizar completamente al paciente en sitio",
+          "El tiempo promedio que tarda un hospital en recibir a un lesionado"
+        ],
+        "respuestaCorrecta": "El periodo crítico posterior al trauma donde la atención temprana mejora la supervivencia",
+        "categoria": "Trauma"
+      },
+      {
+        "texto": "Los minutos de platino se caracterizan por ser el periodo en el que el TUM debe priorizar:",
+        "opciones": [
+          "El traslado inmediato sin evaluación previa",
+          "La evaluación inicial, control de hemorragias y activación de recursos",
+          "La administración de líquidos intravenosos",
+          "La inmovilización completa antes de cualquier intervención"
+        ],
+        "respuestaCorrecta": "La evaluación inicial, control de hemorragias y activación de recursos",
+        "categoria": "Atención prehospitalaria"
+      },
+      {
+        "texto": "Desde el punto de vista fisiopatológico, el shock se define como:",
+        "opciones": [
+          "Una disminución aislada de la presión arterial",
+          "Un estado de hipoxia celular por perfusión tisular inadecuada",
+          "Una respuesta inflamatoria sistémica generalizada",
+          "Un fallo cardíaco agudo con gasto reducido"
+        ],
+        "respuestaCorrecta": "Un estado de hipoxia celular por perfusión tisular inadecuada",
+        "categoria": "Shock"
+      },
+      {
+        "texto": "La principal consecuencia celular de la hipoperfusión sostenida es:",
+        "opciones": [
+          "Alcalosis metabólica compensada",
+          "Producción aumentada de ATP",
+          "Metabolismo anaerobio con acidosis láctica",
+          "Vasodilatación periférica prolongada"
+        ],
+        "respuestaCorrecta": "Metabolismo anaerobio con acidosis láctica",
+        "categoria": "Shock"
+      },
+      {
+        "texto": "¿Cuál de los siguientes NO corresponde a un tipo de shock distributivo?",
+        "opciones": [
+          "Séptico",
+          "Anafiláctico",
+          "Neurogénico",
+          "Hipovolémico"
+        ],
+        "respuestaCorrecta": "Hipovolémico",
+        "categoria": "Shock"
+      },
+      {
+        "texto": "El shock obstructivo se produce principalmente por:",
+        "opciones": [
+          "Disminución del volumen circulante efectivo",
+          "Alteración primaria del gasto cardíaco",
+          "Obstrucción mecánica al llenado o vaciado cardíaco",
+          "Vasodilatación sistémica masiva"
+        ],
+        "respuestaCorrecta": "Obstrucción mecánica al llenado o vaciado cardíaco",
+        "categoria": "Shock"
+      },
+      {
+        "texto": "Un paciente con presión arterial normal, taquicardia y piel fría corresponde más probablemente a shock:",
+        "opciones": [
+          "Irreversible",
+          "Descompensado",
+          "Compensado",
+          "Neurogénico"
+        ],
+        "respuestaCorrecta": "Compensado",
+        "categoria": "Shock"
+      },
+      {
+        "texto": "El Índice de Shock (SI) se obtiene a partir de la relación entre:",
+        "opciones": [
+          "Presión arterial media y frecuencia respiratoria",
+          "Frecuencia cardíaca y presión arterial sistólica",
+          "Gasto cardíaco y volumen sistólico",
+          "Frecuencia respiratoria y saturación de oxígeno"
+        ],
+        "respuestaCorrecta": "Frecuencia cardíaca y presión arterial sistólica",
+        "categoria": "Evaluación"
+      },
+      {
+        "texto": "La llamada tríada letal del trauma incluye:",
+        "opciones": [
+          "Hipoxia, hipoglucemia y acidosis",
+          "Acidosis, hipotermia y coagulopatía",
+          "Hipotensión, bradicardia y oliguria",
+          "Hipercapnia, edema y convulsiones"
+        ],
+        "respuestaCorrecta": "Acidosis, hipotermia y coagulopatía",
+        "categoria": "Trauma"
+      },
+      {
+        "texto": "El método de primera elección para controlar una hemorragia externa es:",
+        "opciones": [
+          "Torniquete",
+          "Vendaje compresivo",
+          "Presión directa",
+          "Agentes hemostáticos"
+        ],
+        "respuestaCorrecta": "Presión directa",
+        "categoria": "Control de hemorragias"
+      },
+      {
+        "texto": "El torniquete está indicado principalmente en:",
+        "opciones": [
+          "Hemorragias venosas leves",
+          "Hemorragias que ceden con presión directa",
+          "Hemorragias masivas en extremidades",
+          "Lesiones en cuello y axila"
+        ],
+        "respuestaCorrecta": "Hemorragias masivas en extremidades",
+        "categoria": "Control de hemorragias"
+      },
+      {
+        "texto": "En adultos con shock, la reposición inicial de líquidos recomendada es:",
+        "opciones": [
+          "Coloides hipertónicos",
+          "Soluciones glucosadas",
+          "Cristaloides isotónicos",
+          "Plasma fresco congelado"
+        ],
+        "respuestaCorrecta": "Cristaloides isotónicos",
+        "categoria": "Manejo del shock"
+      },
+      {
+        "texto": "Una lesión cerebral traumática grave corresponde a una puntuación en la escala de Glasgow de:",
+        "opciones": [
+          "13–15",
+          "10–12",
+          "9–12",
+          "≤ 8"
+        ],
+        "respuestaCorrecta": "≤ 8",
+        "categoria": "Neurológico"
+      },
+      {
+        "texto": "La lesión secundaria en la LCT se produce principalmente por:",
+        "opciones": [
+          "El impacto inicial",
+          "Fracturas craneales",
+          "Hipoxia, hipotensión o edema cerebral",
+          "Hemorragias externas visibles"
+        ],
+        "respuestaCorrecta": "Hipoxia, hipotensión o edema cerebral",
+        "categoria": "Neurológico"
+      },
+      {
+        "texto": "En la atención inicial del paciente con LCT, una prioridad clave del TUM es:",
+        "opciones": [
+          "Administrar líquidos de forma agresiva",
+          "Evitar la hipoxia y la hipotensión",
+          "Colocar al paciente en posición semifowler",
+          "Retrasar el traslado hasta estabilizar completamente"
+        ],
+        "respuestaCorrecta": "Evitar la hipoxia y la hipotensión",
+        "categoria": "Neurológico"
+      }
+    ],
+    "minScore": 80
+  },
+  "activity_id": null,
+  "code": "A11",
+  "slug": "TUM_b01_m02_a11_examen_diagnostico",
+  "shortId": "TUM-B01-M02-A11"
+}
+
+              ],
+              "shortId": "PNA-B01-M02"
+              },
+
+
+
+                        {
+              "title": "Clínico",
+              "description": "",
+              "order": 3,
+              "estimatedMinutes": null,
+              "prerequisites": [],
+              "isFinalExam": false,
+              "module_id": null,
+              "code": "M03",
+              "slug": "PNA_b01_m03_int_ea77498f",
+              "activities": [
+                {
+                  "title": "Lectura: Evaluación y atención al paciente clínico",
+                  "type": "reading",
+                  "order": 1,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/M3/ManualParticipante.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A01",
+                  "slug": "PNA_b01_m03_a01_lec_05f3144b",
+                  "shortId": "PNA-B01-M03-A01"
+                },
+
+                 {
+                  "title": "Emergencias respiratorias",
+                  "type": "video",
+                  "order": 2,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "peP9tEbQd4A"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A02",
+                  "slug": "PNA_b01_m03_a02_vid_e54ba96f",
+                  "shortId": "PNA-B01-M03-A02"
+                },
+
+                                 {
+                  "title": "Emergencias cardiovasculares",
+                  "type": "video",
+                  "order": 3,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "0OH7V4Q77Fk"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A03",
+                  "slug": "PNA_b01_m03_a03_vid_e54ba96f",
+                  "shortId": "PNA-B01-M03-A03"
+                },
+                                 {
+                  "title": "Emergencias neurológicas",
+                  "type": "video",
+                  "order": 4,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "isMAozZKEjY"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A04",
+                  "slug": "PNA_b01_m03_a04_vid_e54ba96f",
+                  "shortId": "PNA-B01-M03-A04"
+                },
+                                 {
+                  "title": "Abdomen agudo",
+                  "type": "video",
+                  "order": 5,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "orkPVk53xDg"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A05",
+                  "slug": "PNA_b01_m03_a05_vid_e54ba96f",
+                  "shortId": "PNA-B01-M03-A05"
+                },
+                                 {
+                  "title": "Emergencias diabéticas",
+                  "type": "video",
+                  "order": 6,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "UnisCPQInY8"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A06",
+                  "slug": "PNA_b01_m03_a06_vid_e54ba96f",
+                  "shortId": "PNA-B01-M03-A06"
+                },
+
+                {
+                  "title": "Presentación Clínico",
+                  "type": "reading",
+                  "order": 7,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/M3/Presentacion.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A07",
+                  "slug": "PNA_b01_m03_a07_lec_05f3144b",
+                  "shortId": "PNA-B01-M03-A07"
+                },
+                {
+                  "title": "Indicaciones de actividad 1",
+                  "type": "reading",
+                  "order": 8,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/M3/Actividad1.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A08",
+                  "slug": "PNA_b01_m03_a08_lec_05f3144b",
+                  "shortId": "PNA-B01-M03-A08"
+                },
+                {
+                  "title": "Sube tu actividad 1",
+                  "type": "upload",
+                  "order": 9,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "documentTitle": "PNA: Actividad 1",
+                    "description": "Adjunta tu actividad realizada.",
+                    "accept": "application/pdf,image/*",
+                    "required": true
+                  },
+                  "activity_id": null,
+                  "code": "A09",
+                  "slug": "PNA_b01_m03_a09_lec_05f3144b",
+                  "shortId": "PNA-B01-M03-A09"
+                },
+                {
+                  "title": "Indicaciones de actividad 2",
+                  "type": "reading",
+                  "order": 10,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/M2/Actividad2.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A10",
+                  "slug": "PNA_b01_m03_a010_lec_05f3144b",
+                  "shortId": "PNA-B01-M03-A10"
+                },
+                {
+                  "title": "Sube tu actividad 2",
+                  "type": "upload",
+                  "order": 11,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "documentTitle": "PNA: Actividad 2",
+                    "description": "Adjunta tu actividad realizada.",
+                    "accept": "application/pdf,image/*",
+                    "required": true
+                  },
+                  "activity_id": null,
+                  "code": "A11",
+                  "slug": "PNA_b01_m03_a11_lec_05f3144b",
+                  "shortId": "PNA-B01-M03-A11"
+                },
+
+{
+  "title": "Examen Clínico",
+  "type": "final_quiz",
+  "order": 12,
+  "required": true,
+  "estimatedMinutes": null,
+  "config": {
+    "pickCount": 15,
+    "maxAttempts": 2,
+    "shuffleQuestions": true,
+    "shuffleOptions": true,
+    "questionsBank": [
+      {
+        "texto": "Un Evento Vascular Cerebral (EVC) se define como:",
+        "opciones": [
+          "Una inflamación aguda del tejido cerebral por infección",
+          "Una interrupción del flujo sanguíneo cerebral con pérdida de función neurológica",
+          "Un aumento súbito de la presión intracraneal",
+          "Una alteración metabólica reversible del sistema nervioso"
+        ],
+        "respuestaCorrecta": "Una interrupción del flujo sanguíneo cerebral con pérdida de función neurológica",
+        "categoria": "Neurológico"
+      },
+      {
+        "texto": "El tipo de ictus más frecuente en la población general es:",
+        "opciones": [
+          "Ictus hemorrágico",
+          "Ictus isquémico",
+          "Ictus criptogénico",
+          "Ataque isquémico transitorio"
+        ],
+        "respuestaCorrecta": "Ictus isquémico",
+        "categoria": "Neurológico"
+      },
+      {
+        "texto": "¿Cuál de los siguientes es un factor de riesgo NO modificable para EVC?",
+        "opciones": [
+          "Hipertensión arterial",
+          "Tabaquismo",
+          "Diabetes mellitus",
+          "Edad mayor de 55 años"
+        ],
+        "respuestaCorrecta": "Edad mayor de 55 años",
+        "categoria": "Neurológico"
+      },
+      {
+        "texto": "La estrategia CAMALEON se utiliza principalmente para:",
+        "opciones": [
+          "Clasificar el tipo de EVC",
+          "Iniciar tratamiento farmacológico",
+          "Identificar signos de ictus de forma rápida",
+          "Valorar el nivel de conciencia"
+        ],
+        "respuestaCorrecta": "Identificar signos de ictus de forma rápida",
+        "categoria": "Neurológico"
+      },
+      {
+        "texto": "¿Cuál de los siguientes elementos NO forma parte de la escala de Cincinnati?",
+        "opciones": [
+          "Parálisis facial",
+          "Debilidad de brazo",
+          "Alteración del habla",
+          "Alteración pupilar"
+        ],
+        "respuestaCorrecta": "Alteración pupilar",
+        "categoria": "Neurológico"
+      },
+      {
+        "texto": "Una característica clave del ataque isquémico transitorio (AIT) es que:",
+        "opciones": [
+          "Siempre deja secuelas neurológicas",
+          "Los síntomas duran más de 24 horas",
+          "El flujo sanguíneo se restablece espontáneamente",
+          "Requiere cirugía inmediata"
+        ],
+        "respuestaCorrecta": "El flujo sanguíneo se restablece espontáneamente",
+        "categoria": "Neurológico"
+      },
+      {
+        "texto": "En la atención prehospitalaria del código ictus, una prioridad fundamental es:",
+        "opciones": [
+          "Administrar líquidos de forma agresiva",
+          "Notificar anticipadamente al hospital receptor",
+          "Mantener al paciente en decúbito lateral",
+          "Retrasar el traslado hasta estabilizar por completo"
+        ],
+        "respuestaCorrecta": "Notificar anticipadamente al hospital receptor",
+        "categoria": "Atención prehospitalaria"
+      },
+      {
+        "texto": "La disnea se define correctamente como:",
+        "opciones": [
+          "Disminución de la saturación de oxígeno",
+          "Aumento del trabajo cardíaco",
+          "Percepción subjetiva de dificultad respiratoria",
+          "Obstrucción parcial de la vía aérea"
+        ],
+        "respuestaCorrecta": "Percepción subjetiva de dificultad respiratoria",
+        "categoria": "Respiratorio"
+      },
+      {
+        "texto": "Un signo de alarma en un paciente con disnea es:",
+        "opciones": [
+          "Frecuencia respiratoria ligeramente aumentada",
+          "Uso ocasional de músculos accesorios",
+          "Saturación menor al 90% pese a oxígeno",
+          "Ansiedad leve sin compromiso respiratorio"
+        ],
+        "respuestaCorrecta": "Saturación menor al 90% pese a oxígeno",
+        "categoria": "Respiratorio"
+      },
+      {
+        "texto": "En un paciente con EPOC y disnea, el oxígeno debe administrarse:",
+        "opciones": [
+          "A alto flujo con mascarilla de reservorio",
+          "Únicamente si hay cianosis central",
+          "Con cánula nasal a bajo flujo",
+          "Solo bajo indicación hospitalaria"
+        ],
+        "respuestaCorrecta": "Con cánula nasal a bajo flujo",
+        "categoria": "Respiratorio"
+      },
+      {
+        "texto": "El hallazgo de silencio auscultatorio en un paciente asmático indica:",
+        "opciones": [
+          "Mejoría clínica",
+          "Crisis leve",
+          "Obstrucción grave de la vía aérea",
+          "Resolución del broncoespasmo"
+        ],
+        "respuestaCorrecta": "Obstrucción grave de la vía aérea",
+        "categoria": "Respiratorio"
+      },
+      {
+        "texto": "El broncodilatador de primera línea en una crisis asmática es:",
+        "opciones": [
+          "Adrenalina",
+          "Salbutamol",
+          "Corticoide sistémico",
+          "Antihistamínico"
+        ],
+        "respuestaCorrecta": "Salbutamol",
+        "categoria": "Respiratorio"
+      },
+      {
+        "texto": "La adrenalina IM en asma está indicada principalmente cuando:",
+        "opciones": [
+          "Existe tos persistente",
+          "Hay crisis leve sin hipoxia",
+          "Se asocia a anafilaxia o riesgo vital",
+          "El paciente no responde a oxígeno"
+        ],
+        "respuestaCorrecta": "Se asocia a anafilaxia o riesgo vital",
+        "categoria": "Respiratorio"
+      },
+      {
+        "texto": "La anafilaxia se caracteriza por:",
+        "opciones": [
+          "Inicio lento y progresivo",
+          "Reacción localizada sin compromiso sistémico",
+          "Reacción alérgica grave y potencialmente mortal",
+          "Afectación exclusiva del sistema respiratorio"
+        ],
+        "respuestaCorrecta": "Reacción alérgica grave y potencialmente mortal",
+        "categoria": "Urgencias médicas"
+      },
+      {
+        "texto": "El tratamiento de primera elección en anafilaxia es:",
+        "opciones": [
+          "Antihistamínicos",
+          "Broncodilatadores",
+          "Adrenalina intramuscular",
+          "Corticoides intravenosos"
+        ],
+        "respuestaCorrecta": "Adrenalina intramuscular",
+        "categoria": "Urgencias médicas"
+      },
+      {
+        "texto": "Se considera emergencia hipertensiva cuando existe:",
+        "opciones": [
+          "TA >140/90 mmHg sin síntomas",
+          "TA elevada con daño a órgano blanco",
+          "TA >130/80 mmHg persistente",
+          "TA elevada en paciente asintomático"
+        ],
+        "respuestaCorrecta": "TA elevada con daño a órgano blanco",
+        "categoria": "Cardiovascular"
+      },
+      {
+        "texto": "Un ejemplo de daño a órgano blanco en hipertensión es:",
+        "opciones": [
+          "Epistaxis aislada",
+          "Cefalea leve",
+          "Retinopatía hipertensiva",
+          "Ansiedad transitoria"
+        ],
+        "respuestaCorrecta": "Retinopatía hipertensiva",
+        "categoria": "Cardiovascular"
+      },
+      {
+        "texto": "En el Síndrome Isquémico Coronario Agudo, el fármaco que debe administrarse lo antes posible es:",
+        "opciones": [
+          "Morfina",
+          "Oxígeno",
+          "Aspirina",
+          "Nitratos"
+        ],
+        "respuestaCorrecta": "Aspirina",
+        "categoria": "Cardiovascular"
+      },
+      {
+        "texto": "La hipoglucemia se define en adultos como una glucemia menor a:",
+        "opciones": [
+          "80 mg/dL",
+          "70 mg/dL",
+          "60 mg/dL",
+          "50 mg/dL"
+        ],
+        "respuestaCorrecta": "70 mg/dL",
+        "categoria": "Metabólico"
+      },
+      {
+        "texto": "En un paciente inconsciente con hipoglucemia grave y sin acceso venoso, está indicado:",
+        "opciones": [
+          "Administrar glucosa oral",
+          "Esperar recuperación espontánea",
+          "Administrar glucagón IM o intranasal",
+          "Iniciar insulina de acción rápida"
+        ],
+        "respuestaCorrecta": "Administrar glucagón IM o intranasal",
+        "categoria": "Metabólico"
+      }
+    ],
+    "minScore": 80
+  },
+  "activity_id": null,
+  "code": "A12",
+  "slug": "TUM_b01_m03_a12_examen_diagnostico",
+  "shortId": "TUM-B01-M03-A12"
+}
+
+
+              ],
+              "shortId": "PNA-B01-M03"
+              },
+
+
+
+
+
+
+
+                        {
+              "title": "Operaciones",
+              "description": "",
+              "order": 4,
+              "estimatedMinutes": null,
+              "prerequisites": [],
+              "isFinalExam": false,
+              "module_id": null,
+              "code": "M04",
+              "slug": "PNA_b01_m04_int_ea77498f",
+              "activities": [
+                {
+                  "title": "Lectura: Operaciones",
+                  "type": "reading",
+                  "order": 1,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/M4/ManualParticipante.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A01",
+                  "slug": "PNA_b01_m04_a01_lec_05f3144b",
+                  "shortId": "PNA-B01-M04-A01"
+                },
+
+                 {
+                  "title": "Intervención prehospitalaria en el traumatismo torácico",
+                  "type": "video",
+                  "order": 2,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "tnjjL0-keTA"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A02",
+                  "slug": "PNA_b01_m04_a02_vid_e54ba96f",
+                  "shortId": "PNA-B01-M04-A02"
+                },
+
+                                 {
+                  "title": "Clasificación del paciente",
+                  "type": "video",
+                  "order": 3,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "hiQ5nZ4Y24U"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A03",
+                  "slug": "PNA_b01_m04_a03_vid_e54ba96f",
+                  "shortId": "PNA-B01-M04-A03"
+                },
+                                 {
+                  "title": "Fisiología del transporte",
+                  "type": "video",
+                  "order": 4,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "yBTSmpUaFoA"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A04",
+                  "slug": "PNA_b01_m04_a04_vid_e54ba96f",
+                  "shortId": "PNA-B01-M04-A04"
+                },
+                                 {
+                  "title": "Extracción Vehicular",
+                  "type": "video",
+                  "order": 5,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "NAGpQP6EbJM"
+                    ]
+                  },
+                  "activity_id": null,
+                  "code": "A05",
+                  "slug": "PNA_b01_m04_a05_vid_e54ba96f",
+                  "shortId": "PNA-B01-M04-A05"
+                },
+
+                {
+                  "title": "Presentación Operaciones",
+                  "type": "reading",
+                  "order": 6,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/M4/Presentacion.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A06",
+                  "slug": "PNA_b01_m04_a06_lec_05f3144b",
+                  "shortId": "PNA-B01-M04-A06"
+                },
+                {
+                  "title": "Indicaciones de actividad 1",
+                  "type": "reading",
+                  "order": 7,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/M4/Actividad1.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A07",
+                  "slug": "PNA_b01_m04_a07_lec_05f3144b",
+                  "shortId": "PNA-B01-M04-A07"
+                },
+                {
+                  "title": "Sube tu actividad 1",
+                  "type": "upload",
+                  "order": 8,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "documentTitle": "PNA: Actividad 1",
+                    "description": "Adjunta tu actividad realizada.",
+                    "accept": "application/pdf,image/*",
+                    "required": true
+                  },
+                  "activity_id": null,
+                  "code": "A08",
+                  "slug": "PNA_b01_m04_a08_lec_05f3144b",
+                  "shortId": "PNA-B01-M04-A08"
+                },
+                {
+                  "title": "Indicaciones de actividad 1",
+                  "type": "reading",
+                  "order": 9,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/PNA/M4/Actividad2.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A09",
+                  "slug": "PNA_b01_m04_a09_lec_05f3144b",
+                  "shortId": "PNA-B01-M04-A09"
+                },
+                {
+                  "title": "Sube tu actividad 2",
+                  "type": "upload",
+                  "order": 10,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "documentTitle": "PNA: Actividad 2",
+                    "description": "Adjunta tu actividad realizada.",
+                    "accept": "application/pdf,image/*",
+                    "required": true
+                  },
+                  "activity_id": null,
+                  "code": "A10",
+                  "slug": "PNA_b01_m04_a10_lec_05f3144b",
+                  "shortId": "PNA-B01-M04-A10"
+                },
+
+{
+  "title": "Examen Operaciones",
+  "type": "final_quiz",
+  "order": 11,
+  "required": true,
+  "estimatedMinutes": null,
+  "config": {
+    "pickCount": 15,
+    "maxAttempts": 2,
+    "shuffleQuestions": true,
+    "shuffleOptions": true,
+    "questionsBank": [
+      {
+        "texto": "La función principal del operador de vehículos de emergencia durante el traslado del paciente es:",
+        "opciones": [
+          "Conducir rápidamente para reducir el tiempo de llegada",
+          "Mantener la estabilidad fisiológica del paciente durante el traslado",
+          "Seguir instrucciones médicas sin intervenir en decisiones operativas",
+          "Priorizar el uso continuo de códigos luminosos y sonoros"
+        ],
+        "respuestaCorrecta": "Mantener la estabilidad fisiológica del paciente durante el traslado",
+        "categoria": "Operación de ambulancia"
+      },
+      {
+        "texto": "Según la NOM-034-SSA3-2013, la ambulancia debe contar con un sistema luminoso visible a:",
+        "opciones": [
+          "100 metros en condiciones nocturnas",
+          "120 metros en condiciones urbanas",
+          "150 metros en proyección de 360 grados",
+          "200 metros en carreteras federales"
+        ],
+        "respuestaCorrecta": "150 metros en proyección de 360 grados",
+        "categoria": "Normatividad"
+      },
+      {
+        "texto": "El uso inadecuado de sirena cuando no existe una situación de emergencia:",
+        "opciones": [
+          "Es una falta administrativa interna",
+          "Está permitido si no hay tráfico",
+          "Constituye una infracción al reglamento federal",
+          "Depende del criterio del operador"
+        ],
+        "respuestaCorrecta": "Constituye una infracción al reglamento federal",
+        "categoria": "Normatividad"
+      },
+      {
+        "texto": "El sistema vestibular se localiza principalmente en:",
+        "opciones": [
+          "El tronco encefálico y cerebelo",
+          "El oído medio y conducto auditivo",
+          "El oído interno y nervio vestibular",
+          "La corteza motora primaria"
+        ],
+        "respuestaCorrecta": "El oído interno y nervio vestibular",
+        "categoria": "Fisiología"
+      },
+      {
+        "texto": "La cinetosis se produce principalmente por:",
+        "opciones": [
+          "Hipoxia prolongada durante el traslado",
+          "Conflicto sensorial entre visión y sistema vestibular",
+          "Exceso de vibraciones de la unidad",
+          "Uso continuo de luces estroboscópicas"
+        ],
+        "respuestaCorrecta": "Conflicto sensorial entre visión y sistema vestibular",
+        "categoria": "Fisiología"
+      },
+      {
+        "texto": "Durante una desaceleración brusca, el principal riesgo fisiológico es:",
+        "opciones": [
+          "Hiperventilación transitoria",
+          "Desplazamiento sanguíneo hacia extremidades inferiores",
+          "Compromiso hemodinámico en pacientes con shock",
+          "Alteración visual momentánea"
+        ],
+        "respuestaCorrecta": "Compromiso hemodinámico en pacientes con shock",
+        "categoria": "Traslado"
+      },
+      {
+        "texto": "La zona caliente en un incidente vehicular se caracteriza por:",
+        "opciones": [
+          "Área destinada al puesto de mando",
+          "Zona segura para ambulancias",
+          "Área de mayor riesgo con acceso restringido",
+          "Espacio para familiares y curiosos"
+        ],
+        "respuestaCorrecta": "Área de mayor riesgo con acceso restringido",
+        "categoria": "Seguridad en escena"
+      },
+      {
+        "texto": "El atrapamiento tipo Físico II se define como:",
+        "opciones": [
+          "Víctima sin lesiones pero con bloqueo estructural",
+          "Víctima con lesiones que impiden moverse sin atrapamiento",
+          "Víctima prensada por la estructura del vehículo",
+          "Víctima con combinación de lesiones leves"
+        ],
+        "respuestaCorrecta": "Víctima prensada por la estructura del vehículo",
+        "categoria": "Rescate vehicular"
+      },
+      {
+        "texto": "El plan de extracción con mayor tiempo estimado es:",
+        "opciones": [
+          "Plan de emergencia",
+          "Plan B",
+          "Plan A",
+          "Extracción rápida"
+        ],
+        "respuestaCorrecta": "Plan A",
+        "categoria": "Rescate vehicular"
+      },
+      {
+        "texto": "El objetivo principal de la estabilización vehicular es:",
+        "opciones": [
+          "Facilitar la extracción rápida",
+          "Reducir daños materiales",
+          "Evitar movimientos que agraven lesiones",
+          "Optimizar el uso de herramientas hidráulicas"
+        ],
+        "respuestaCorrecta": "Evitar movimientos que agraven lesiones",
+        "categoria": "Rescate vehicular"
+      },
+      {
+        "texto": "En el triage START, un paciente que no respira tras abrir vía aérea se clasifica como:",
+        "opciones": [
+          "Rojo",
+          "Amarillo",
+          "Verde",
+          "Negro"
+        ],
+        "respuestaCorrecta": "Negro",
+        "categoria": "Triage"
+      },
+      {
+        "texto": "La prioridad del triage hospitalario nivel 1 es:",
+        "opciones": [
+          "Atención en menos de 10 minutos",
+          "Atención inmediata",
+          "Atención diferida",
+          "Evaluación clínica completa"
+        ],
+        "respuestaCorrecta": "Atención inmediata",
+        "categoria": "Triage"
+      },
+      {
+        "texto": "El principio ético fundamental del triage indica que:",
+        "opciones": [
+          "Se debe atender primero a niños y adultos mayores",
+          "Se prioriza a quien tiene mayor probabilidad de supervivencia",
+          "Se atiende según orden de llegada",
+          "Se privilegia la empatía del proveedor"
+        ],
+        "respuestaCorrecta": "Se prioriza a quien tiene mayor probabilidad de supervivencia",
+        "categoria": "Triage"
+      },
+      {
+        "texto": "Una herramienta hidráulica diseñada para separar estructuras es:",
+        "opciones": [
+          "Cizalla",
+          "Ram",
+          "Expansor",
+          "Halligan"
+        ],
+        "respuestaCorrecta": "Expansor",
+        "categoria": "Rescate vehicular"
+      },
+      {
+        "texto": "El ahogamiento se define actualmente como:",
+        "opciones": [
+          "Presencia de agua en pulmones",
+          "Evento exclusivamente mortal",
+          "Proceso de dificultad respiratoria por inmersión",
+          "Paro cardiorrespiratorio en medio acuático"
+        ],
+        "respuestaCorrecta": "Proceso de dificultad respiratoria por inmersión",
+        "categoria": "Ahogamiento"
+      },
+      {
+        "texto": "En paro cardíaco por ahogamiento, la RCP recomendada es:",
+        "opciones": [
+          "Solo compresiones",
+          "Compresiones primero",
+          "Ventilaciones de rescate con compresiones",
+          "RCP diferida hasta oxígeno"
+        ],
+        "respuestaCorrecta": "Ventilaciones de rescate con compresiones",
+        "categoria": "Ahogamiento"
+      },
+      {
+        "texto": "La prevención del ahogamiento se considera efectiva porque:",
+        "opciones": [
+          "Reduce costos hospitalarios",
+          "Evita intervenciones avanzadas",
+          "Representa más del 99 % de las acciones de rescate",
+          "Disminuye la necesidad de oxígeno"
+        ],
+        "respuestaCorrecta": "Representa más del 99 % de las acciones de rescate",
+        "categoria": "Ahogamiento"
+      }
+    ],
+    "minScore": 80
+  },
+  "activity_id": null,
+  "code": "A11",
+  "slug": "TUM_b01_m04_a11_examen",
+  "shortId": "TUM-B01-M04-A11"
+},
+
+    {
                   "title": "Solicita tus prácticas",
                   "type": "solicitud",
-                  "order": 6,
+                  "order": 12,
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {
@@ -3035,14 +4674,34 @@
                     "requiredComment": false
                   },
                   "activity_id": null,
-                  "code": "A06",
-                  "slug": "PNA_b01_m01_a06_lec_05f3144b",
-                  "shortId": "PNA-B01-M01-A06"
+                  "code": "A12",
+                  "slug": "PNA_b01_m04_a12_lec_05f3144b",
+                  "shortId": "PNA-B01-M04-A12"
+                },
+                              {
+                  "title": "¡Cuéntanos tu opinión!",
+                  "type": "url",
+                  "order": 13,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "url": "https://forms.gle/WGvtfcRFgCQ1hnUq7"
+                  },
+                  "activity_id": null,
+                  "code": "A13",
+                  "slug": "PNA_b01_m04_a13_int_75fe0ac1",
+                  "shortId": "PNA-B01-M04-A13"
                 }
 
+
               ],
-              "shortId": "PNA-B01-M01"
-            }
+              "shortId": "PNA-B01-M04"
+              }
+
+
+
+
+
           ],
           "shortId": "PNA-B01"
         }
