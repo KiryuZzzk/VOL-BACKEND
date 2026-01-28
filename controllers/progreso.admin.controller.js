@@ -437,7 +437,7 @@ exports.getUsersByProgramIdAdmin = async (req, res) => {
 
       FROM user_program_enrollment upe
       JOIN users u
-        ON u.uid = upe.user_id
+        ON u.uid COLLATE utf8mb4_unicode_ci = upe.user_id COLLATE utf8mb4_unicode_ci
 
       LEFT JOIN (
         SELECT
@@ -452,7 +452,7 @@ exports.getUsersByProgramIdAdmin = async (req, res) => {
         WHERE b.program_id = ?
         GROUP BY uap.user_id
       ) stats
-        ON stats.user_id = u.uid
+        ON stats.user_id COLLATE utf8mb4_unicode_ci = u.uid COLLATE utf8mb4_unicode_ci
 
       WHERE upe.program_id = ?
         AND upe.status IN ('enrolled', 'completed')
