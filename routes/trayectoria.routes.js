@@ -4,6 +4,12 @@ const router = express.Router();
 const trayectoriaCtrl = require("../controllers/trayectoria.controller");
 const { authMiddleware, roleMiddleware } = require("../middlewares/auth");
 
+/**
+ * ─────────────────────────────────────────────────────────────
+ *  Usuario
+ * ─────────────────────────────────────────────────────────────
+ */
+
 // Crear
 router.post(
   "/",
@@ -15,7 +21,16 @@ router.post(
 // Mis trayectorias
 router.get("/mios", authMiddleware, trayectoriaCtrl.obtenerMiTrayectoria);
 
-// Admin/mod lista global
+// Borrado lógico (solo dueño)
+router.delete("/:trajectoryId", authMiddleware, trayectoriaCtrl.borrarMiTrayectoria);
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ *  Admin / Moderador (revisión)
+ * ─────────────────────────────────────────────────────────────
+ */
+
+// Lista global + filtros
 router.get(
   "/",
   authMiddleware,
@@ -23,7 +38,7 @@ router.get(
   trayectoriaCtrl.getAllTrayectoria
 );
 
-// Admin/mod status
+// Actualizar status por params (compat)
 router.patch(
   "/:trajectoryId/status",
   authMiddleware,
@@ -31,12 +46,21 @@ router.patch(
   trayectoriaCtrl.actualizarStatusTrayectoria
 );
 
-router.delete(
-  "/:trajectoryId",
+// Actualizar status estilo "documentos/estado" (por body)
+router.patch(
+  "/estado",
   authMiddleware,
-  trayectoriaCtrl.borrarMiTrayectoria
+  roleMiddleware(["admin", "moderador"]),
+  trayectoriaCtrl.actualizarEstadoTrayectoria
 );
 
-
+// Ver detalle puntual
+router.get(
+  "/:trajectoryId",
+  authMiddleware,
+  roleMiddleware(["admin", "moderador"]),
+  trayectoriaCtrl.obtenerTrayectoriaPorIdAdmin
+);
 
 module.exports = router;
+

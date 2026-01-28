@@ -58,6 +58,7 @@ async function ensureSocEnrollmentAndPrograms(firebaseUid) {
 /**
  * ─────────────────────────────────────────────────────────────
  *  POST /trayectoria
+ *  (usuario)
  * ─────────────────────────────────────────────────────────────
  */
 const crearTrayectoria = async (req, res) => {
@@ -141,6 +142,7 @@ const crearTrayectoria = async (req, res) => {
 /**
  * ─────────────────────────────────────────────────────────────
  *  GET /trayectoria/mios
+ *  (usuario)
  * ─────────────────────────────────────────────────────────────
  */
 const obtenerMiTrayectoria = async (req, res) => {
@@ -182,11 +184,10 @@ const obtenerMiTrayectoria = async (req, res) => {
   }
 };
 
-
-/*
+/**
  * ─────────────────────────────────────────────────────────────
  *  DELETE /trayectoria/:trajectoryId
- *  Usuario autenticado
+ *  (usuario)
  *  Borrado lógico (is_active=0) de SU PROPIO registro
  *  Regla: si está validated => no se puede borrar (para no romper auditoría)
  * ─────────────────────────────────────────────────────────────
@@ -236,11 +237,16 @@ const borrarMiTrayectoria = async (req, res) => {
   }
 };
 
-
 /**
  * ─────────────────────────────────────────────────────────────
  *  GET /trayectoria
- *  Admin/Moderador: lista global con filtros
+ *  (admin/mod) lista global con filtros (para revisión)
+ *  Query params:
+ *    - searchField: matricula|correo|curp
+ *    - search: string
+ *    - status: pending|validated|rejected
+ *    - category: string (LIKE)
+ *    - year: number
  * ─────────────────────────────────────────────────────────────
  */
 const getAllTrayectoria = async (req, res) => {
@@ -253,7 +259,7 @@ const getAllTrayectoria = async (req, res) => {
     const where = [];
     const params = [];
 
-    // Moderador: limita por users.estado (como en docs)
+    // Moderador: limita por users.estado (igual que Documentos)
     if (rol === "moderador") {
       where.push("users.estado = ?");
       params.push(estado);
@@ -289,8 +295,82 @@ const getAllTrayectoria = async (req, res) => {
       params.push(y);
     }
 
-    // (Opcional) si quieres ocultar eliminados aquí también:
+    // Oculta eliminados
     where.push("ut.is_active = 1");
+
+    // 👇 Collation-safe join (por si users.uid y trajectory.uid traen collations distintas)
+    const sql = `
+      SELECT
+        ut.trajectory_id,
+        ut.uid,
+        users.id AS user_id_internal,
+        users.nombre,
+        users.apellido_pat,
+        users.apellido_mat,
+        users.matricula,
+        users.correo,
+        users.curp,
+
+        ut.year,
+        ut.category,
+        ut.title,
+        ut.folio,
+        ut.file_url,
+        ut.file_name,
+        ut.file_type,
+        ut.file_size_bytes,
+        ut.storage_path,
+
+        ut.status,
+        ut.submitted_at,
+        ut.validated_at,
+        ut.rejected_at,
+        ut.reviewed_by_uid,
+        ut.review_notes,
+        ut.created_at,
+        ut.updated_at
+      FROM trajectory ut
+      JOIN users
+        ON users.uid COLLATE utf8mb4_unicode_ci = ut.uid COLLATE utf8mb4_unicode_ci
+      ${where.length ? "WHERE " + where.join(" AND ") : ""}
+      ORDER BY ut.created_at DESC
+    `;
+
+    console.log("🛠 getAllTrayectoria SQL:", sql, params);
+
+    const [rows] = await db.query(sql, params);
+    return res.json(Array.isArray(rows) ? rows : []);
+  } catch (err) {
+    console.error("❌ getAllTrayectoria:", err);
+    return res.status(500).json({ error: "Error al obtener trayectorias" });
+  }
+};
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ *  GET /trayectoria/:trajectoryId
+ *  (admin/mod) ver detalle puntual
+ * ─────────────────────────────────────────────────────────────
+ */
+const obtenerTrayectoriaPorIdAdmin = async (req, res) => {
+  try {
+    const { rol, estado } = req.user || {};
+    if (!["admin", "moderador"].includes(rol)) {
+      return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
+    }
+
+    const trajectoryId = Number(req.params.trajectoryId);
+    if (!Number.isFinite(trajectoryId) || trajectoryId <= 0) {
+      return res.status(400).json({ error: "trajectoryId inválido" });
+    }
+
+    const where = ["ut.trajectory_id = ?", "ut.is_active = 1"];
+    const params = [trajectoryId];
+
+    if (rol === "moderador") {
+      where.push("users.estado = ?");
+      params.push(estado);
+    }
 
     const sql = `
       SELECT
@@ -323,30 +403,32 @@ const getAllTrayectoria = async (req, res) => {
         ut.created_at,
         ut.updated_at
       FROM trajectory ut
-      JOIN users ON users.uid = ut.uid
-      ${where.length ? "WHERE " + where.join(" AND ") : ""}
-      ORDER BY ut.created_at DESC
+      JOIN users
+        ON users.uid COLLATE utf8mb4_unicode_ci = ut.uid COLLATE utf8mb4_unicode_ci
+      WHERE ${where.join(" AND ")}
+      LIMIT 1
     `;
 
-    console.log("🛠 getAllTrayectoria SQL:", sql, params);
-
     const [rows] = await db.query(sql, params);
-    return res.json(Array.isArray(rows) ? rows : []);
+    if (!rows.length) return res.status(404).json({ error: "Registro no encontrado" });
+
+    return res.json(rows[0]);
   } catch (err) {
-    console.error("❌ getAllTrayectoria:", err);
-    return res.status(500).json({ error: "Error al obtener trayectorias" });
+    console.error("❌ obtenerTrayectoriaPorIdAdmin:", err);
+    return res.status(500).json({ error: "Error al obtener trayectoria" });
   }
 };
 
 /**
  * ─────────────────────────────────────────────────────────────
  *  PATCH /trayectoria/:trajectoryId/status
- *  Admin/Moderador: cambia status + auditoría
+ *  (admin/mod) cambia status + auditoría
+ *  body: { status: pending|validated|rejected, review_notes?: string }
  * ─────────────────────────────────────────────────────────────
  */
 const actualizarStatusTrayectoria = async (req, res) => {
   try {
-    const { rol } = req.user || {};
+    const { rol, estado } = req.user || {};
     if (!["admin", "moderador"].includes(rol)) {
       return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
     }
@@ -365,10 +447,27 @@ const actualizarStatusTrayectoria = async (req, res) => {
     const reviewNotes = req.body?.review_notes;
     const notes = typeof reviewNotes === "string" ? reviewNotes.trim() : null;
 
+    // Moderador: solo puede tocar usuarios de su estado
+    const where = ["ut.trajectory_id = ?"];
+    const params = [trajectoryId];
+
+    if (rol === "moderador") {
+      where.push("users.estado = ?");
+      params.push(estado);
+    }
+
     const [exists] = await db.query(
-      "SELECT trajectory_id FROM trajectory WHERE trajectory_id = ? LIMIT 1",
-      [trajectoryId]
+      `
+      SELECT ut.trajectory_id
+      FROM trajectory ut
+      JOIN users
+        ON users.uid COLLATE utf8mb4_unicode_ci = ut.uid COLLATE utf8mb4_unicode_ci
+      WHERE ${where.join(" AND ")}
+      LIMIT 1
+      `,
+      params
     );
+
     if (!exists.length) return res.status(404).json({ error: "Registro no encontrado" });
 
     const setValidatedAt = st === "validated" ? "CURRENT_TIMESTAMP" : "NULL";
@@ -388,17 +487,51 @@ const actualizarStatusTrayectoria = async (req, res) => {
 
     await db.query(sql, [st, reviewedByUid, notes, trajectoryId]);
 
-    return res.json({ mensaje: "Status actualizado", trajectory_id: trajectoryId, status: st });
+    return res.json({ ok: true, mensaje: "Status actualizado", trajectory_id: trajectoryId, status: st });
   } catch (err) {
     console.error("❌ actualizarStatusTrayectoria:", err);
     return res.status(500).json({ error: "Error al actualizar status" });
   }
 };
 
+/**
+ * ─────────────────────────────────────────────────────────────
+ *  PATCH /trayectoria/estado
+ *  (admin/mod) versión "tipo documentos" (por body)
+ *  body: { trajectory_id, status, review_notes? }
+ *  ✅ Esto existe para que el front pueda reutilizar patrón /documentos/estado
+ * ─────────────────────────────────────────────────────────────
+ */
+const actualizarEstadoTrayectoria = async (req, res) => {
+  try {
+    const { rol } = req.user || {};
+    if (!["admin", "moderador"].includes(rol)) {
+      return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
+    }
+
+    const trajectoryId = Number(req.body?.trajectory_id);
+    if (!Number.isFinite(trajectoryId) || trajectoryId <= 0) {
+      return res.status(400).json({ error: "trajectory_id inválido" });
+    }
+
+    // Reusa la misma lógica que el endpoint paramétrico
+    req.params.trajectoryId = String(trajectoryId);
+    return actualizarStatusTrayectoria(req, res);
+  } catch (err) {
+    console.error("❌ actualizarEstadoTrayectoria:", err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+};
+
 module.exports = {
+  // usuario
   crearTrayectoria,
   obtenerMiTrayectoria,
-  borrarMiTrayectoria, // ✅ NUEVO
+  borrarMiTrayectoria,
+
+  // admin/mod (revisión)
   getAllTrayectoria,
+  obtenerTrayectoriaPorIdAdmin,
   actualizarStatusTrayectoria,
+  actualizarEstadoTrayectoria,
 };
