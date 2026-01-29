@@ -418,6 +418,7 @@ exports.getUsersByProgramIdAdmin = async (req, res) => {
         u.nombre,
         u.apellido_pat,
         u.apellido_mat,
+        u.estado AS estado,
 
         upe.status AS enrollment_status,
         upe.enrolled_at,

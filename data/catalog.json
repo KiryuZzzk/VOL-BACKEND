@@ -1560,6 +1560,13 @@
                         "description": "Programas y hábitos seguros para reducir accidentes en casa, escuela y comunidad.",
                         "image": "/assets/Prevencion.png",
                         "videoId": "fkAzCuAHJDs"
+                      },
+                                            {
+                        "key": "DAM",
+                        "label": "Voluntariado de Damas",
+                        "description": "Apoya en relaciones estratégicas, captación de recursos y en campañas de intervención social con enfoque en calidez.",
+                        "image": "/assets/Damas.png",
+                        "videoId": "dIbf4JA0ELA"
                       }
                     ]
                   },
@@ -2693,7 +2700,7 @@
       "slug": "damas",
       "blocks": [
         {
-          "title": "Armado de despensas",
+          "title": "Voluntariado de Damas",
           "description": "",
           "order": 1,
           "estimatedMinutes": null,
@@ -2703,7 +2710,7 @@
           "slug": "DAM_b01_arm_591ba85a",
           "modules": [
             {
-              "title": "Armado de kits",
+              "title": "Introducción a Voluntariado de Damas",
               "description": "",
               "order": 1,
               "estimatedMinutes": null,
@@ -2722,7 +2729,7 @@
                   "config": {
                     "provider": "youtube",
                     "videoIds": [
-                      "ITFGtBIComg"
+                      "dIbf4JA0ELA"
                     ]
                   },
                   "activity_id": null,
@@ -2731,73 +2738,52 @@
                   "shortId": "DAM-B01-M01-A01"
                 },
                 {
-                  "title": "Video 1: Armado de kits 1",
-                  "type": "video",
+                  "title": "Lectura: Guía de organización",
+                  "type": "reading",
                   "order": 2,
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {
-                    "provider": "youtube",
-                    "videoIds": [
-                      "BoYVlTR-LO4"
-                    ]
+                    "manualId": "/manuals/damas/Guia1Damas.pdf"
                   },
                   "activity_id": null,
                   "code": "A02",
-                  "slug": "DAM_b01_m01_a02_vid_e54ba96f",
+                  "slug": "DAM_b01_m01_a02_lec_05f3144b",
                   "shortId": "DAM-B01-M01-A02"
                 },
-                {
-                  "title": "Video 2: Armado de kits 2",
-                  "type": "video",
+               {
+                  "title": "Lectura: Guía de organización",
+                  "type": "reading",
                   "order": 3,
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {
-                    "provider": "youtube",
-                    "videoIds": [
-                      "HQhlhSOTUqc"
-                    ]
+                    "manualId": "/manuals/damas/Guia2Damas.pdf"
                   },
                   "activity_id": null,
                   "code": "A03",
-                  "slug": "DAM_b01_m01_a03_vid_9ad4f02c",
+                  "slug": "DAM_b01_m01_a03_lec_05f3144b",
                   "shortId": "DAM-B01-M01-A03"
                 },
-                {
-                  "title": "Video 3: Armado de kits 3",
-                  "type": "video",
+                               {
+                  "title": "Únete al grupo de WhatsApp",
+                  "type": "url",
                   "order": 4,
-                  "required": true,
+                  "required": false,
                   "estimatedMinutes": null,
                   "config": {
-                    "provider": "youtube",
-                    "videoIds": [
-                      "H9KHqYIjuUU"
-                    ]
+                    "mode": "cta_qr",
+                    "platform": "whatsapp",
+                    "url": "https://chat.whatsapp.com/KnmBU2OwQnLBJvBTjCR2GT",
+                    "ctaLabel": "Unirme al grupo de WhatsApp",
+                    "showQr": true
                   },
                   "activity_id": null,
                   "code": "A04",
-                  "slug": "DAM_b01_m01_a04_vid_5f2fba5b",
-                  "shortId": "DAM-B01-M01-A04"
-                },
-                {
-                  "title": "Video 4: Armado de kits 4",
-                  "type": "video",
-                  "order": 5,
-                  "required": true,
-                  "estimatedMinutes": null,
-                  "config": {
-                    "provider": "youtube",
-                    "videoIds": [
-                      "tvri4G-G7_g"
-                    ]
-                  },
-                  "activity_id": null,
-                  "code": "A05",
-                  "slug": "DAM_b01_m01_a05_vid_cdfaa298",
-                  "shortId": "DAM-B01-M01-A05"
+                  "slug": "INSC_PNA_b01_m01_a04_url_whatsapp",
+                  "shortId": "INSC_PNA-B01-M01-A04"
                 }
+              
               ],
               "shortId": "DAM-B01-M01"
             }
@@ -4707,6 +4693,158 @@
         }
       ],
       "shortId": "PNA"
+    },
+
+
+
+
+            {
+      "title": "Inscripción TUM-B",
+      "description": "¡Fórmate como Técnico en Urgencias Médicas!",
+      "estimatedMinutes": null,
+      "level": null,
+      "formacion": "formacionEspecializada",
+      "image": "/assets/INSC_TUMB.png",
+      "tags": [
+        "urgencias_medicas",
+        "capacitacion",
+        "tum"
+      ],
+      "program_id": null,
+      "code": "INSC_TUMB",
+      "slug": "capacitacion_INSC_TUMB",
+      "blocks": [
+        {
+          "title": "Inscripción al TUM-B",
+          "description": "",
+          "order": 1,
+          "estimatedMinutes": null,
+          "optional": false,
+          "block_id": null,
+          "code": "B01",
+          "slug": "INSC_TUMB_b01_for_0c202c81",
+          "modules": [
+            {
+              "title": "Inscríbete al TUM-B",
+              "description": "",
+              "order": 1,
+              "estimatedMinutes": null,
+              "prerequisites": [],
+              "isFinalExam": false,
+              "module_id": null,
+              "code": "M01",
+              "slug": "INSC_TUMB_b01_m01_int_ea77498f",
+              "activities": [
+                {
+                  "title": "Lectura: ¿Cómo inscribirme?",
+                  "type": "reading",
+                  "order": 1,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/info_inscripcion_TUMB.pdf"
+                  },
+                  "activity_id": null,
+                  "code": "A01",
+                  "slug": "INSC_TUMB_b01_m01_a01_lec_05f3144b",
+                  "shortId": "INSC_TUMB-B01-M01-A01"
+                },
+
+                {
+                  "title": "Sube tu constancia de bachillerato (o superior).",
+                  "type": "upload",
+                  "order": 2,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "documentTitle": "Comprobante de bachillerato",
+                    "description": "Adjunta el comprobante solicitado para continuar con el proceso.",
+                    "accept": "application/pdf,image/*",
+                    "required": true
+                  },
+                  "activity_id": null,
+                  "code": "A02",
+                  "slug": "INSC_TUMB_b01_m01_a01_lec_05f3144b",
+                  "shortId": "INSC_TUMB-B01-M01-A02"
+                },
+                                {
+                  "title": "Sube tu certificado médico para actividades de alto riesgo.",
+                  "type": "upload",
+                  "order": 3,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "documentTitle": "Certificado médico",
+                    "description": "Adjunta el comprobante solicitado para continuar con el proceso.",
+                    "accept": "application/pdf,image/*",
+                    "required": true
+                  },
+                  "activity_id": null,
+                  "code": "A03",
+                  "slug": "INSC_TUMB_b01_m01_a03_lec_05f3144b",
+                  "shortId": "INSC_TUMB-B01-M01-A03"
+                },
+                                {
+                  "title": "Sube tu comprobante de domicilio",
+                  "type": "upload",
+                  "order": 4,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "documentTitle": "Comprobante de domicilio",
+                    "description": "Adjunta el comprobante solicitado para continuar con el proceso.",
+                    "accept": "application/pdf,image/*",
+                    "required": true
+                  },
+                  "activity_id": null,
+                  "code": "A04",
+                  "slug": "INSC_TUMB_b01_m01_a04_lec_05f3144b",
+                  "shortId": "INSC_TUMB-B01-M01-A04"
+                },
+                                                {
+                  "title": "Sube tu comprobante del primer pago (2,800 MXN).",
+                  "type": "upload",
+                  "order": 5,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "documentTitle": "Comprobante de pago 1er mes",
+                    "description": "Adjunta el comprobante solicitado para continuar con el proceso.",
+                    "accept": "application/pdf,image/*",
+                    "required": true
+                  },
+                  "activity_id": null,
+                  "code": "A05",
+                  "slug": "INSC_TUMB_b01_m01_a05_lec_05f3144b",
+                  "shortId": "INSC_TUMB-B01-M01-A05"
+                },
+                {
+                  "title": "Únete al grupo de WhatsApp",
+                  "type": "url",
+                  "order": 6,
+                  "required": false,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "mode": "cta_qr",
+                    "platform": "whatsapp",
+                    "url": "https://chat.whatsapp.com/Ih1hoF03uWQ6E3JQ9jatkv",
+                    "ctaLabel": "Unirme al grupo de WhatsApp",
+                    "showQr": true
+                  },
+                  "activity_id": null,
+                  "code": "A06",
+                  "slug": "INSC_TUMB_b05_m01_a06_url_whatsapp",
+                  "shortId": "INSC_TUMB-B05-M01-A06"
+                }
+
+              ],
+              "shortId": "INSC_TUMB-B01-M01"
+            }
+          ],
+          "shortId": "INSC_TUMB-B01"
+        }
+      ],
+      "shortId": "INSC_TUMB"
     }
 
     
