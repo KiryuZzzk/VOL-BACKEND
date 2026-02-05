@@ -1215,11 +1215,11 @@
                         "texto": "¿Quién inició el movimiento de la Cruz Roja en México?",
                         "opciones": [
                           "Carmen Serdán",
-                          "María de Cosío",
+                          "Luz Gonzalez Cosío",
                           "Porfirio Díaz",
                           "Elena Arizmendi"
                         ],
-                        "respuestaCorrecta": "María de Cosío"
+                        "respuestaCorrecta": "Luz Gonzalez Cosío"
                       },
                       {
                         "texto": "¿Cuáles son los Principios Fundamentales de la Cruz Roja?",
@@ -1302,14 +1302,14 @@
                         "respuestaCorrecta": "Movilizó a la población civil para atender heridos sin importar el bando"
                       },
                       {
-                        "texto": "¿Qué papel jugó María de Cosío en México?",
+                        "texto": "¿Qué papel jugó Luz Gonzalez Cosío en México?",
                         "opciones": [
-                          "Fue la primera presidenta de la Cruz Roja Mexicana",
+                          "Fue la fundadora de la Cruz Roja Mexicana",
                           "Fue enfermera en la Revolución Mexicana",
                           "Dirigió la Cruz Roja Internacional en América",
                           "Creó el símbolo de la Cruz Roja"
                         ],
-                        "respuestaCorrecta": "Fue la primera presidenta de la Cruz Roja Mexicana"
+                        "respuestaCorrecta": "Fue la fundadora de la Cruz Roja Mexicana"
                       }
                     ]
                   },
@@ -3957,7 +3957,7 @@
                   "required": true,
                   "estimatedMinutes": null,
                   "config": {
-                    "manualId": "/manuals/capacitacion/PNA/M2/Actividad2.pdf"
+                    "manualId": "/manuals/capacitacion/PNA/M3/Actividad2.pdf"
                   },
                   "activity_id": 99,
                   "code": "A10",

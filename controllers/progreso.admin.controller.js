@@ -1,25 +1,49 @@
 const db = require("../config/db");
 
 // ─────────────────────────────────────────────────────────────
-// Helpers
+// Helpers (strings, numbers)
 // ─────────────────────────────────────────────────────────────
 function safeStr(v) {
   return v === null || v === undefined ? "" : String(v);
 }
-
 function safeUpper(v) {
   return safeStr(v).trim().toUpperCase();
 }
-
 function toInt(v) {
   const n = Number(v);
   return Number.isFinite(n) ? Math.trunc(n) : NaN;
 }
-
 function normalizeScore(value) {
   if (value === undefined || value === null || value === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Helpers (auth + scope)
+// ─────────────────────────────────────────────────────────────
+function normRol(r) {
+  return safeStr(r).trim().toLowerCase();
+}
+
+function requireAdminOrMod(req, res) {
+  if (!req.user) {
+    res.status(401).json({ error: "No autenticado" });
+    return null;
+  }
+  const rol = normRol(req.user.rol);
+  if (!["admin", "moderador"].includes(rol)) {
+    res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
+    return null;
+  }
+  if (rol === "moderador") {
+    const estado = safeStr(req.user.estado).trim();
+    if (!estado) {
+      res.status(403).json({ error: "Moderador sin estado asignado (scope inválido)" });
+      return null;
+    }
+  }
+  return rol;
 }
 
 // Resuelve UID (firebase uid) a partir de userId (puede ser users.id o users.uid)
@@ -38,6 +62,13 @@ async function resolveFirebaseUidFromUserId(connOrDb, userId) {
   return null;
 }
 
+// Checa que un UID pertenezca al estado del moderador
+async function assertUserInModeratorScope(connOrDb, uid, estadoMod) {
+  const [rows] = await connOrDb.query("SELECT estado FROM users WHERE uid = ? LIMIT 1", [uid]);
+  if (!rows?.length) return false;
+  return safeStr(rows[0].estado).trim() === safeStr(estadoMod).trim();
+}
+
 // Resuelve program_id por code (solo activos)
 async function resolveProgramIdFromCode(connOrDb, programCode) {
   const code = safeUpper(programCode);
@@ -52,16 +83,25 @@ async function resolveProgramIdFromCode(connOrDb, programCode) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// GET: Programas inscritos del usuario (ADMIN)
+// GET: Programas inscritos del usuario (ADMIN/MOD)
 // GET /progreso/admin/users/:userId/programas
 // ─────────────────────────────────────────────────────────────
 exports.getProgramasUsuario = async (req, res) => {
   try {
-    const userId = String(req.params.userId || "").trim();
+    const rol = requireAdminOrMod(req, res);
+    if (!rol) return;
+
+    const userId = safeStr(req.params.userId).trim();
     if (!userId) return res.status(400).json({ error: "Parámetro userId inválido" });
 
     const uid = await resolveFirebaseUidFromUserId(db, userId);
     if (!uid) return res.status(404).json({ error: "Usuario no encontrado" });
+
+    // ✅ scope por estado si es moderador
+    if (rol === "moderador") {
+      const ok = await assertUserInModeratorScope(db, uid, req.user.estado);
+      if (!ok) return res.status(404).json({ error: "Usuario no encontrado o fuera de tu alcance" });
+    }
 
     const [rows] = await db.query(
       `
@@ -98,29 +138,34 @@ exports.getProgramasUsuario = async (req, res) => {
 
     return res.status(500).json({
       error: "Error al obtener programas del usuario",
-      debug: {
-        code: err?.code,
-        errno: err?.errno,
-        sqlMessage: err?.sqlMessage,
-      },
+      debug: { code: err?.code, errno: err?.errno, sqlMessage: err?.sqlMessage },
     });
   }
 };
 
 // ─────────────────────────────────────────────────────────────
-// GET: Vista completa del programa (ADMIN)
+// GET: Vista completa del programa (ADMIN/MOD)
 // GET /progreso/admin/users/:userId/programas/:programCode
 // ─────────────────────────────────────────────────────────────
 exports.getAdminProgramView = async (req, res) => {
   try {
-    const userId = String(req.params.userId || "").trim();
-    const programCode = String(req.params.programCode || "").trim().toUpperCase();
+    const rol = requireAdminOrMod(req, res);
+    if (!rol) return;
+
+    const userId = safeStr(req.params.userId).trim();
+    const programCode = safeUpper(req.params.programCode);
 
     if (!userId) return res.status(400).json({ error: "Parámetro userId inválido" });
     if (!programCode) return res.status(400).json({ error: "Parámetro programCode inválido" });
 
     const uid = await resolveFirebaseUidFromUserId(db, userId);
     if (!uid) return res.status(404).json({ error: "Usuario no encontrado" });
+
+    // ✅ scope por estado si es moderador
+    if (rol === "moderador") {
+      const ok = await assertUserInModeratorScope(db, uid, req.user.estado);
+      if (!ok) return res.status(404).json({ error: "Usuario no encontrado o fuera de tu alcance" });
+    }
 
     const [rows] = await db.query(
       `
@@ -321,21 +366,20 @@ exports.getAdminProgramView = async (req, res) => {
 
     return res.status(500).json({
       error: "Error al obtener vista del programa",
-      debug: {
-        code: err?.code,
-        errno: err?.errno,
-        sqlMessage: err?.sqlMessage,
-      },
+      debug: { code: err?.code, errno: err?.errno, sqlMessage: err?.sqlMessage },
     });
   }
 };
 
 // ─────────────────────────────────────────────────────────────
-// ✅ NUEVO: Listar programas (para selector "Por programa")
+// Listar programas (selector "Por programa") (ADMIN/MOD)
 // GET /progreso/admin/programas
 // ─────────────────────────────────────────────────────────────
 exports.listProgramasAdmin = async (req, res) => {
   try {
+    const rol = requireAdminOrMod(req, res);
+    if (!rol) return;
+
     const [rows] = await db.query(
       `
       SELECT program_id, code, name
@@ -358,30 +402,22 @@ exports.listProgramasAdmin = async (req, res) => {
 
     return res.status(500).json({
       error: "Error al listar programas",
-      debug: {
-        code: err?.code,
-        errno: err?.errno,
-        sqlMessage: err?.sqlMessage,
-      },
+      debug: { code: err?.code, errno: err?.errno, sqlMessage: err?.sqlMessage },
     });
   }
 };
 
 // ─────────────────────────────────────────────────────────────
-// ✅ NUEVO: Usuarios por programa (por ID)
+// Usuarios por programa (por ID) (ADMIN/MOD)
 // GET /progreso/admin/programs/:programId/users
-//
-// Devuelve:
-// - datos del usuario (users.*)
-// - enrollment_status
-// - totalActivities (del programa)
-// - completedActivities (por user)
-// - progressPct
-// - avgScore (promedio de scores dentro de actividades del programa)
-// - lastActivityAt
 // ─────────────────────────────────────────────────────────────
 exports.getUsersByProgramIdAdmin = async (req, res) => {
   try {
+    const rol = requireAdminOrMod(req, res);
+    if (!rol) return;
+
+    const estadoMod = rol === "moderador" ? safeStr(req.user.estado).trim() : null;
+
     const programId = toInt(req.params.programId);
     if (!Number.isFinite(programId)) return res.status(400).json({ error: "programId inválido" });
 
@@ -407,6 +443,9 @@ exports.getUsersByProgramIdAdmin = async (req, res) => {
     );
     const totalActivities = Number(tRows?.[0]?.total || 0);
 
+    // ✅ filtro por estado si es moderador
+    const estadoFilterSQL = rol === "moderador" ? " AND u.estado = ? " : "";
+
     // Stats por usuario SOLO dentro de las actividades del programa
     const [rows] = await db.query(
       `
@@ -425,7 +464,6 @@ exports.getUsersByProgramIdAdmin = async (req, res) => {
         upe.completed_at,
 
         ? AS total_activities,
-
         COALESCE(stats.completed, 0) AS completed_activities,
 
         CASE
@@ -457,10 +495,21 @@ exports.getUsersByProgramIdAdmin = async (req, res) => {
 
       WHERE upe.program_id = ?
         AND upe.status IN ('enrolled', 'completed')
+        ${estadoFilterSQL}
 
       ORDER BY progress_pct DESC, avg_score DESC, last_activity_at DESC
       `,
-      [totalActivities, totalActivities, totalActivities, programId, programId]
+      (() => {
+        const params = [
+          totalActivities,
+          totalActivities,
+          totalActivities,
+          programId,
+          programId,
+        ];
+        if (rol === "moderador") params.push(estadoMod);
+        return params;
+      })()
     );
 
     return res.json({
@@ -481,30 +530,26 @@ exports.getUsersByProgramIdAdmin = async (req, res) => {
 
     return res.status(500).json({
       error: "Error al obtener usuarios por programa",
-      debug: {
-        code: err?.code,
-        errno: err?.errno,
-        sqlMessage: err?.sqlMessage,
-      },
+      debug: { code: err?.code, errno: err?.errno, sqlMessage: err?.sqlMessage },
     });
   }
 };
 
 // ─────────────────────────────────────────────────────────────
-// ✅ NUEVO: Usuarios por programa (por CODE)
+// Usuarios por programa (por CODE) (ADMIN/MOD)
 // GET /progreso/admin/programas/:programCode/users
-//
-// Es wrapper: resuelve program_id y llama el mismo query.
 // ─────────────────────────────────────────────────────────────
 exports.getUsersByProgramCodeAdmin = async (req, res) => {
   try {
+    const rol = requireAdminOrMod(req, res);
+    if (!rol) return;
+
     const programCode = safeUpper(req.params.programCode);
     if (!programCode) return res.status(400).json({ error: "programCode inválido" });
 
     const programId = await resolveProgramIdFromCode(db, programCode);
     if (!programId) return res.status(404).json({ error: "Programa no encontrado" });
 
-    // Reutiliza la lógica del endpoint por ID
     req.params.programId = String(programId);
     return exports.getUsersByProgramIdAdmin(req, res);
   } catch (err) {
@@ -519,22 +564,23 @@ exports.getUsersByProgramCodeAdmin = async (req, res) => {
 
     return res.status(500).json({
       error: "Error al obtener usuarios por programa (code)",
-      debug: {
-        code: err?.code,
-        errno: err?.errno,
-        sqlMessage: err?.sqlMessage,
-      },
+      debug: { code: err?.code, errno: err?.errno, sqlMessage: err?.sqlMessage },
     });
   }
 };
 
 // ─────────────────────────────────────────────────────────────
-// PATCH Review doc (evidencia)
+// PATCH Review doc (evidencia) (ADMIN/MOD)
 // PATCH /progreso/admin/docs/:docId/review
 // ─────────────────────────────────────────────────────────────
 exports.reviewDocUsuario = async (req, res) => {
   const conn = await db.getConnection();
   try {
+    const rol = requireAdminOrMod(req, res);
+    if (!rol) return;
+
+    const estadoMod = rol === "moderador" ? safeStr(req.user.estado).trim() : null;
+
     const docId = toInt(req.params.docId);
     if (!Number.isFinite(docId)) return res.status(400).json({ error: "docId inválido" });
 
@@ -564,6 +610,15 @@ exports.reviewDocUsuario = async (req, res) => {
 
     const userUid = doc.user_id;
     const activityId = doc.activity_id;
+
+    // ✅ scope por estado si es moderador
+    if (rol === "moderador") {
+      const ok = await assertUserInModeratorScope(conn, userUid, estadoMod);
+      if (!ok) {
+        await conn.rollback();
+        return res.status(404).json({ error: "Evidencia no encontrada o fuera de tu alcance" });
+      }
+    }
 
     // 1) actualizar doc
     await conn.query(
@@ -662,11 +717,7 @@ exports.reviewDocUsuario = async (req, res) => {
 
     return res.status(500).json({
       error: "Error al calificar evidencia",
-      debug: {
-        code: err?.code,
-        errno: err?.errno,
-        sqlMessage: err?.sqlMessage,
-      },
+      debug: { code: err?.code, errno: err?.errno, sqlMessage: err?.sqlMessage },
     });
   } finally {
     conn.release();
@@ -674,12 +725,17 @@ exports.reviewDocUsuario = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// PATCH Review request (solicitud)
+// PATCH Review request (solicitud) (ADMIN/MOD)
 // PATCH /progreso/admin/requests/:requestId/review
 // ─────────────────────────────────────────────────────────────
 exports.reviewRequestUsuario = async (req, res) => {
   const conn = await db.getConnection();
   try {
+    const rol = requireAdminOrMod(req, res);
+    if (!rol) return;
+
+    const estadoMod = rol === "moderador" ? safeStr(req.user.estado).trim() : null;
+
     const requestId = toInt(req.params.requestId);
     if (!Number.isFinite(requestId)) return res.status(400).json({ error: "requestId inválido" });
 
@@ -709,6 +765,15 @@ exports.reviewRequestUsuario = async (req, res) => {
 
     const userUid = reqRow.user_id;
     const activityId = reqRow.activity_id;
+
+    // ✅ scope por estado si es moderador
+    if (rol === "moderador") {
+      const ok = await assertUserInModeratorScope(conn, userUid, estadoMod);
+      if (!ok) {
+        await conn.rollback();
+        return res.status(404).json({ error: "Solicitud no encontrada o fuera de tu alcance" });
+      }
+    }
 
     // 1) update request
     await conn.query(
@@ -808,11 +873,7 @@ exports.reviewRequestUsuario = async (req, res) => {
 
     return res.status(500).json({
       error: "Error al calificar solicitud",
-      debug: {
-        code: err?.code,
-        errno: err?.errno,
-        sqlMessage: err?.sqlMessage,
-      },
+      debug: { code: err?.code, errno: err?.errno, sqlMessage: err?.sqlMessage },
     });
   } finally {
     conn.release();

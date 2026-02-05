@@ -325,11 +325,26 @@ const camposDocumentos = [
 };
 
 
+// helper pequeño
+function normRol(r) {
+  return String(r || "").trim().toLowerCase();
+}
+
 /** ─────────────────────────────────────────────────────────────
  *  Admin/Mod: actualizar estado (pendiente|validado|rechazado)
+ *  ✅ Ahora respeta alcance por estado
  *  ───────────────────────────────────────────────────────────── */
 const actualizarEstadoDocumento = async (req, res) => {
   try {
+    if (!req.user) return res.status(401).json({ error: "No autenticado" });
+
+    const rol = normRol(req.user.rol);
+    const estadoMod = req.user.estado;
+
+    if (!["admin", "moderador"].includes(rol)) {
+      return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
+    }
+
     const { user_matricula, documento, estado } = req.body;
 
     if (!user_matricula || !documento) {
@@ -342,11 +357,24 @@ const actualizarEstadoDocumento = async (req, res) => {
     const estadoStr = normalizeEstado(estado);
     if (!estadoStr) return res.status(400).json({ error: "Estado inválido" });
 
-    const [urows] = await db.query(
-      "SELECT id FROM users WHERE matricula = ? LIMIT 1",
-      [user_matricula]
-    );
-    if (!urows?.length) return res.status(404).json({ error: "Usuario no encontrado" });
+    // ✅ Resuelve usuario con scope por estado si es moderador
+    let userSql = "SELECT id FROM users WHERE matricula = ? ";
+    const userParams = [user_matricula];
+
+    if (rol === "moderador") {
+      userSql += " AND estado = ? ";
+      userParams.push(estadoMod);
+    }
+
+    userSql += " LIMIT 1";
+
+    const [urows] = await db.query(userSql, userParams);
+    if (!urows?.length) {
+      return res.status(404).json({
+        error: rol === "moderador" ? "Usuario no encontrado o fuera de tu alcance" : "Usuario no encontrado",
+      });
+    }
+
     const userId = urows[0].id;
 
     // check archivo existe
@@ -412,14 +440,35 @@ const obtenerMisDocumentos = async (req, res) => {
  *  ───────────────────────────────────────────────────────────── */
 const obtenerDocumentosPorUserId = async (req, res) => {
   try {
+    if (!req.user) return res.status(401).json({ error: "No autenticado" });
+
+    const rol = normRol(req.user.rol);
+    const estadoMod = req.user.estado;
+
+    if (!["admin", "moderador"].includes(rol)) {
+      return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
+    }
+
     const requestedUserId = String(req.params.userId || "").trim();
     if (!requestedUserId) return res.status(400).json({ error: "Parámetro userId inválido" });
 
-    const [userRows] = await db.query(
-      "SELECT id, matricula, curp, correo FROM users WHERE id = ? LIMIT 1",
-      [requestedUserId]
-    );
-    if (!userRows.length) return res.status(404).json({ error: "Usuario no encontrado" });
+    // ✅ filtra por estado si es moderador
+    let uSql = "SELECT id, matricula, curp, correo FROM users WHERE id = ? ";
+    const uParams = [requestedUserId];
+
+    if (rol === "moderador") {
+      uSql += " AND estado = ? ";
+      uParams.push(estadoMod);
+    }
+
+    uSql += " LIMIT 1";
+
+    const [userRows] = await db.query(uSql, uParams);
+    if (!userRows.length) {
+      return res.status(404).json({
+        error: rol === "moderador" ? "Usuario no encontrado o fuera de tu alcance" : "Usuario no encontrado",
+      });
+    }
 
     let [docsRows] = await db.query(
       `SELECT ${DOC_COLS} FROM documentos WHERE user_id = ? LIMIT 1`,
@@ -433,6 +482,7 @@ const obtenerDocumentosPorUserId = async (req, res) => {
     return res.status(500).json({ error: "Error al obtener documentos" });
   }
 };
+
 
 module.exports = {
   guardarDocumentos,
