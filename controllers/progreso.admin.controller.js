@@ -37,9 +37,9 @@ function requireAdminOrMod(req, res) {
     return null;
   }
   if (rol === "moderador") {
-    const estado = safeStr(req.user.estado).trim();
-    if (!estado) {
-      res.status(403).json({ error: "Moderador sin estado asignado (scope inválido)" });
+    const scopes = req.user?.moderatorScopes || req.moderatorScopes || [];
+    if (!Array.isArray(scopes) || scopes.length === 0) {
+      res.status(403).json({ error: "Moderador sin permisos asignados" });
       return null;
     }
   }
@@ -62,12 +62,41 @@ async function resolveFirebaseUidFromUserId(connOrDb, userId) {
   return null;
 }
 
-// Checa que un UID pertenezca al estado del moderador
-async function assertUserInModeratorScope(connOrDb, uid, estadoMod) {
-  const [rows] = await connOrDb.query("SELECT estado FROM users WHERE uid = ? LIMIT 1", [uid]);
-  if (!rows?.length) return false;
-  return safeStr(rows[0].estado).trim() === safeStr(estadoMod).trim();
+// Checa que un usuario (uid) esté dentro del alcance del moderador según moderator_scopes + enrollment
+// - Valida por estado (users.estado), program_id (upe.program_id), group_code (upe.group_code)
+// - Puedes forzar un program_id específico (p.ej. cuando estás viendo un programa en particular)
+async function assertUserInModeratorScope(connOrDb, moderatorUid, userUid, programId = null) {
+  if (!moderatorUid || !userUid) return false;
+
+  const params = [moderatorUid, userUid];
+  let programSql = "";
+  if (programId !== null && programId !== undefined) {
+    programSql = " AND upe.program_id = ? ";
+    params.push(programId);
+  }
+
+  const [rows] = await connOrDb.query(
+    `
+    SELECT 1
+    FROM users u
+    JOIN user_program_enrollment upe
+      ON upe.user_id COLLATE utf8mb4_unicode_ci = u.uid COLLATE utf8mb4_unicode_ci
+    JOIN moderator_scopes ms
+      ON ms.moderator_uid = ?
+     AND ms.is_active = 1
+     AND (ms.estado IS NULL OR ms.estado = u.estado)
+     AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
+     AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
+    WHERE u.uid = ?
+      ${programSql}
+    LIMIT 1
+    `,
+    params
+  );
+
+  return !!rows?.length;
 }
+
 
 // Resuelve program_id por code (solo activos)
 async function resolveProgramIdFromCode(connOrDb, programCode) {
@@ -97,28 +126,44 @@ exports.getProgramasUsuario = async (req, res) => {
     const uid = await resolveFirebaseUidFromUserId(db, userId);
     if (!uid) return res.status(404).json({ error: "Usuario no encontrado" });
 
-    // ✅ scope por estado si es moderador
+    // ✅ scope por moderator_scopes si es moderador
     if (rol === "moderador") {
-      const ok = await assertUserInModeratorScope(db, uid, req.user.estado);
+      const moderatorUid = req?.firebaseUser?.uid || null;
+      const ok = await assertUserInModeratorScope(db, moderatorUid, uid);
       if (!ok) return res.status(404).json({ error: "Usuario no encontrado o fuera de tu alcance" });
     }
 
-    const [rows] = await db.query(
-      `
-      SELECT
-        p.program_id,
-        p.code,
-        p.name,
-        upe.status AS enrollment_status,
-        upe.enrolled_at,
-        upe.completed_at
-      FROM user_program_enrollment upe
-      JOIN program p ON p.program_id = upe.program_id
-      WHERE upe.user_id = ?
-      ORDER BY p.name ASC
-      `,
-      [uid]
-    );
+    const moderatorUid = rol === "moderador" ? (req?.firebaseUser?.uid || null) : null;
+
+const baseSql = `
+SELECT
+  p.program_id,
+  p.code,
+  p.name,
+  upe.status AS enrollment_status,
+  upe.enrolled_at,
+  upe.completed_at,
+  upe.group_code
+FROM user_program_enrollment upe
+JOIN program p ON p.program_id = upe.program_id
+${rol === "moderador" ? `JOIN users u ON u.uid COLLATE utf8mb4_unicode_ci = upe.user_id COLLATE utf8mb4_unicode_ci
+JOIN moderator_scopes ms
+  ON ms.moderator_uid = ?
+ AND ms.is_active = 1
+ AND (ms.estado IS NULL OR ms.estado = u.estado)
+ AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
+ AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
+` : ``}
+WHERE upe.user_id = ?
+ORDER BY p.name ASC
+`;
+
+const params = [];
+if (rol === "moderador") params.push(moderatorUid);
+params.push(uid);
+
+const [rows] = await db.query(baseSql, params);
+
 
     return res.json({
       ok: true,
@@ -161,15 +206,29 @@ exports.getAdminProgramView = async (req, res) => {
     const uid = await resolveFirebaseUidFromUserId(db, userId);
     if (!uid) return res.status(404).json({ error: "Usuario no encontrado" });
 
-    // ✅ scope por estado si es moderador
+    // ✅ scope por moderator_scopes si es moderador
     if (rol === "moderador") {
-      const ok = await assertUserInModeratorScope(db, uid, req.user.estado);
+      const moderatorUid = req?.firebaseUser?.uid || null;
+      const ok = await assertUserInModeratorScope(db, moderatorUid, uid);
       if (!ok) return res.status(404).json({ error: "Usuario no encontrado o fuera de tu alcance" });
     }
 
-    const [rows] = await db.query(
-      `
-      SELECT
+      const moderatorUid = rol === "moderador" ? (req?.firebaseUser?.uid || null) : null;
+
+  const msJoin = rol === "moderador"
+    ? `
+JOIN moderator_scopes ms
+  ON ms.moderator_uid = ?
+ AND ms.is_active = 1
+ AND (ms.estado IS NULL OR ms.estado = u.estado)
+ AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
+ AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
+`
+    : ``;
+
+  const [rows] = await db.query(
+    `
+SELECT
         p.program_id,
         p.code AS program_code,
         p.name AS program_name,
@@ -380,13 +439,59 @@ exports.listProgramasAdmin = async (req, res) => {
     const rol = requireAdminOrMod(req, res);
     if (!rol) return;
 
+    // Admin: lista completa de programas activos
+    if (rol === "admin") {
+      const [rows] = await db.query(
+        `
+        SELECT program_id, code, name
+        FROM program
+        WHERE is_active = 1
+        ORDER BY name ASC
+        `
+      );
+      return res.json({ ok: true, programs: rows || [] });
+    }
+
+    // Moderador: si tiene algún scope con program_id NULL => puede ver todos los programas
+    const moderatorUid = req?.firebaseUser?.uid || null;
+
+    const [hasGlobal] = await db.query(
+      `
+      SELECT 1 AS ok
+      FROM moderator_scopes
+      WHERE moderator_uid = ?
+        AND is_active = 1
+        AND program_id IS NULL
+      LIMIT 1
+      `,
+      [moderatorUid]
+    );
+
+    if (hasGlobal?.length) {
+      const [rows] = await db.query(
+        `
+        SELECT program_id, code, name
+        FROM program
+        WHERE is_active = 1
+        ORDER BY name ASC
+        `
+      );
+      return res.json({ ok: true, programs: rows || [] });
+    }
+
+    // Si no hay global, lista sólo los programas referenciados por scopes
     const [rows] = await db.query(
       `
-      SELECT program_id, code, name
-      FROM program
-      WHERE is_active = 1
-      ORDER BY name ASC
-      `
+      SELECT DISTINCT p.program_id, p.code, p.name
+      FROM moderator_scopes ms
+      JOIN program p ON p.program_id = ms.program_id
+      WHERE ms.moderator_uid = ?
+        AND ms.is_active = 1
+        AND ms.program_id IS NOT NULL
+        AND p.is_active = 1
+      ORDER BY p.name ASC
+      `,
+      [moderatorUid]
     );
 
     return res.json({ ok: true, programs: rows || [] });
@@ -406,6 +511,7 @@ exports.listProgramasAdmin = async (req, res) => {
     });
   }
 };
+
 
 // ─────────────────────────────────────────────────────────────
 // Usuarios por programa (por ID) (ADMIN/MOD)
@@ -442,9 +548,7 @@ exports.getUsersByProgramIdAdmin = async (req, res) => {
       [programId]
     );
     const totalActivities = Number(tRows?.[0]?.total || 0);
-
-    // ✅ filtro por estado si es moderador
-    const estadoFilterSQL = rol === "moderador" ? " AND u.estado = ? " : "";
+    // ✅ filtro por moderator_scopes si es moderador (estado/programa/grupo)
 
     // Stats por usuario SOLO dentro de las actividades del programa
     const [rows] = await db.query(
@@ -478,6 +582,8 @@ exports.getUsersByProgramIdAdmin = async (req, res) => {
       JOIN users u
         ON u.uid COLLATE utf8mb4_unicode_ci = upe.user_id COLLATE utf8mb4_unicode_ci
 
+            ${msJoin}
+
       LEFT JOIN (
         SELECT
           uap.user_id,
@@ -495,22 +601,23 @@ exports.getUsersByProgramIdAdmin = async (req, res) => {
 
       WHERE upe.program_id = ?
         AND upe.status IN ('enrolled', 'completed')
-        ${estadoFilterSQL}
+        
 
       ORDER BY progress_pct DESC, avg_score DESC, last_activity_at DESC
-      `,
-      (() => {
-        const params = [
-          totalActivities,
-          totalActivities,
-          totalActivities,
-          programId,
-          programId,
-        ];
-        if (rol === "moderador") params.push(estadoMod);
-        return params;
-      })()
-    );
+    `,
+    (() => {
+      const params = [
+        totalActivities,
+        totalActivities,
+        totalActivities,
+        programId,
+        programId,
+      ];
+      if (rol === "moderador") params.push(moderatorUid);
+      return params;
+    })()
+  );
+
 
     return res.json({
       ok: true,
@@ -597,10 +704,22 @@ exports.reviewDocUsuario = async (req, res) => {
 
     await conn.beginTransaction();
 
-    const [rows] = await conn.query(
-      "SELECT id, user_id, activity_id FROM user_activity_docs WHERE id = ? LIMIT 1",
-      [docId]
-    );
+const [rows] = await conn.query(
+  `
+  SELECT
+    uad.id,
+    uad.user_id,
+    uad.activity_id,
+    b.program_id
+  FROM user_activity_docs uad
+  JOIN activity a ON a.activity_id = uad.activity_id
+  JOIN module m ON m.module_id = a.module_id
+  JOIN block b ON b.block_id = m.block_id
+  WHERE uad.id = ?
+  LIMIT 1
+  `,
+  [docId]
+);
 
     const doc = rows?.[0];
     if (!doc) {
@@ -609,18 +728,16 @@ exports.reviewDocUsuario = async (req, res) => {
     }
 
     const userUid = doc.user_id;
-    const activityId = doc.activity_id;
-
-    // ✅ scope por estado si es moderador
-    if (rol === "moderador") {
-      const ok = await assertUserInModeratorScope(conn, userUid, estadoMod);
-      if (!ok) {
-        await conn.rollback();
-        return res.status(404).json({ error: "Evidencia no encontrada o fuera de tu alcance" });
-      }
-    }
-
-    // 1) actualizar doc
+    const activityId = doc.activity_id;// ✅ scope por moderator_scopes si es moderador (para el programa de la actividad)
+if (rol === "moderador") {
+  const moderatorUid = req?.firebaseUser?.uid || null;
+  const ok = await assertUserInModeratorScope(conn, moderatorUid, userUid, doc.program_id);
+  if (!ok) {
+    await conn.rollback();
+    return res.status(404).json({ error: "Evidencia no encontrada o fuera de tu alcance" });
+  }
+}
+// 1) actualizar doc
     await conn.query(
       `
       UPDATE user_activity_docs
@@ -752,10 +869,22 @@ exports.reviewRequestUsuario = async (req, res) => {
 
     await conn.beginTransaction();
 
-    const [rows] = await conn.query(
-      "SELECT request_id, user_id, activity_id FROM user_activity_requests WHERE request_id = ? LIMIT 1",
-      [requestId]
-    );
+const [rows] = await conn.query(
+  `
+  SELECT
+    uar.request_id,
+    uar.user_id,
+    uar.activity_id,
+    b.program_id
+  FROM user_activity_requests uar
+  JOIN activity a ON a.activity_id = uar.activity_id
+  JOIN module m ON m.module_id = a.module_id
+  JOIN block b ON b.block_id = m.block_id
+  WHERE uar.request_id = ?
+  LIMIT 1
+  `,
+  [requestId]
+);
 
     const reqRow = rows?.[0];
     if (!reqRow) {
@@ -764,18 +893,16 @@ exports.reviewRequestUsuario = async (req, res) => {
     }
 
     const userUid = reqRow.user_id;
-    const activityId = reqRow.activity_id;
-
-    // ✅ scope por estado si es moderador
-    if (rol === "moderador") {
-      const ok = await assertUserInModeratorScope(conn, userUid, estadoMod);
-      if (!ok) {
-        await conn.rollback();
-        return res.status(404).json({ error: "Solicitud no encontrada o fuera de tu alcance" });
-      }
-    }
-
-    // 1) update request
+    const activityId = reqRow.activity_id;// ✅ scope por moderator_scopes si es moderador (para el programa de la actividad)
+if (rol === "moderador") {
+  const moderatorUid = req?.firebaseUser?.uid || null;
+  const ok = await assertUserInModeratorScope(conn, moderatorUid, userUid, reqRow.program_id);
+  if (!ok) {
+    await conn.rollback();
+    return res.status(404).json({ error: "Solicitud no encontrada o fuera de tu alcance" });
+  }
+}
+// 1) update request
     await conn.query(
       `
       UPDATE user_activity_requests

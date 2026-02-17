@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const docsCtrl = require("../controllers/documentos.controller");
-const { authMiddleware, roleMiddleware } = require("../middlewares/auth");
+const { authMiddleware, roleMiddleware, requireModeradorScopes } = require("../middlewares/auth");
 
 // Subir/actualizar documentos (aspirante/admin/mod)
 router.post(
@@ -16,6 +16,7 @@ router.get(
   "/",
   authMiddleware,
   roleMiddleware(["admin", "moderador"]),
+  requireModeradorScopes,
   docsCtrl.getAll
 );
 
@@ -24,6 +25,7 @@ router.patch(
   "/estado",
   authMiddleware,
   roleMiddleware(["admin", "moderador"]),
+  requireModeradorScopes,
   docsCtrl.actualizarEstadoDocumento
 );
 
@@ -39,6 +41,7 @@ router.get(
   "/:userId",
   authMiddleware,
   roleMiddleware(["admin", "moderador"]),
+  requireModeradorScopes,
   docsCtrl.obtenerDocumentosPorUserId
 );
 

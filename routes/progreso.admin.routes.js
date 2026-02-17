@@ -2,13 +2,14 @@ const express = require("express");
 const router = express.Router();
 
 const progresoAdminController = require("../controllers/progreso.admin.controller");
-const { authMiddleware, roleMiddleware } = require("../middlewares/auth");
+const { authMiddleware, roleMiddleware, requireModeradorScopes } = require("../middlewares/auth");
 
 // ✅ NUEVO: Lista de programas (selector "Por programa")
 router.get(
   "/programas",
   authMiddleware,
   roleMiddleware(["admin", "moderador"]),
+  requireModeradorScopes,
   progresoAdminController.listProgramasAdmin
 );
 
@@ -17,6 +18,7 @@ router.get(
   "/programs/:programId/users",
   authMiddleware,
   roleMiddleware(["admin", "moderador"]),
+  requireModeradorScopes,
   progresoAdminController.getUsersByProgramIdAdmin
 );
 
@@ -25,6 +27,7 @@ router.get(
   "/programas/:programCode/users",
   authMiddleware,
   roleMiddleware(["admin", "moderador"]),
+  requireModeradorScopes,
   progresoAdminController.getUsersByProgramCodeAdmin
 );
 
@@ -33,6 +36,7 @@ router.get(
   "/users/:userId/programas",
   authMiddleware,
   roleMiddleware(["admin", "moderador"]),
+  requireModeradorScopes,
   progresoAdminController.getProgramasUsuario
 );
 
@@ -41,6 +45,7 @@ router.get(
   "/users/:userId/programas/:programCode",
   authMiddleware,
   roleMiddleware(["admin", "moderador"]),
+  requireModeradorScopes,
   progresoAdminController.getAdminProgramView
 );
 
@@ -49,6 +54,7 @@ router.patch(
   "/docs/:docId/review",
   authMiddleware,
   roleMiddleware(["admin", "moderador"]),
+  requireModeradorScopes,
   progresoAdminController.reviewDocUsuario
 );
 
@@ -57,6 +63,7 @@ router.patch(
   "/requests/:requestId/review",
   authMiddleware,
   roleMiddleware(["admin", "moderador"]),
+  requireModeradorScopes,
   progresoAdminController.reviewRequestUsuario
 );
 

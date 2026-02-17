@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const trayectoriaCtrl = require("../controllers/trayectoria.controller");
-const { authMiddleware, roleMiddleware } = require("../middlewares/auth");
+const { authMiddleware, roleMiddleware, requireModeradorScopes } = require("../middlewares/auth");
 
 /**
  * ─────────────────────────────────────────────────────────────
@@ -35,7 +35,8 @@ router.get(
   "/",
   authMiddleware,
   roleMiddleware(["admin", "moderador"]),
-  trayectoriaCtrl.getAllTrayectoria
+  requireModeradorScopes,
+    trayectoriaCtrl.getAllTrayectoria
 );
 
 // Actualizar status por params (compat)
@@ -43,7 +44,8 @@ router.patch(
   "/:trajectoryId/status",
   authMiddleware,
   roleMiddleware(["admin", "moderador"]),
-  trayectoriaCtrl.actualizarStatusTrayectoria
+  requireModeradorScopes,
+    trayectoriaCtrl.actualizarStatusTrayectoria
 );
 
 // Actualizar status estilo "documentos/estado" (por body)
@@ -51,7 +53,8 @@ router.patch(
   "/estado",
   authMiddleware,
   roleMiddleware(["admin", "moderador"]),
-  trayectoriaCtrl.actualizarEstadoTrayectoria
+  requireModeradorScopes,
+    trayectoriaCtrl.actualizarEstadoTrayectoria
 );
 
 // Ver detalle puntual
@@ -59,7 +62,8 @@ router.get(
   "/:trajectoryId",
   authMiddleware,
   roleMiddleware(["admin", "moderador"]),
-  trayectoriaCtrl.obtenerTrayectoriaPorIdAdmin
+  requireModeradorScopes,
+    trayectoriaCtrl.obtenerTrayectoriaPorIdAdmin
 );
 
 module.exports = router;

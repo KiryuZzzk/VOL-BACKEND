@@ -251,7 +251,7 @@ const borrarMiTrayectoria = async (req, res) => {
  */
 const getAllTrayectoria = async (req, res) => {
   try {
-    const { rol, estado } = req.user || {};
+    const { rol } = req.user || {};
     const { searchField, search, status, category, year } = req.query;
 
     const validFields = ["matricula", "correo", "curp"];
@@ -259,15 +259,27 @@ const getAllTrayectoria = async (req, res) => {
     const where = [];
     const params = [];
 
-    // Moderador: limita por users.estado (igual que Documentos)
+    // Permisos
     if (rol === "moderador") {
-      where.push("users.estado = ?");
-      params.push(estado);
+      // Moderador: restringe por scopes (estado/programa/grupo) via enrollment
+      where.push(`
+EXISTS (
+  SELECT 1
+  FROM user_program_enrollment upe
+  JOIN moderator_scopes ms
+    ON ms.moderator_uid = ?
+   AND ms.is_active = 1
+   AND (ms.estado IS NULL OR ms.estado = users.estado)
+   AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
+   AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
+  WHERE upe.user_id = users.id
+)
+`);
+      params.push(req.user?.uid);
     } else if (rol !== "admin") {
       return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
     }
-
-    if (search && String(search).trim() !== "" && validFields.includes(searchField)) {
+if (search && String(search).trim() !== "" && validFields.includes(searchField)) {
       where.push(`users.${searchField} LIKE ?`);
       params.push(safeLike(search));
     }
@@ -354,7 +366,7 @@ const getAllTrayectoria = async (req, res) => {
  */
 const obtenerTrayectoriaPorIdAdmin = async (req, res) => {
   try {
-    const { rol, estado } = req.user || {};
+    const { rol } = req.user || {};
     if (!["admin", "moderador"].includes(rol)) {
       return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
     }
@@ -368,8 +380,20 @@ const obtenerTrayectoriaPorIdAdmin = async (req, res) => {
     const params = [trajectoryId];
 
     if (rol === "moderador") {
-      where.push("users.estado = ?");
-      params.push(estado);
+      where.push(`
+EXISTS (
+  SELECT 1
+  FROM user_program_enrollment upe
+  JOIN moderator_scopes ms
+    ON ms.moderator_uid = ?
+   AND ms.is_active = 1
+   AND (ms.estado IS NULL OR ms.estado = users.estado)
+   AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
+   AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
+  WHERE upe.user_id = users.id
+)
+`);
+      params.push(req.user?.uid);
     }
 
     const sql = `
@@ -428,7 +452,7 @@ const obtenerTrayectoriaPorIdAdmin = async (req, res) => {
  */
 const actualizarStatusTrayectoria = async (req, res) => {
   try {
-    const { rol, estado } = req.user || {};
+    const { rol } = req.user || {};
     if (!["admin", "moderador"].includes(rol)) {
       return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
     }
@@ -452,8 +476,20 @@ const actualizarStatusTrayectoria = async (req, res) => {
     const params = [trajectoryId];
 
     if (rol === "moderador") {
-      where.push("users.estado = ?");
-      params.push(estado);
+      where.push(`
+EXISTS (
+  SELECT 1
+  FROM user_program_enrollment upe
+  JOIN moderator_scopes ms
+    ON ms.moderator_uid = ?
+   AND ms.is_active = 1
+   AND (ms.estado IS NULL OR ms.estado = users.estado)
+   AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
+   AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
+  WHERE upe.user_id = users.id
+)
+`);
+      params.push(req.user?.uid);
     }
 
     const [exists] = await db.query(

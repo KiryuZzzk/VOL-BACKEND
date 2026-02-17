@@ -293,20 +293,27 @@ const camposDocumentos = [
     const campos = [...camposUsuarios, ...camposDocumentos].join(", ");
 
     let sql = `
-      SELECT ${campos}
-      FROM users
-      LEFT JOIN documentos ON users.id = documentos.user_id
-    `;
-    const params = [];
+  SELECT ${campos}
+  FROM users
+  LEFT JOIN documentos ON users.id = documentos.user_id
+`;
+const params = [];
 
-    if (rol === "moderador") {
-      sql += " WHERE users.estado = ?";
-      params.push(estado);
-    } else if (rol !== "admin") {
-      return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
-    }
-
-    if (search && search.trim() !== "" && validFields.includes(searchField)) {
+if (rol === "moderador") {
+  // ✅ Aplica alcance por moderator_scopes + enrollment
+  const scope = buildModeratorScopeSql(req, { userAlias: "users", enrollmentAlias: "upe", scopesAlias: "ms" });
+  sql = `
+    SELECT ${campos}
+    FROM users
+    ${scope.fromJoin}
+    LEFT JOIN documentos ON users.id = documentos.user_id
+  `;
+  params.push(...scope.params);
+  sql += " WHERE 1=1 ";
+} else if (rol !== "admin") {
+  return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
+}
+if (search && search.trim() !== "" && validFields.includes(searchField)) {
       sql += (rol === "moderador" ? " AND" : " WHERE") + ` users.${searchField} LIKE ?`;
       params.push(`%${search.trim()}%`);
     }
@@ -324,6 +331,102 @@ const camposDocumentos = [
   }
 };
 
+
+// ─────────────────────────────────────────────────────────────
+// Helper: fragmento SQL para aplicar alcance de moderador (estado/programa/grupo)
+// Basado en:
+// - users.estado
+// - user_program_enrollment.program_id + group_code (upe.user_id guarda users.uid)
+// - moderator_scopes (moderator_uid = Firebase UID del moderador)
+//
+// Reglas de comodín (NULL):
+// - ms.estado NULL => cualquier estado
+// - ms.program_id NULL => cualquier programa
+// - ms.group_code NULL => cualquier grupo (incluye 'SIN_GRUPO')
+//
+// Retorna: { fromJoin, whereExtra, params }
+// ─────────────────────────────────────────────────────────────
+function buildModeratorScopeSql(req, opts = {}) {
+  const userAlias = opts.userAlias || "users";
+  const enrollmentAlias = opts.enrollmentAlias || "upe";
+  const scopesAlias = opts.scopesAlias || "ms";
+
+  const rol = normRol(req.user?.rol);
+  if (rol !== "moderador") return { fromJoin: "", whereExtra: "", params: [] };
+
+  const moderatorUid = req?.firebaseUser?.uid || null;
+  if (!moderatorUid) return { fromJoin: "", whereExtra: " AND 1=0 ", params: [] };
+
+  // OJO: upe.user_id guarda users.uid (Firebase UID), NO users.id
+  const fromJoin = `
+    JOIN user_program_enrollment ${enrollmentAlias}
+      ON ${enrollmentAlias}.user_id COLLATE utf8mb4_unicode_ci = ${userAlias}.uid COLLATE utf8mb4_unicode_ci
+    JOIN moderator_scopes ${scopesAlias}
+      ON ${scopesAlias}.moderator_uid = ?
+     AND ${scopesAlias}.is_active = 1
+     AND (${scopesAlias}.estado IS NULL OR ${scopesAlias}.estado = ${userAlias}.estado)
+     AND (${scopesAlias}.program_id IS NULL OR ${scopesAlias}.program_id = ${enrollmentAlias}.program_id)
+     AND (${scopesAlias}.group_code IS NULL OR ${scopesAlias}.group_code = ${enrollmentAlias}.group_code)
+  `;
+
+  return { fromJoin, whereExtra: "", params: [moderatorUid] };
+}
+
+async function assertUserInModeratorScopeByUserId(req, userId) {
+  const rol = normRol(req.user?.rol);
+  if (rol !== "moderador") return true;
+
+  const moderatorUid = req?.firebaseUser?.uid || null;
+  if (!moderatorUid) return false;
+
+  const [rows] = await db.query(
+    `
+    SELECT 1
+    FROM users u
+    JOIN user_program_enrollment upe
+      ON upe.user_id COLLATE utf8mb4_unicode_ci = u.uid COLLATE utf8mb4_unicode_ci
+    JOIN moderator_scopes ms
+      ON ms.moderator_uid = ?
+     AND ms.is_active = 1
+     AND (ms.estado IS NULL OR ms.estado = u.estado)
+     AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
+     AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
+    WHERE u.id = ?
+    LIMIT 1
+    `,
+    [moderatorUid, userId]
+  );
+
+  return !!rows?.length;
+}
+
+async function assertUserInModeratorScopeByMatricula(req, matricula) {
+  const rol = normRol(req.user?.rol);
+  if (rol !== "moderador") return true;
+
+  const moderatorUid = req?.firebaseUser?.uid || null;
+  if (!moderatorUid) return false;
+
+  const [rows] = await db.query(
+    `
+    SELECT 1
+    FROM users u
+    JOIN user_program_enrollment upe
+      ON upe.user_id COLLATE utf8mb4_unicode_ci = u.uid COLLATE utf8mb4_unicode_ci
+    JOIN moderator_scopes ms
+      ON ms.moderator_uid = ?
+     AND ms.is_active = 1
+     AND (ms.estado IS NULL OR ms.estado = u.estado)
+     AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
+     AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
+    WHERE u.matricula = ?
+    LIMIT 1
+    `,
+    [moderatorUid, matricula]
+  );
+
+  return !!rows?.length;
+}
 
 // helper pequeño
 function normRol(r) {
@@ -357,19 +460,19 @@ const actualizarEstadoDocumento = async (req, res) => {
     const estadoStr = normalizeEstado(estado);
     if (!estadoStr) return res.status(400).json({ error: "Estado inválido" });
 
-    // ✅ Resuelve usuario con scope por estado si es moderador
-    let userSql = "SELECT id FROM users WHERE matricula = ? ";
-    const userParams = [user_matricula];
+    // ✅ Resuelve usuario (y verifica alcance si es moderador)
+if (rol === "moderador") {
+  const ok = await assertUserInModeratorScopeByMatricula(req, user_matricula);
+  if (!ok) {
+    return res.status(404).json({ error: "Usuario no encontrado o fuera de tu alcance" });
+  }
+}
 
-    if (rol === "moderador") {
-      userSql += " AND estado = ? ";
-      userParams.push(estadoMod);
-    }
-
-    userSql += " LIMIT 1";
-
-    const [urows] = await db.query(userSql, userParams);
-    if (!urows?.length) {
+const [urows] = await db.query(
+  "SELECT id FROM users WHERE matricula = ? LIMIT 1",
+  [user_matricula]
+);
+if (!urows?.length) {
       return res.status(404).json({
         error: rol === "moderador" ? "Usuario no encontrado o fuera de tu alcance" : "Usuario no encontrado",
       });
@@ -452,19 +555,19 @@ const obtenerDocumentosPorUserId = async (req, res) => {
     const requestedUserId = String(req.params.userId || "").trim();
     if (!requestedUserId) return res.status(400).json({ error: "Parámetro userId inválido" });
 
-    // ✅ filtra por estado si es moderador
-    let uSql = "SELECT id, matricula, curp, correo FROM users WHERE id = ? ";
-    const uParams = [requestedUserId];
+    // ✅ verifica alcance si es moderador (estado/programa/grupo)
+if (rol === "moderador") {
+  const ok = await assertUserInModeratorScopeByUserId(req, requestedUserId);
+  if (!ok) {
+    return res.status(404).json({ error: "Usuario no encontrado o fuera de tu alcance" });
+  }
+}
 
-    if (rol === "moderador") {
-      uSql += " AND estado = ? ";
-      uParams.push(estadoMod);
-    }
-
-    uSql += " LIMIT 1";
-
-    const [userRows] = await db.query(uSql, uParams);
-    if (!userRows.length) {
+const [userRows] = await db.query(
+  "SELECT id, matricula, curp, correo FROM users WHERE id = ? LIMIT 1",
+  [requestedUserId]
+);
+if (!userRows.length) {
       return res.status(404).json({
         error: rol === "moderador" ? "Usuario no encontrado o fuera de tu alcance" : "Usuario no encontrado",
       });

@@ -95,6 +95,110 @@ const attachUserFromDB = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────────────────────
+// 2.5) Adjunta scopes de moderador desde BD (si aplica)
+//    -> req.moderatorScopes = [{ estado, program_id, group_code }]
+//    -> req.isModerador = boolean
+//
+// Reglas:
+// - Sólo se cargan si el usuario tiene rol 'moderador'.
+// - Si es moderador y no tiene scopes activos, por seguridad NO ve nada
+//   (esto se puede forzar con requireModeradorScopes, opcional).
+// ─────────────────────────────────────────────────────────────
+const attachModeratorScopes = async (req, res, next) => {
+  try {
+    const uid = req.firebaseUser?.uid;
+    const roles = req.dbRoles || [];
+    const isModerador = roles.includes("moderador");
+
+    req.isModerador = isModerador;
+    req.moderatorScopes = [];
+
+    if (!uid || !isModerador) return next();
+
+    const [rows] = await db.query(
+      `
+      SELECT estado, program_id, group_code
+      FROM moderator_scopes
+      WHERE moderator_uid = ?
+        AND is_active = 1
+      `,
+      [uid]
+    );
+
+    req.moderatorScopes = rows.map((r) => ({
+      estado: r.estado ?? null, // NULL => cualquier estado
+      program_id: r.program_id === null ? null : Number(r.program_id), // NULL => cualquier programa
+      group_code: r.group_code ?? null, // NULL => cualquier grupo (incluye 'SIN_GRUPO')
+    }));
+
+    // Compat legacy (si tus controladores usan req.user)
+    if (req.user) req.user.moderatorScopes = req.moderatorScopes;
+
+    console.log("🧭 Moderator scopes cargados:", {
+      uid,
+      count: req.moderatorScopes.length,
+      sample: req.moderatorScopes.slice(0, 5),
+    });
+
+    return next();
+  } catch (error) {
+    console.error("❌ attachModeratorScopes: error consultando scopes:", error.message);
+    // Por seguridad, si falla, tratamos al moderador como "sin scopes"
+    req.isModerador = (req.dbRoles || []).includes("moderador");
+    req.moderatorScopes = [];
+    if (req.user) req.user.moderatorScopes = [];
+    return next();
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// (Opcional) Fuerza que un moderador tenga scopes activos.
+// Úsalo en rutas donde NO debe existir "moderador sin alcance".
+// ─────────────────────────────────────────────────────────────
+const requireModeradorScopes = (req, res, next) => {
+  if (!req.isModerador) return next();
+  const scopes = req.moderatorScopes || [];
+  if (!scopes.length) {
+    console.warn("🚫 requireModeradorScopes: moderador sin scopes activos:", req.firebaseUser?.uid);
+    return res.status(403).json({ error: "Moderador sin permisos asignados" });
+  }
+  return next();
+};
+
+// ─────────────────────────────────────────────────────────────
+// Helper: JOIN de autorización para moderadores (para usar en controllers)
+//
+// Uso típico:
+//   const { join, params } = getModeradorScopeJoin(req, { userAlias:"u", enrollmentAlias:"upe" });
+//   const [rows] = await db.query(`SELECT ... FROM users u JOIN user_program_enrollment upe ... ${join} WHERE ...`, params);
+//
+// Nota: para admin NO agregues este JOIN.
+// ─────────────────────────────────────────────────────────────
+const getModeradorScopeJoin = (req, opts = {}) => {
+  const userAlias = opts.userAlias || "u";
+  const enrollmentAlias = opts.enrollmentAlias || "upe";
+  const scopesAlias = opts.scopesAlias || "ms";
+
+  // Si no es moderador, no se agrega nada
+  if (!req.isModerador) return { join: "", params: [] };
+
+  const uid = req.firebaseUser?.uid;
+  // Si no hay UID, mejor bloquear aguas abajo con requireRegistered / requireRoles
+  if (!uid) return { join: "/* missing uid */", params: [] };
+
+  const join = `
+JOIN moderator_scopes ${scopesAlias}
+  ON ${scopesAlias}.moderator_uid = ?
+ AND ${scopesAlias}.is_active = 1
+ AND (${scopesAlias}.estado IS NULL OR ${scopesAlias}.estado = ${userAlias}.estado)
+ AND (${scopesAlias}.program_id IS NULL OR ${scopesAlias}.program_id = ${enrollmentAlias}.program_id)
+ AND (${scopesAlias}.group_code IS NULL OR ${scopesAlias}.group_code = ${enrollmentAlias}.group_code)
+`;
+
+  return { join, params: [uid] };
+};
+
+// ─────────────────────────────────────────────────────────────
 // 3) AUTORIZACIÓN: exige estar registrado en BD
 // ─────────────────────────────────────────────────────────────
 const requireRegistered = (req, res, next) => {
@@ -157,7 +261,9 @@ const authMiddleware = (req, res, next) => {
   // Ejecutamos en cadena; cada middleware decide si responde o llama next()
   return authFirebase(req, res, () => {
     return attachUserFromDB(req, res, () => {
-      return requireRegistered(req, res, next);
+      return attachModeratorScopes(req, res, () => {
+        return requireRegistered(req, res, next);
+      });
     });
   });
 };
@@ -168,6 +274,9 @@ module.exports = {
   // Nuevos (recomendados para rutas nuevas):
   authFirebase,
   attachUserFromDB,
+  attachModeratorScopes,
+  requireModeradorScopes,
+  getModeradorScopeJoin,
   requireRegistered,
   requireRoles,
   requireSelfOrRoles, // opcional si decides usarlo

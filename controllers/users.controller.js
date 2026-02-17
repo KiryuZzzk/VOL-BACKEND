@@ -1,5 +1,41 @@
 // controllers/users.controller.js
 const db = require("../config/db");
+const { getModeradorScopeJoin } = require("../middlewares/auth");
+
+// ─────────────────────────────────────────────────────────────
+// Helpers de autorización por scopes (moderador)
+// - Admin: acceso global
+// - Moderador (sin admin): sólo usuarios que tengan al menos 1 enrollment
+//   dentro de sus scopes (estado/programa/grupo).
+// ─────────────────────────────────────────────────────────────
+const getRequesterContext = (req) => {
+  const requester = req.dbUser || req.user || {};
+  const roles = req.dbRoles || (req.user?.rol ? [req.user.rol] : []);
+  const hasRole = (r) => roles.includes(r);
+  const requesterUid = req.firebaseUser?.uid || requester.uid || null;
+
+  return { requester, roles, hasRole, requesterUid };
+};
+
+const buildModeradorScopeExists = (req, userAlias = "u") => {
+  const { requesterUid } = getRequesterContext(req);
+  if (!requesterUid) return { clause: "0", params: [] }; // bloquea
+
+  // OJO: user_program_enrollment.user_id referencia users.id (char(36))
+  const clause = `
+    EXISTS (
+      SELECT 1
+      FROM user_program_enrollment upe
+      ${getModeradorScopeJoin(req, { userAlias, enrollmentAlias: "upe" }).join}
+      WHERE upe.user_id = ${userAlias}.id
+      LIMIT 1
+    )
+  `;
+  const { params } = getModeradorScopeJoin(req, { userAlias, enrollmentAlias: "upe" });
+
+  return { clause, params };
+};
+
 
 /**
  * GET /users
@@ -8,19 +44,24 @@ const db = require("../config/db");
  * Soporta filtros opcionales: ?searchField=matricula|correo|curp&search=VALOR
  */
 exports.getAll = async (req, res) => {
-  const { rol, estado } = req.user;
   const { searchField, search } = req.query;
 
-  console.log("🔍 Parámetros de búsqueda recibidos:", { rol, estado, searchField, search });
+  const { requester, roles, hasRole, requesterUid } = getRequesterContext(req);
+
+  console.log("🔍 Parámetros de búsqueda recibidos:", {
+    roles,
+    requesterId: requester.id,
+    requesterEstado: requester.estado,
+    searchField,
+    search,
+  });
 
   const validFields = ["matricula", "correo", "curp"];
-  let sql = "";
-  const params = [];
 
   try {
     // Selección explícita de campos (incluye id)
     const campos = [
-      "u.id AS id", // necesario para PUT /users/:id
+      "u.id AS id",
       "u.matricula",
       "u.correo",
       "u.nombre",
@@ -64,38 +105,64 @@ exports.getAll = async (req, res) => {
       "u.coordinacion",
     ].join(", ");
 
-    if (rol === "moderador") {
-      sql = `SELECT ${campos} FROM users u WHERE u.estado = ?`;
-      params.push(estado);
-    } else if (rol === "admin") {
-      sql = `SELECT ${campos} FROM users u WHERE 1=1`;
-    } else {
-      return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
+    // Admin: global
+    if (hasRole("admin")) {
+      let sql = `SELECT ${campos} FROM users u WHERE 1=1`;
+      const params = [];
+
+      if (search && search.trim() !== "" && validFields.includes(searchField)) {
+        sql += ` AND u.${searchField} LIKE ?`;
+        params.push(`%${search.trim()}%`);
+      }
+
+      sql += " ORDER BY u.fecha_registro DESC";
+
+      console.log("🛠 Ejecutando SQL (admin):", sql);
+      console.log("📦 Con parámetros:", params);
+
+      const [results] = await db.query(sql, params);
+      return res.json(results);
     }
 
-    if (search && search.trim() !== "" && validFields.includes(searchField)) {
-      sql += ` AND u.${searchField} LIKE ?`;
-      params.push(`%${search.trim()}%`);
+    // Moderador: restringido por scopes (estado/programa/grupo)
+    if (hasRole("moderador")) {
+      if (!requesterUid) {
+        return res.status(401).json({ error: "No se pudo determinar el UID del solicitante" });
+      }
+
+      // Distinct porque un usuario puede tener múltiples enrollments (programas)
+      let sql = `
+        SELECT DISTINCT ${campos}
+        FROM users u
+        JOIN user_program_enrollment upe
+          ON upe.user_id = u.id
+        ${getModeradorScopeJoin(req, { userAlias: "u", enrollmentAlias: "upe" }).join}
+        WHERE 1=1
+      `;
+      const params = [...getModeradorScopeJoin(req, { userAlias: "u", enrollmentAlias: "upe" }).params];
+
+      if (search && search.trim() !== "" && validFields.includes(searchField)) {
+        sql += ` AND u.${searchField} LIKE ?`;
+        params.push(`%${search.trim()}%`);
+      }
+
+      sql += " ORDER BY u.fecha_registro DESC";
+
+      console.log("🛠 Ejecutando SQL (moderador scopes):", sql);
+      console.log("📦 Con parámetros:", params);
+
+      const [results] = await db.query(sql, params);
+      return res.json(results);
     }
 
-    sql += " ORDER BY u.fecha_registro DESC";
-
-    console.log("🛠 Ejecutando SQL:", sql);
-    console.log("📦 Con parámetros:", params);
-
-    const [results] = await db.query(sql, params);
-
-    if (!Array.isArray(results)) {
-      console.error("❌ Resultado inesperado de la consulta:", results);
-      return res.status(500).json({ error: "Error interno en la consulta" });
-    }
-
-    res.json(results);
+    return res.status(403).json({ error: "No tienes permisos suficientes para esta acción" });
   } catch (err) {
     console.error("❌ Error en getAll:", err, err.stack);
-    res.status(500).json({ error: "Error al obtener perfiles" });
+    return res.status(500).json({ error: "Error al obtener perfiles" });
   }
 };
+
+/**
 
 /**
  * GET /users/:userId
@@ -129,8 +196,8 @@ exports.getByUserId = async (req, res) => {
     return res.status(403).json({ error: "No tienes permiso para ver este perfil" });
   }
 
-  // 2) Moderador restringido por estado (si no es admin)
-  const restrictByEstado = hasRole("moderador") && !hasRole("admin");
+  // 2) Moderador restringido por scopes (estado/programa/grupo) si no es admin
+  const restrictByScopes = hasRole("moderador") && !hasRole("admin");
 
   const FULL_COLUMNS = `
     u.id, u.uid, u.correo,
@@ -155,9 +222,10 @@ exports.getByUserId = async (req, res) => {
   `;
   const params = [requestedUserId];
 
-  if (restrictByEstado) {
-    sql += " AND u.estado = ? ";
-    params.push(requester.estado);
+  if (restrictByScopes) {
+    const { clause, params: scopeParams } = buildModeradorScopeExists(req, "u");
+    sql += ` AND ${clause} `;
+    params.push(...scopeParams);
   }
 
   try {
@@ -173,19 +241,20 @@ exports.getByUserId = async (req, res) => {
         WHERE u.uid = ?
       `;
       const paramsUid = [req.firebaseUser.uid];
-      if (restrictByEstado) {
-        sqlUid += " AND u.estado = ? ";
-        paramsUid.push(requester.estado);
+      if (restrictByScopes) {
+        const { clause, params: scopeParams } = buildModeradorScopeExists(req, "u");
+        sqlUid += ` AND ${clause} `;
+        paramsUid.push(...scopeParams);
       }
       const respUid = await db.query(sqlUid, paramsUid);
       rows = respUid[0] || [];
     }
 
     if (!rows.length) {
-      const msg = restrictByEstado
+      const msg = restrictByScopes
         ? "Usuario no encontrado o fuera de tu alcance"
         : "Usuario no encontrado";
-      console.warn("ℹ️ getByUserId vacío:", { requestedUserId, restrictByEstado });
+      console.warn("ℹ️ getByUserId vacío:", { requestedUserId, restrictByScopes });
       return res.status(404).json({ error: msg });
     }
 
@@ -215,6 +284,29 @@ exports.update = async (req, res) => {
     return res.status(403).json({ error: "No tienes permiso para modificar este perfil" });
   }
 
+
+  // Moderador (sin admin) sólo puede editar perfiles dentro de sus scopes
+  // (excepto cuando edita su propio perfil)
+  const roles = req.dbRoles || (req.user?.rol ? [req.user.rol] : []);
+  const hasRole = (r) => roles.includes(r);
+  const isAdmin = hasRole("admin");
+  const isModerador = hasRole("moderador");
+  const isSelf = String(targetUserId) === String(req.dbUser?.id || loggedUser?.id);
+
+  if (isModerador && !isAdmin && !isSelf) {
+    const { clause, params: scopeParams } = buildModeradorScopeExists(req, "u");
+    const sqlScope = `
+      SELECT 1
+      FROM users u
+      WHERE u.id = ?
+        AND ${clause}
+      LIMIT 1
+    `;
+    const [ok] = await db.query(sqlScope, [targetUserId, ...scopeParams]);
+    if (!ok?.length) {
+      return res.status(403).json({ error: "Usuario fuera de tu alcance (scopes)" });
+    }
+  }
   // Campos bloqueados pase lo que pase
   delete body.id;
   delete body.matricula;
@@ -332,6 +424,28 @@ exports.setCoordinaciones = async (req, res) => {
       return res.status(403).json({ error: "Sin permiso" });
     }
 
+
+    // Moderador (sin admin) sólo puede modificar coordinaciones de perfiles dentro de sus scopes
+    // (excepto cuando es su propio perfil)
+    const roles = req.dbRoles || (req.user?.rol ? [req.user.rol] : []);
+    const hasRole = (r) => roles.includes(r);
+    const isAdmin = hasRole("admin");
+    const isModerador = hasRole("moderador");
+
+    if (isModerador && !isAdmin && !isSelf) {
+      const { clause, params: scopeParams } = buildModeradorScopeExists(req, "u");
+      const sqlScope = `
+        SELECT 1
+        FROM users u
+        WHERE u.id = ?
+          AND ${clause}
+        LIMIT 1
+      `;
+      const [ok] = await db.query(sqlScope, [targetUserId, ...scopeParams]);
+      if (!ok?.length) {
+        return res.status(403).json({ error: "Usuario fuera de tu alcance (scopes)" });
+      }
+    }
     // Normaliza
     const norm = (v) => (v == null ? null : String(v).trim().toUpperCase());
     coordinacion = norm(coordinacion);
