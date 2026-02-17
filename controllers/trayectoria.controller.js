@@ -272,7 +272,7 @@ EXISTS (
    AND (ms.estado IS NULL OR ms.estado = users.estado)
    AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
    AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
-  WHERE upe.user_id = users.id
+  WHERE upe.user_id COLLATE utf8mb4_unicode_ci = users.uid COLLATE utf8mb4_unicode_ci
 )
 `);
       params.push(req.user?.uid);
@@ -390,7 +390,7 @@ EXISTS (
    AND (ms.estado IS NULL OR ms.estado = users.estado)
    AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
    AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
-  WHERE upe.user_id = users.id
+  WHERE upe.user_id COLLATE utf8mb4_unicode_ci = users.uid COLLATE utf8mb4_unicode_ci
 )
 `);
       params.push(req.user?.uid);
@@ -486,7 +486,7 @@ EXISTS (
    AND (ms.estado IS NULL OR ms.estado = users.estado)
    AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
    AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
-  WHERE upe.user_id = users.id
+  WHERE upe.user_id COLLATE utf8mb4_unicode_ci = users.uid COLLATE utf8mb4_unicode_ci
 )
 `);
       params.push(req.user?.uid);
