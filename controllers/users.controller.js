@@ -135,7 +135,7 @@ exports.getAll = async (req, res) => {
         SELECT DISTINCT ${campos}
         FROM users u
         JOIN user_program_enrollment upe
-          ON upe.user_id = u.id
+          ON upe.user_id COLLATE utf8mb4_unicode_ci = u.uid COLLATE utf8mb4_unicode_ci
         ${getModeradorScopeJoin(req, { userAlias: "u", enrollmentAlias: "upe" }).join}
         WHERE 1=1
       `;

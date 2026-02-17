@@ -190,9 +190,9 @@ const getModeradorScopeJoin = (req, opts = {}) => {
 JOIN moderator_scopes ${scopesAlias}
   ON ${scopesAlias}.moderator_uid = ?
  AND ${scopesAlias}.is_active = 1
- AND (${scopesAlias}.estado IS NULL OR ${scopesAlias}.estado = ${userAlias}.estado)
+ AND (${scopesAlias}.estado IS NULL OR ${scopesAlias}.estado COLLATE utf8mb4_unicode_ci = ${userAlias}.estado COLLATE utf8mb4_unicode_ci)
  AND (${scopesAlias}.program_id IS NULL OR ${scopesAlias}.program_id = ${enrollmentAlias}.program_id)
- AND (${scopesAlias}.group_code IS NULL OR ${scopesAlias}.group_code = ${enrollmentAlias}.group_code)
+ AND (${scopesAlias}.group_code IS NULL OR ${scopesAlias}.group_code COLLATE utf8mb4_unicode_ci = ${enrollmentAlias}.group_code COLLATE utf8mb4_unicode_ci)
 `;
 
   return { join, params: [uid] };
@@ -285,3 +285,4 @@ module.exports = {
   authMiddleware,
   roleMiddleware,
 };
+
