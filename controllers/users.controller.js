@@ -102,6 +102,7 @@ exports.getAll = async (req, res) => {
       "u.estado",
       "u.colonia",
       "u.codigo_postal",
+      "u.entrevistado",
       "u.coordinacion",
     ].join(", ");
 
@@ -209,7 +210,7 @@ exports.getByUserId = async (req, res) => {
     u.tipo_sangre, u.rh, u.enfermedades, u.alergias, u.medicamentos, u.ejercicio,
     u.como_se_entero, u.motivo_interes, u.voluntariado_previo, u.razon_proyecto,
     u.estado, u.colonia, u.codigo_postal AS cp, u.coordinacion,
-    u.matricula, u.estado_validacion, u.fecha_registro, u.estatus,
+    u.matricula, u.estado_validacion, u.entrevistado, u.fecha_registro, u.estatus,
     r.nombre_rol
   `;
 
@@ -314,7 +315,8 @@ exports.update = async (req, res) => {
   delete body.correo;
   delete body.estado_validacion;
 
-  // Mapa de llaves “API” -> columnas reales en la tabla `users`
+    delete body.entrevistado;
+// Mapa de llaves “API” -> columnas reales en la tabla `users`
   const FIELD_MAP = {
     nombre: "nombre",
     apellido_paterno: "apellido_pat",
@@ -505,5 +507,69 @@ exports.setCoordinaciones = async (req, res) => {
   } catch (err) {
     console.error("setCoordinaciones error:", err);
     return res.status(500).json({ error: "Error al guardar coordinaciones" });
+  }
+};
+
+
+/**
+ * PUT /users/:userId/entrevistado
+ * Reglas:
+ * - Admin: puede marcar a cualquiera
+ * - Moderador (sin admin): solo dentro de sus scopes
+ * Body: { entrevistado: "si" | "no" }
+ */
+exports.setEntrevistado = async (req, res) => {
+  try {
+    const targetUserId = String(req.params.userId || "").trim();
+    const { entrevistado } = req.body || {};
+
+    if (!targetUserId) {
+      return res.status(400).json({ error: "userId inválido" });
+    }
+
+    // Roles desde tu middleware
+    const roles = req.dbRoles || (req.user?.rol ? [req.user.rol] : []);
+    const hasRole = (r) => roles.includes(r);
+    const isAdmin = hasRole("admin");
+    const isModerador = hasRole("moderador");
+
+    if (!isAdmin && !isModerador) {
+      return res.status(403).json({ error: "Sin permiso" });
+    }
+
+    // Moderador (sin admin) -> scopes
+    if (isModerador && !isAdmin) {
+      const { clause, params: scopeParams } = buildModeradorScopeExists(req, "u");
+      const sqlScope = `
+        SELECT 1
+        FROM users u
+        WHERE u.id = ?
+          AND ${clause}
+        LIMIT 1
+      `;
+      const [ok] = await db.query(sqlScope, [targetUserId, ...scopeParams]);
+      if (!ok?.length) {
+        return res.status(403).json({ error: "Usuario fuera de tu alcance (scopes)" });
+      }
+    }
+
+    // Validación de valor
+    const v = (entrevistado ?? "").toString().trim().toLowerCase();
+    if (!["si", "no"].includes(v)) {
+      return res.status(400).json({ error: 'Valor inválido. Usa "si" o "no".' });
+    }
+
+    // Verificar existencia + actualizar
+    const [rows] = await db.query("SELECT id FROM users WHERE id = ?", [targetUserId]);
+    if (!rows?.length) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    await db.query("UPDATE users SET entrevistado = ? WHERE id = ?", [v, targetUserId]);
+
+    return res.json({ message: "Entrevista actualizada", entrevistado: v });
+  } catch (err) {
+    console.error("setEntrevistado error:", err);
+    return res.status(500).json({ error: "Error al actualizar entrevista" });
   }
 };

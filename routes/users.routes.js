@@ -12,6 +12,8 @@ router.get("/:userId", authMiddleware, roleMiddleware(["admin", "moderador", "as
 // Actualizar usuario (por ID)
 router.put("/:userId", authMiddleware, requireModeradorScopes, usersCtrl.update);
 
+router.put("/:userId/entrevistado", authMiddleware, roleMiddleware(["admin", "moderador"]), requireModeradorScopes, usersCtrl.setEntrevistado);
+
 // Elegir Coordinación
 router.post("/:userId/coordinaciones", authMiddleware, requireModeradorScopes, usersCtrl.setCoordinaciones);
 
