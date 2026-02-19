@@ -627,8 +627,8 @@ const msJoin =
       params.push(programId); // subquery: WHERE b.program_id = ?
       params.push(programId); // WHERE upe.program_id = ?
       return params;
-    })();
-
+    })()
+  );
 
     return res.json({
       ok: true,
