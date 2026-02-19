@@ -84,9 +84,9 @@ async function assertUserInModeratorScope(connOrDb, moderatorUid, userUid, progr
     JOIN moderator_scopes ms
       ON ms.moderator_uid = ?
      AND ms.is_active = 1
-     AND (ms.estado IS NULL OR ms.estado = u.estado)
+     AND (ms.estado IS NULL OR ms.estado COLLATE utf8mb4_unicode_ci = u.estado COLLATE utf8mb4_unicode_ci)
      AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
-     AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
+     AND (ms.group_code IS NULL OR ms.group_code COLLATE utf8mb4_unicode_ci = upe.group_code COLLATE utf8mb4_unicode_ci)
     WHERE u.uid = ?
       ${programSql}
     LIMIT 1
@@ -150,9 +150,9 @@ ${rol === "moderador" ? `JOIN users u ON u.uid COLLATE utf8mb4_unicode_ci = upe.
 JOIN moderator_scopes ms
   ON ms.moderator_uid = ?
  AND ms.is_active = 1
- AND (ms.estado IS NULL OR ms.estado = u.estado)
+ AND (ms.estado IS NULL OR ms.estado COLLATE utf8mb4_unicode_ci = u.estado COLLATE utf8mb4_unicode_ci)
  AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
- AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
+ AND (ms.group_code IS NULL OR ms.group_code COLLATE utf8mb4_unicode_ci = upe.group_code COLLATE utf8mb4_unicode_ci)
 ` : ``}
 WHERE upe.user_id = ?
 ORDER BY p.name ASC
@@ -220,9 +220,9 @@ exports.getAdminProgramView = async (req, res) => {
 JOIN moderator_scopes ms
   ON ms.moderator_uid = ?
  AND ms.is_active = 1
- AND (ms.estado IS NULL OR ms.estado = u.estado)
+ AND (ms.estado IS NULL OR ms.estado COLLATE utf8mb4_unicode_ci = u.estado COLLATE utf8mb4_unicode_ci)
  AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
- AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
+ AND (ms.group_code IS NULL OR ms.group_code COLLATE utf8mb4_unicode_ci = upe.group_code COLLATE utf8mb4_unicode_ci)
 `
     : ``;
 
