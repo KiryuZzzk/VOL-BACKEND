@@ -84,9 +84,9 @@ async function assertUserInModeratorScope(connOrDb, moderatorUid, userUid, progr
     JOIN moderator_scopes ms
       ON ms.moderator_uid = ?
      AND ms.is_active = 1
-     AND (ms.estado IS NULL OR ms.estado COLLATE utf8mb4_unicode_ci = u.estado COLLATE utf8mb4_unicode_ci)
+     AND (ms.estado IS NULL OR ms.estado = u.estado)
      AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
-     AND (ms.group_code IS NULL OR ms.group_code COLLATE utf8mb4_unicode_ci = upe.group_code COLLATE utf8mb4_unicode_ci)
+     AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
     WHERE u.uid = ?
       ${programSql}
     LIMIT 1
@@ -150,9 +150,9 @@ ${rol === "moderador" ? `JOIN users u ON u.uid COLLATE utf8mb4_unicode_ci = upe.
 JOIN moderator_scopes ms
   ON ms.moderator_uid = ?
  AND ms.is_active = 1
- AND (ms.estado IS NULL OR ms.estado COLLATE utf8mb4_unicode_ci = u.estado COLLATE utf8mb4_unicode_ci)
+ AND (ms.estado IS NULL OR ms.estado = u.estado)
  AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
- AND (ms.group_code IS NULL OR ms.group_code COLLATE utf8mb4_unicode_ci = upe.group_code COLLATE utf8mb4_unicode_ci)
+ AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
 ` : ``}
 WHERE upe.user_id = ?
 ORDER BY p.name ASC
@@ -220,9 +220,9 @@ exports.getAdminProgramView = async (req, res) => {
 JOIN moderator_scopes ms
   ON ms.moderator_uid = ?
  AND ms.is_active = 1
- AND (ms.estado IS NULL OR ms.estado COLLATE utf8mb4_unicode_ci = u.estado COLLATE utf8mb4_unicode_ci)
+ AND (ms.estado IS NULL OR ms.estado = u.estado)
  AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
- AND (ms.group_code IS NULL OR ms.group_code COLLATE utf8mb4_unicode_ci = upe.group_code COLLATE utf8mb4_unicode_ci)
+ AND (ms.group_code IS NULL OR ms.group_code = upe.group_code)
 `
     : ``;
 
@@ -548,6 +548,21 @@ exports.getUsersByProgramIdAdmin = async (req, res) => {
       [programId]
     );
     const totalActivities = Number(tRows?.[0]?.total || 0);
+
+const moderatorUid = rol === "moderador" ? (req?.firebaseUser?.uid || null) : null;
+
+const msJoin =
+  rol === "moderador"
+    ? `
+  JOIN moderator_scopes ms
+    ON ms.moderator_uid = ?
+   AND ms.is_active = 1
+   AND (ms.estado IS NULL OR ms.estado COLLATE utf8mb4_unicode_ci = u.estado COLLATE utf8mb4_unicode_ci)
+   AND (ms.program_id IS NULL OR ms.program_id = upe.program_id)
+   AND (ms.group_code IS NULL OR ms.group_code COLLATE utf8mb4_unicode_ci = upe.group_code COLLATE utf8mb4_unicode_ci)
+  `
+    : ``;
+
     // ✅ filtro por moderator_scopes si es moderador (estado/programa/grupo)
 
     // Stats por usuario SOLO dentro de las actividades del programa
@@ -606,17 +621,13 @@ exports.getUsersByProgramIdAdmin = async (req, res) => {
       ORDER BY progress_pct DESC, avg_score DESC, last_activity_at DESC
     `,
     (() => {
-      const params = [
-        totalActivities,
-        totalActivities,
-        totalActivities,
-        programId,
-        programId,
-      ];
+      const params = [totalActivities, totalActivities, totalActivities];
       if (rol === "moderador") params.push(moderatorUid);
+      // orden IMPORTANTE: el ? de msJoin va antes de los programId
+      params.push(programId); // subquery: WHERE b.program_id = ?
+      params.push(programId); // WHERE upe.program_id = ?
       return params;
-    })()
-  );
+    })();
 
 
     return res.json({
