@@ -521,6 +521,60 @@ exports.iniciarActividad = async (req, res) => {
         });
       }
 
+
+      // ✅ FIX: idempotencia.
+      // Si el examen ya está "in_progress" y ya existe un intento activo,
+      // NO volvemos a consumir otro intento (evita intentos fantasma por refresh/doble request).
+      if (status === "in_progress" && attemptsUsed > 0) {
+        const prevData = safeJsonParse(current?.data_json, {}) || {};
+        const prevFinal =
+          prevData?.final_quiz && typeof prevData.final_quiz === "object" ? prevData.final_quiz : {};
+
+        const bank = Array.isArray(meta.config?.questionsBank) ? meta.config.questionsBank : [];
+        const pickCount = Number(meta.config?.pickCount || 0) || 0;
+
+        const pickedIndices = Array.isArray(prevFinal?.pickedIndices)
+          ? prevFinal.pickedIndices
+          : pickRandomIndices(bank.length, pickCount);
+
+        const dataToSave = {
+          ...prevData,
+          final_quiz: {
+            ...prevFinal,
+            attemptNumber: attemptsUsed,
+            maxAttempts,
+            pickCount,
+            pickedIndices,
+            startedAt: prevFinal?.startedAt || new Date().toISOString(),
+          },
+        };
+
+        await db.query(
+          `
+          INSERT INTO user_activity_progress
+            (user_id, activity_id, status, attempts, data_json, started_at, last_seen_at)
+          VALUES (?, ?, 'in_progress', ?, ?, NOW(), NOW())
+          ON DUPLICATE KEY UPDATE
+            status = IF(status='completed', status, 'in_progress'),
+            attempts = GREATEST(COALESCE(attempts,0), VALUES(attempts)),
+            data_json = COALESCE(VALUES(data_json), data_json),
+            started_at = COALESCE(started_at, NOW()),
+            last_seen_at = NOW()
+          `,
+          [uid, activityId, attemptsUsed, normalizeJsonForDb(dataToSave)]
+        );
+
+        return res.json({
+          ok: true,
+          type: "final_quiz",
+          attemptsUsed,
+          maxAttempts,
+          pickedCount: pickedIndices.length,
+          alreadyStarted: true,
+        });
+      }
+
+
       // Consumimos intento ahora
       const nextAttempts = attemptsUsed + 1;
 
