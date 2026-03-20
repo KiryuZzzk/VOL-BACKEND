@@ -1,5 +1,7 @@
 // middlewares/auth.js
 const admin = require("firebase-admin");
+const fs = require("fs");
+const path = require("path");
 const db = require("../config/db");
 
 // ─────────────────────────────────────────────────────────────
@@ -7,7 +9,18 @@ const db = require("../config/db");
 // ─────────────────────────────────────────────────────────────
 if (!admin.apps.length) {
   console.log("🔐 Inicializando Firebase Admin SDK...");
-  const serviceAccount = require("/etc/secrets/firebase-service-account.json");
+  const configuredPath =
+    process.env.FIREBASE_SERVICE_ACCOUNT_PATH || "/etc/secrets/firebase-service-account.json";
+  const localFallbackPath = path.join(__dirname, "..", "config", "firebase-service-account.json");
+  const serviceAccountPath = fs.existsSync(configuredPath) ? configuredPath : localFallbackPath;
+
+  if (!fs.existsSync(serviceAccountPath)) {
+    throw new Error(
+      `No se encontró el service account de Firebase. Configura FIREBASE_SERVICE_ACCOUNT_PATH o crea ${localFallbackPath}`
+    );
+  }
+
+  const serviceAccount = require(serviceAccountPath);
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });

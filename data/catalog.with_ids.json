@@ -4786,6 +4786,159 @@
         }
       ],
       "shortId": "INSC_TUMB"
+    },
+    {
+      "title": "TUM-B Híbrido Nacional",
+      "description": "Tècnico en Urgencias Mèdicas Hìbrido nivel Bàsico",
+      "estimatedMinutes": null,
+      "level": null,
+      "formacion": "formacionEspecializada",
+      "image": "/assets/PNA.png",
+      "tags": [
+        "urgencias_medicas",
+        "capacitacion",
+        "tum"
+      ],
+      "program_id": 15,
+      "code": "TUMB_HIBRIDO",
+      "slug": "capacitacion_TUM-B",
+      "blocks": [
+        {
+          "title": "Propedèutico",
+          "description": "",
+          "order": 1,
+          "estimatedMinutes": null,
+          "optional": false,
+          "block_id": 20,
+          "code": "B01",
+          "slug": "INSC_PN_b01_for_0c2081",
+          "modules": [
+            {
+              "title": "Bienvenida",
+              "description": "",
+              "order": 1,
+              "estimatedMinutes": null,
+              "prerequisites": [],
+              "isFinalExam": false,
+              "module_id": 36,
+              "code": "M01",
+              "slug": "INSC_PN1_m01_int_ea77498f",
+              "activities": [
+                {
+                  "title": "Video de bienvenida",
+                  "type": "video",
+                  "order": 1,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "VbYEdsrXo-s"
+                    ]
+                  },
+                  "activity_id": 122,
+                  "code": "A01",
+                  "slug": "",
+                  "shortId": "TUMB_HIBRIDO-B01-M01-A01"
+                }
+              ],
+              "shortId": "TUMB_HIBRIDO-B01-M01"
+            },
+            {
+              "title": "Propedéutico",
+              "description": "",
+              "order": 2,
+              "estimatedMinutes": null,
+              "prerequisites": [],
+              "isFinalExam": false,
+              "module_id": 37,
+              "code": "M02",
+              "slug": "INSC_PN1_m01_int_ea77498f",
+              "activities": [
+                {
+                  "title": "Presentación CNC",
+                  "type": "video",
+                  "order": 1,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "vuouEkZdc9U"
+                    ]
+                  },
+                  "activity_id": 123,
+                  "code": "A01",
+                  "slug": "",
+                  "shortId": "TUMB_HIBRIDO-B01-M02-A01"
+                },
+                {
+                  "title": "Presentación AFA",
+                  "type": "video",
+                  "order": 2,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "provider": "youtube",
+                    "videoIds": [
+                      "B0ssmhfZVBE"
+                    ]
+                  },
+                  "activity_id": 124,
+                  "code": "A02",
+                  "slug": "",
+                  "shortId": "TUMB_HIBRIDO-B01-M02-A01"
+                },
+                {
+                  "title": "Propedéutico",
+                  "type": "reading",
+                  "order": 3,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/TUMB/PR/PR1.pdf"
+                  },
+                  "activity_id": 125,
+                  "code": "A03",
+                  "slug": "INSC_TUMB_b01_m01_a01_lec_05f3144b",
+                  "shortId": "INSC_TUMB-B01-M02-A03"
+                },
+                {
+                  "title": "Herramientas de aprendizaje 1",
+                  "type": "reading",
+                  "order": 4,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/TUMB/PR/PR2.pdf"
+                  },
+                  "activity_id": 126,
+                  "code": "A04",
+                  "slug": "INSC_TUMB_b01_m01_a01_lec_05f3144b",
+                  "shortId": "INSC_TUMB-B01-M02-A04"
+                },
+                {
+                  "title": "Herramientas de aprendizaje 1",
+                  "type": "reading",
+                  "order": 5,
+                  "required": true,
+                  "estimatedMinutes": null,
+                  "config": {
+                    "manualId": "/manuals/capacitacion/TUMB/PR/PR3.pdf"
+                  },
+                  "activity_id": 127,
+                  "code": "A05",
+                  "slug": "INSC_TUMB_b01_m01_a01_lec_05f3144b",
+                  "shortId": "INSC_TUMB-B01-M02-A05"
+                }
+              ],
+              "shortId": "TUMB_HIBRIDO-B01-M02"
+            }
+          ],
+          "shortId": "TUMB_HIBRIDO-B01"
+        }
+      ],
+      "shortId": "TUMB_HIBRIDO"
     }
   ]
 }

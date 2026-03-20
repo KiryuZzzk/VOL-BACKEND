@@ -10,6 +10,7 @@ const os = require("os");
 const corsOptions = {
   origin: [
     "http://localhost:3000",
+    "http://localhost:3001",
     "https://soyvoluntario.cruzrojamexicana.org.mx",
   ],
   methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
@@ -20,6 +21,7 @@ const corsOptions = {
 // 🌐 Orígenes permitidos (CORS + embebido en iframe)
 const FRONTEND_ORIGINS = [
   "http://localhost:3000",
+  "http://localhost:3001",
   "https://soyvoluntario.cruzrojamexicana.org.mx",
 ];
 
@@ -70,6 +72,8 @@ const progresoDocsRoutes = require("./routes/progreso.docs.routes");
 const coordinacionesRoutes = require("./routes/coordinaciones.routes");
 const trayectoriaRoutes = require("./routes/trayectoria.routes");
 const progresoAdminRoutes = require("./routes/progreso.admin.routes");
+const catalogAdminRoutes = require("./routes/catalog.admin.routes");
+const enrollmentAdminRoutes = require("./routes/enrollment.admin.routes");
 
 
 
@@ -85,6 +89,8 @@ app.use("/coordinaciones", coordinacionesRoutes);
 app.use("/trayectoria", trayectoriaRoutes);
 app.use("/progreso", progresoAdminRoutes);
 app.use("/progreso/admin", progresoAdminRoutes);
+app.use("/admin/catalog", catalogAdminRoutes);
+app.use("/admin/enrollment", enrollmentAdminRoutes);
 
 
 // ✅ Servir SCORM montado (assets extraídos)
