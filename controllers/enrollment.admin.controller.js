@@ -31,7 +31,6 @@ exports.listEnrollments = async (req, res) => {
         upe.user_id,
         upe.program_id,
         upe.status,
-        upe.enrolled_at,
         u.id        AS db_user_id,
         u.nombre,
         u.apellido_pat,
@@ -39,12 +38,11 @@ exports.listEnrollments = async (req, res) => {
         u.correo,
         u.matricula,
         u.curp,
-        u.estado,
         p.code      AS program_code,
         p.name      AS program_name
       FROM user_program_enrollment upe
-      JOIN users u   ON u.uid          = upe.user_id
-      JOIN program p ON p.program_id   = upe.program_id
+      JOIN users u   ON u.uid COLLATE utf8mb4_unicode_ci = upe.user_id COLLATE utf8mb4_unicode_ci
+      JOIN program p ON p.program_id = upe.program_id
       WHERE 1=1
     `;
     const params = [];
@@ -63,7 +61,7 @@ exports.listEnrollments = async (req, res) => {
       params.push(t, t, t, t, t);
     }
 
-    sql += " ORDER BY upe.enrolled_at DESC";
+    sql += " ORDER BY p.program_id ASC, u.apellido_pat ASC";
 
     const [rows] = await db.query(sql, params);
     return res.json({ enrollments: rows });
@@ -115,16 +113,12 @@ exports.enrollUser = async (req, res) => {
     const results = [];
     for (const uid of uids) {
       await db.query(
-        `INSERT INTO user_program_enrollment (user_id, program_id, status, enrolled_at)
-         VALUES (?, ?, 'enrolled', NOW())
+        `INSERT INTO user_program_enrollment (user_id, program_id, status)
+         VALUES (?, ?, 'enrolled')
          ON DUPLICATE KEY UPDATE
            status = CASE
              WHEN user_program_enrollment.status = 'completed' THEN user_program_enrollment.status
              ELSE 'enrolled'
-           END,
-           enrolled_at = CASE
-             WHEN user_program_enrollment.status = 'completed' THEN user_program_enrollment.enrolled_at
-             ELSE NOW()
            END`,
         [uid, Number(program_id)]
       );
