@@ -95,16 +95,16 @@ async function upsertModule(conn, m) {
   );
   if (!rows.length) {
     const [ins] = await conn.query(
-      `INSERT INTO module (block_id,code,name,order_index,is_active,description,estimated_minutes,prerequisites_json,is_final_exam)
-       VALUES (?,?,?,?,?,?,?,?,?)`,
-      [m.block_id, m.code, m.name, m.order_index, m.is_active, m.description, m.estimated_minutes, m.prerequisites_json, m.is_final_exam]
+      `INSERT INTO module (block_id,code,name,order_index,is_active,description,estimated_minutes,prerequisites_json,is_final_exam,start_date,end_date)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      [m.block_id, m.code, m.name, m.order_index, m.is_active, m.description, m.estimated_minutes, m.prerequisites_json, m.is_final_exam, m.start_date ?? null, m.end_date ?? null]
     );
     return { module_id: ins.insertId, action: "created" };
   }
   await conn.query(
-    `UPDATE module SET name=?,order_index=?,is_active=?,description=?,estimated_minutes=?,prerequisites_json=?,is_final_exam=?
+    `UPDATE module SET name=?,order_index=?,is_active=?,description=?,estimated_minutes=?,prerequisites_json=?,is_final_exam=?,start_date=?,end_date=?
      WHERE module_id=?`,
-    [m.name, m.order_index, m.is_active, m.description, m.estimated_minutes, m.prerequisites_json, m.is_final_exam, rows[0].module_id]
+    [m.name, m.order_index, m.is_active, m.description, m.estimated_minutes, m.prerequisites_json, m.is_final_exam, m.start_date ?? null, m.end_date ?? null, rows[0].module_id]
   );
   return { module_id: rows[0].module_id, action: "updated" };
 }
@@ -160,7 +160,7 @@ async function buildProgramTree(programCode) {
   if (blocks.length) {
     const bIds = blocks.map((b) => b.block_id);
     const [modRows] = await db.query(
-      `SELECT module_id,block_id,code,name,description,estimated_minutes,prerequisites_json,is_final_exam,order_index,is_active
+      `SELECT module_id,block_id,code,name,description,estimated_minutes,prerequisites_json,is_final_exam,order_index,is_active,start_date,end_date
        FROM module WHERE block_id IN (${bIds.map(() => "?").join(",")}) ORDER BY order_index ASC, module_id ASC`,
       bIds
     );
@@ -401,7 +401,7 @@ exports.createModule = async (req, res) => {
   const blockId = toIntOrNull(req.params.blockId);
   if (!blockId) return res.status(400).json({ error: "blockId inválido" });
 
-  const { code, title, name, description, order, isActive, isFinalExam, prerequisites, estimatedMinutes } = req.body;
+  const { code, title, name, description, order, isActive, isFinalExam, prerequisites, estimatedMinutes, startDate, endDate } = req.body;
   const mCode = toUpperCode(code);
   if (!mCode) return res.status(400).json({ error: "code del módulo es requerido" });
 
@@ -432,6 +432,8 @@ exports.createModule = async (req, res) => {
         estimated_minutes: toIntOrNull(estimatedMinutes),
         prerequisites_json: jsonOrNull(prerequisites || []),
         is_final_exam: toTinyBool(isFinalExam, 0),
+        start_date: startDate || null,
+        end_date: endDate || null,
       });
       await conn.commit();
       const tree = await buildProgramTree(programCode);
@@ -465,6 +467,8 @@ exports.patchModule = async (req, res) => {
   if (body.is_final_exam !== undefined || body.isFinalExam !== undefined) { sets.push("is_final_exam=?"); vals.push(toTinyBool(body.isFinalExam ?? body.is_final_exam)); }
   if (body.prerequisites !== undefined || body.prerequisites_json !== undefined) { sets.push("prerequisites_json=?"); vals.push(jsonOrNull(body.prerequisites ?? body.prerequisites_json)); }
   if (body.estimatedMinutes !== undefined || body.estimated_minutes !== undefined) { sets.push("estimated_minutes=?"); vals.push(toIntOrNull(body.estimatedMinutes ?? body.estimated_minutes)); }
+  if (body.startDate !== undefined || body.start_date !== undefined) { sets.push("start_date=?"); vals.push(body.startDate ?? body.start_date ?? null); }
+  if (body.endDate !== undefined || body.end_date !== undefined) { sets.push("end_date=?"); vals.push(body.endDate ?? body.end_date ?? null); }
 
   if (!sets.length) return res.status(400).json({ error: "Sin campos para actualizar" });
   vals.push(moduleId);

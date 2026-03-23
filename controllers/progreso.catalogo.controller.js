@@ -3,6 +3,16 @@ const db = require("../config/db");
 /**
  * Helper: parsea JSON seguro (soporta null, "", objetos ya parseados)
  */
+function isModuleDateLocked(m) {
+  const now = new Date();
+  const start = m.start_date ? new Date(m.start_date) : null;
+  const end   = m.end_date   ? new Date(m.end_date)   : null;
+  if (!start && !end) return false;
+  if (start && !end)  return now < start;
+  if (!start && end)  return now > end;
+  return now < start || now > end;
+}
+
 function safeJsonParse(value, fallback = null) {
   if (value === null || value === undefined) return fallback;
   if (typeof value === "object") return value; // ya viene parseado
@@ -112,7 +122,9 @@ exports.getProgramaArbol = async (req, res) => {
             prerequisites_json,
             is_final_exam,
             order_index,
-            is_active
+            is_active,
+            start_date,
+            end_date
           FROM module
           WHERE block_id IN (${blockIds.map(() => "?").join(",")})
             AND is_active = 1
@@ -126,8 +138,9 @@ exports.getProgramaArbol = async (req, res) => {
       ...m,
       id: m.module_id,
       title: m.name,
-      order: m.order_index, // ✅ alias
+      order: m.order_index,
       prerequisites: safeJsonParse(m.prerequisites_json, []),
+      isDateLocked: isModuleDateLocked(m),
       activities: [],
     }));
 
