@@ -62,6 +62,7 @@ exports.getAll = async (req, res) => {
     // Selección explícita de campos (incluye id)
     const campos = [
       "u.id AS id",
+      "u.uid",
       "u.matricula",
       "u.correo",
       "u.nombre",
