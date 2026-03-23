@@ -615,7 +615,6 @@ const msJoin =
         ON stats.user_id COLLATE utf8mb4_unicode_ci = u.uid COLLATE utf8mb4_unicode_ci
 
       WHERE upe.program_id = ?
-        AND upe.status IN ('enrolled', 'completed')
         
 
       ORDER BY progress_pct DESC, avg_score DESC, last_activity_at DESC
