@@ -491,6 +491,42 @@ exports.iniciarActividad = async (req, res) => {
     if (!meta.isActive) return res.status(400).json({ error: "Actividad inactiva" });
 
     // ─────────────────────────────────────────
+    // QUIZ NORMAL: verificar maxAttempts al INICIAR (intento se consume al completar)
+    // ─────────────────────────────────────────
+    if (meta.type === "quiz" || meta.type === "examen") {
+      const maxAttempts = meta.config?.maxAttempts ? Number(meta.config.maxAttempts) : null;
+
+      if (maxAttempts) {
+        const [pRows] = await db.query(
+          `SELECT attempts FROM user_activity_progress WHERE user_id = ? AND activity_id = ? LIMIT 1`,
+          [uid, activityId]
+        );
+        const attemptsUsed = Number(pRows[0]?.attempts || 0);
+
+        if (attemptsUsed >= maxAttempts) {
+          return res.status(403).json({
+            error: "Sin intentos disponibles",
+            attemptsUsed,
+            maxAttempts,
+          });
+        }
+
+        // Marcar como in_progress y retornar info de intentos
+        await db.query(
+          `INSERT INTO user_activity_progress (user_id, activity_id, status, started_at, last_seen_at)
+           VALUES (?, ?, 'in_progress', NOW(), NOW())
+           ON DUPLICATE KEY UPDATE
+             status = IF(status='completed', status, 'in_progress'),
+             started_at = COALESCE(started_at, NOW()),
+             last_seen_at = NOW()`,
+          [uid, activityId]
+        );
+
+        return res.json({ ok: true, type: "quiz", attemptsUsed, maxAttempts });
+      }
+    }
+
+    // ─────────────────────────────────────────
     // FINAL QUIZ: consumir intento al INICIAR
     // ─────────────────────────────────────────
     if (meta.type === "final_quiz") {
@@ -725,6 +761,23 @@ exports.completarActividad = async (req, res) => {
     }
 
     // ─────────────────────────────────────────
+    // QUIZ NORMAL: verificar maxAttempts antes de guardar resultado
+    // ─────────────────────────────────────────
+    if (meta.type === "quiz" || meta.type === "examen") {
+      const maxAttempts = meta.config?.maxAttempts ? Number(meta.config.maxAttempts) : null;
+      if (maxAttempts) {
+        const [pRows] = await db.query(
+          `SELECT attempts FROM user_activity_progress WHERE user_id = ? AND activity_id = ? LIMIT 1`,
+          [uid, activityId]
+        );
+        const attemptsUsed = Number(pRows[0]?.attempts || 0);
+        if (attemptsUsed >= maxAttempts) {
+          return res.status(403).json({ error: "Sin intentos disponibles", attemptsUsed, maxAttempts });
+        }
+      }
+    }
+
+    // ─────────────────────────────────────────
     // Default (otros tipos): comportamiento original (+1 intento por completion)
     // ─────────────────────────────────────────
     const data_json = normalizeJsonForDb(incomingData);
@@ -745,7 +798,14 @@ exports.completarActividad = async (req, res) => {
       [uid, activityId, status, score, data_json]
     );
 
-    return res.json({ ok: true, status });
+    // Leer el nuevo attempts count para devolverlo al frontend
+    const [updRows] = await db.query(
+      `SELECT attempts FROM user_activity_progress WHERE user_id = ? AND activity_id = ? LIMIT 1`,
+      [uid, activityId]
+    );
+    const attemptsUsed = Number(updRows[0]?.attempts || 1);
+
+    return res.json({ ok: true, status, attemptsUsed });
   } catch (err) {
     console.error("❌ completarActividad error:", err);
     return res.status(500).json({ error: "Error al completar actividad" });
