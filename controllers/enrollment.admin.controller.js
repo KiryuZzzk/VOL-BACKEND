@@ -3,7 +3,7 @@
 
 const db = require("../config/db");
 
-const VALID_STATUSES = ["enrolled", "completed", "dropped", "pending", "suspended"];
+const VALID_STATUSES = ["enrolled", "completed", "dropped", "pending", "suspended", "disabled"];
 
 // ─── GET /admin/enrollment/programs ─────────────────────────
 // Lista programas disponibles (para el select del frontend)
@@ -129,6 +129,28 @@ exports.enrollUser = async (req, res) => {
   } catch (err) {
     console.error("❌ enrollment.enrollUser:", err);
     return res.status(500).json({ error: "Error al inscribir usuario" });
+  }
+};
+
+// ─── DELETE /admin/enrollment/:userId/:programId ─────────────
+// Elimina una inscripción.
+exports.deleteEnrollment = async (req, res) => {
+  try {
+    const { userId, programId } = req.params;
+
+    const [result] = await db.query(
+      "DELETE FROM user_program_enrollment WHERE user_id = ? AND program_id = ?",
+      [String(userId).trim(), Number(programId)]
+    );
+
+    if (!result.affectedRows) {
+      return res.status(404).json({ error: "Inscripción no encontrada" });
+    }
+
+    return res.json({ action: "deleted", user_id: userId, program_id: Number(programId) });
+  } catch (err) {
+    console.error("❌ enrollment.deleteEnrollment:", err);
+    return res.status(500).json({ error: "Error al eliminar inscripción" });
   }
 };
 

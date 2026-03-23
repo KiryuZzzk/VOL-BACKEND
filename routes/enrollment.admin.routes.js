@@ -17,7 +17,10 @@ router.get("/", adminOnly, ctrl.listEnrollments);
 // POST /admin/enrollment                    → inscribir usuario(s)
 router.post("/", adminOnly, ctrl.enrollUser);
 
-// PATCH /admin/enrollment/:userId/:programId → cambiar status
+// PATCH  /admin/enrollment/:userId/:programId → cambiar status
 router.patch("/:userId/:programId", adminOnly, ctrl.updateStatus);
+
+// DELETE /admin/enrollment/:userId/:programId → eliminar inscripción
+router.delete("/:userId/:programId", adminOnly, ctrl.deleteEnrollment);
 
 module.exports = router;
