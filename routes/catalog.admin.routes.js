@@ -12,7 +12,6 @@ const adminOnly = [authMiddleware, roleMiddleware(["admin"])];
 
 // ── Programas ──────────────────────────────────────────────────
 
-router.delete("/activities/:activityId", ctrl.deleteActivity);
 // GET  /admin/catalog/programs               → lista todos los programas
 router.get("/programs", adminOnly, ctrl.listPrograms);
 
@@ -45,5 +44,8 @@ router.post("/modules/:moduleId/activities", adminOnly, ctrl.createActivity);
 
 // PATCH /admin/catalog/activities/:activityId → editar campos de una actividad
 router.patch("/activities/:activityId", adminOnly, ctrl.patchActivity);
+
+router.delete("/activities/:activityId", adminOnly, ctrl.deleteActivity);
+
 
 module.exports = router;
