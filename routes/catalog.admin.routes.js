@@ -11,6 +11,8 @@ const { authMiddleware, roleMiddleware } = require("../middlewares/auth");
 const adminOnly = [authMiddleware, roleMiddleware(["admin"])];
 
 // ── Programas ──────────────────────────────────────────────────
+
+router.delete("/activities/:activityId", ctrl.deleteActivity);
 // GET  /admin/catalog/programs               → lista todos los programas
 router.get("/programs", adminOnly, ctrl.listPrograms);
 

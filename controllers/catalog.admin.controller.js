@@ -489,6 +489,45 @@ exports.patchModule = async (req, res) => {
   }
 };
 
+// ============================================================
+// FUNCIÓN: Eliminar una actividad del catálogo
+// ============================================================
+// PROPÓSITO:
+// Elimina permanentemente una actividad de la base de datos
+// y retorna el árbol actualizado del programa
+// ============================================================
+
+exports.deleteActivity = async (req, res) => {
+  
+  const activityId = toIntOrNull(req.params.activityId);
+  
+  // Si el ID es inválido (no es número), responde con error 400
+  if (!activityId) return res.status(400).json({ error: "activityId inválido" });
+
+  try {
+    const [aRow] = await db.query(
+      `SELECT p.code FROM program p
+       JOIN block b ON b.program_id=p.program_id
+       JOIN module m ON m.block_id=b.block_id
+       JOIN activity a ON a.module_id=m.module_id
+       WHERE a.activity_id=?`,
+      [activityId]
+    );
+    
+    if (!aRow.length) return res.status(404).json({ error: "Actividad no encontrada" });
+
+    await db.query("DELETE FROM activity WHERE activity_id=?", [activityId]);
+
+    const tree = await buildProgramTree(aRow[0].code);
+    
+    return res.json({ action: "deleted", tree });
+    
+  } catch (err) {
+    console.error("❌ deleteActivity:", err);
+    return res.status(500).json({ error: "Error al eliminar actividad" });
+  }
+};
+
 // POST /admin/catalog/modules/:moduleId/activities
 // Añade (o actualiza) una actividad en el módulo
 // Body: { code, title, type, description, order, isActive, isFinalExam, required, estimatedMinutes, xp, minScore, config }
